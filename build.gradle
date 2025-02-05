@@ -1,0 +1,104 @@
+plugins {
+    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+    // Add repositories to retrieve artifacts from in here.
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    implementation 'net.dv8tion:JDA:5.1.0'
+    implementation 'org.jfree:jfreechart:1.5.3'
+    implementation 'org.mongodb:mongodb-driver-sync:5.1.3'
+    implementation 'org.mongodb:bson:5.1.3'
+    implementation 'org.mongodb:mongodb-driver-core:5.1.3'
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release = targetJavaVersion
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    archivesBaseName = project.archives_base_name
+    withSourcesJar()
+}
+
+jar {
+    // Only include specific parts of the dependencies to avoid exceeding the entry limit
+    from {
+        configurations.runtimeClasspath.filter {
+            it.name.endsWith('bson-5.1.3.jar') ||
+                    it.name.endsWith('mongodb-driver-sync-5.1.3.jar') ||
+                    it.name.endsWith('mongodb-driver-core-5.1.3.jar') ||
+                    it.name.contains('jfreechart')
+        }.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}"}
+    }
+
+    // Prevent the jar from getting too large
+    manifest {
+        attributes 'Multi-Release': 'true'
+    }
+}
+
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Fabric"
+            url = "https://maven.fabricmc.net/"
+        }
+        maven {
+            name = "ModMuss50"
+            url = "https://maven.modmuss50.me/"
+        }
+        mavenCentral()
+    }
+}

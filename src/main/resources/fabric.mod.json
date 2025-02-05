@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "samsaradiscordgaming",
+  "version": "${version}",
+  "name": "samsaraDiscordGaming",
+  "description": "",
+  "authors": [],
+  "contact": {
+    "repo": "https://github.com/socce/samsaraDiscordGaming"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/samsaradiscordgaming/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "bor.samsara.questing.SamsaraFabricQuesting"
+    ]
+  },
+  "mixins": [
+    "questing.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
