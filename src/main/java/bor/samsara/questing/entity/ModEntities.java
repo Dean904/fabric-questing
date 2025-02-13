@@ -17,7 +17,7 @@ import java.util.UUID;
 
 public class ModEntities {
 
-    private static NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
+    private static final NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
 
     public static int createQuestNPC(ServerCommandSource source, String name) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
@@ -49,11 +49,8 @@ public class ModEntities {
         return villager;
     }
 
-
     public static void spawnTravelingWelcomer(ServerCommandSource source) {
-
         // TODO spawn a traveling villager to follow player until welcome convo complete
-
     }
 
     public static void despawnTravelingWelcomer(ServerCommandSource source) {
@@ -62,5 +59,6 @@ public class ModEntities {
     public static MongoNpc getQuestNPC(ServerCommandSource source, String villagerName) {
         return null; // TODO return npc queried from DB (with conversation state for config)
     }
+
 }
 
