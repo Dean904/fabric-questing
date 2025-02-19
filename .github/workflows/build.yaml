@@ -35,21 +35,3 @@ jobs:
           path: build/libs/*.jar
 
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      # Step 1: Download the jar artifact
-      - name: Download jar artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: fabric-plugin-jar
-
-      # Step 2: Package it into the Minecraft server container
-      - name: Deploy to server
-        env:
-          SERVER_ADDRESS: ${{ secrets.SERVER_ADDRESS }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          scp -i $SSH_PRIVATE_KEY fabric-plugin-jar/*.jar user@${SERVER_ADDRESS}:/path/to/server/plugins/
-          ssh -i $SSH_PRIVATE_KEY user@${SERVER_ADDRESS} "cd /path/to/server && ./restart_server.sh"
