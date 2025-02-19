@@ -2,8 +2,7 @@ name: Build and Deploy Fabric Plugin
 
 on:
   push:
-    branches:
-      - main
+
 
 jobs:
   build:
