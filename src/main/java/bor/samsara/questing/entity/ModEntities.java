@@ -1,6 +1,6 @@
 package bor.samsara.questing.entity;
 
-import bor.samsara.questing.mongo.NpcMongoClientSingleton;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -13,11 +13,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
-
 public class ModEntities {
 
-    private static final NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
 
     public static int createQuestNPC(ServerCommandSource source, String name) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
@@ -26,8 +23,9 @@ public class ModEntities {
 
         try {
             VillagerEntity villager = makeVillagerEntity(world, pos, player, name);
-            MongoNpc mongoNpc = new MongoNpc(UUID.randomUUID().toString(), name);
-            mongo.createNpc(mongoNpc);
+            String uuid = villager.getUuid().toString();
+            MongoNpc mongoNpc = new MongoNpc(uuid, name);
+            NpcMongoClient.createNpc(mongoNpc);
             world.spawnEntity(villager);
         } catch (Exception e) {
             source.sendError(Text.literal("Failed: " + e));
@@ -48,16 +46,11 @@ public class ModEntities {
         villager.setNoGravity(true);
         return villager;
     }
-
     public static void spawnTravelingWelcomer(ServerCommandSource source) {
         // TODO spawn a traveling villager to follow player until welcome convo complete
     }
 
     public static void despawnTravelingWelcomer(ServerCommandSource source) {
-    }
-
-    public static MongoNpc getQuestNPC(ServerCommandSource source, String villagerName) {
-        return null; // TODO return npc queried from DB (with conversation state for config)
     }
 
 }

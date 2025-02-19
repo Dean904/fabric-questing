@@ -1,7 +1,7 @@
 package bor.samsara.questing.mixin;
 
 import bor.samsara.questing.entity.BookStateUtil;
-import bor.samsara.questing.mongo.NpcMongoClientSingleton;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
@@ -28,7 +28,6 @@ public class BookSignedMixin {
 
     private static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
-    private static NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
 
     /**
      * We inject after vanilla finishes processing BookUpdateC2SPacket,
@@ -54,12 +53,12 @@ public class BookSignedMixin {
                 // 1) Load the NPC from DB
                 try {
                     String encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
-                    MongoNpc npc = mongo.getFirstNpcByName(encodedNpcName);
+                    MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName);
 
                     ItemStack mainHandItemStack = player.getInventory().getMainHandStack();
                     Map<Integer, List<String>> stageConversationMap = BookStateUtil.readStageConversationsFromBook(mainHandItemStack);
                     npc.setStageConversationMap(stageConversationMap);
-                    mongo.updateNpc(npc);
+                    NpcMongoClient.updateNpc(npc);
                     log.info("Updated {} conversation map {}", encodedNpcName, stageConversationMap);
                 } catch (Exception e) {
                     player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
