@@ -2,11 +2,9 @@ package bor.samsara.questing.mongo.models;
 
 import org.bson.Document;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 
-public class MongoNpc {
+public class MongoNpc implements MongoDao<MongoNpc> {
 
     private final String uuid;
     private String name;
@@ -15,6 +13,9 @@ public class MongoNpc {
 
     Map<Integer, List<String>> stageConversationMap = new HashMap<>();
 
+    public MongoNpc() {
+        this.uuid = UUID.randomUUID().toString();
+    }
 
     public MongoNpc(String uuid, String name) {
         this.uuid = uuid;
@@ -85,7 +86,7 @@ public class MongoNpc {
     }
 
     @SuppressWarnings("unchecked")
-    public static MongoNpc fromDocument(Document document) {
+    public MongoNpc fromDocument(Document document) {
         MongoNpc p = new MongoNpc(document.getString("uuid"), document.getString("name"));
         p.setPos_x(document.getInteger("pos_x"));
         p.setPos_y(document.getInteger("pos_y"));
@@ -101,12 +102,6 @@ public class MongoNpc {
             }
         }
         return p;
-    }
-
-    public static LocalDateTime convert(Date dateToConvert) {
-        return dateToConvert.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
     }
 
 }

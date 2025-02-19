@@ -1,6 +1,6 @@
 package bor.samsara.questing.entity;
 
-import bor.samsara.questing.mongo.NpcMongoClientSingleton;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
@@ -20,11 +20,9 @@ import java.util.*;
 
 public class BookStateUtil {
 
-    private static NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
-
     public static int open(ServerCommandSource source, String name) {
         try {
-            MongoNpc npc = mongo.getFirstNpcByName(name); // load from DB
+            MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
             ItemStack book = BookStateUtil.createConversationBook(npc);
             ServerPlayerEntity player = source.getPlayerOrThrow();
             if (player.getInventory().insertStack(book)) {
@@ -73,12 +71,12 @@ public class BookStateUtil {
 
     public static int close(ServerCommandSource source, String name) {
         try {
-            MongoNpc npc = mongo.getFirstNpcByName(name); // load from DB
+            MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
             ItemStack mainHandItemStack = source.getPlayer().getInventory().getMainHandStack();
             Map<Integer, List<String>> stageConversationMap = readStageConversationsFromBook(mainHandItemStack);
             npc.setStageConversationMap(stageConversationMap);
 
-            mongo.updateNpc(npc);
+            NpcMongoClient.updateNpc(npc);
         } catch (Exception e) {
             source.sendError(Text.literal("Failed: " + e));
         }

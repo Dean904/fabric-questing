@@ -2,7 +2,7 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.entity.BookStateUtil;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.mongo.NpcMongoClientSingleton;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -59,6 +59,7 @@ public class EventRegisters {
     }
 
     @Deprecated
+    // TODO delete, no longer neede now that sign and close book mixin implemented
     public static @NotNull CommandRegistrationCallback closeCommandBookForNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
@@ -85,9 +86,7 @@ public class EventRegisters {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
             if (entity.getCommandTags().contains("questNPC")) { // this could be an int flag on .get(0) instead of a list traversal
                 String uuid = entity.getUuid().toString();
-                MongoNpc npc = NpcMongoClientSingleton.getInstance().getNpc(uuid);
-
-
+                MongoNpc npc = NpcMongoClient.getNpc(uuid);
 
                 player.sendMessage(Text.literal(npc.getName()), false);
                 // TODO play villager noise for player

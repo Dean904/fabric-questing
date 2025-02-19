@@ -6,40 +6,44 @@ import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
 public class NpcMongoClient {
+
     private static final String NPC_COLLECTION = "nonPlayerCharacters";
 
-    private final MongoDatabase database = MongoClientSingleton.getDatabase();
+    private static final MongoDatabase database = MongoClientSingleton.getDatabase();
 
-    public void createNpc(MongoNpc player) {
+    private NpcMongoClient() {
+    }
+
+    public static void createNpc(MongoNpc player) {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
         Document doc = player.toDocument();
         collection.insertOne(doc);
     }
 
-    public MongoNpc getFirstNpcByName(String name) {
+    public static MongoNpc getFirstNpcByName(String name) {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
         Document query = new Document("name", name);
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            return MongoNpc.fromDocument(doc);
+            return new MongoNpc().fromDocument(doc);
         }
 
         throw new IllegalStateException("The player '%s' was not found".formatted(name));
     }
 
-    public MongoNpc getNpc(String uuid) throws IllegalStateException {
+    public static MongoNpc getNpc(String uuid) throws IllegalStateException {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
         Document query = new Document("uuid", uuid);
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            return MongoNpc.fromDocument(doc);
+            return new MongoNpc().fromDocument(doc);
         }
         throw new IllegalStateException("The player '%s' was not found".formatted(uuid));
     }
 
-    public void updateNpc(MongoNpc player) {
+    public static void updateNpc(MongoNpc player) {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
         Document query = new Document("uuid", player.getUuid());
         Document update = new Document("$set", player.toDocument());

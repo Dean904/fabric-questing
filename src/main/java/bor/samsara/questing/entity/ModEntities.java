@@ -1,6 +1,6 @@
 package bor.samsara.questing.entity;
 
-import bor.samsara.questing.mongo.NpcMongoClientSingleton;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -13,11 +13,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
-
 public class ModEntities {
 
-    private static final NpcMongoClientSingleton mongo = NpcMongoClientSingleton.getInstance();
 
     public static int createQuestNPC(ServerCommandSource source, String name) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
@@ -28,7 +25,7 @@ public class ModEntities {
             VillagerEntity villager = makeVillagerEntity(world, pos, player, name);
             String uuid = villager.getUuid().toString();
             MongoNpc mongoNpc = new MongoNpc(uuid, name);
-            mongo.createNpc(mongoNpc);
+            NpcMongoClient.createNpc(mongoNpc);
             world.spawnEntity(villager);
         } catch (Exception e) {
             source.sendError(Text.literal("Failed: " + e));
