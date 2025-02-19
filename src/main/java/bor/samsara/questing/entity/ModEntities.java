@@ -26,7 +26,8 @@ public class ModEntities {
 
         try {
             VillagerEntity villager = makeVillagerEntity(world, pos, player, name);
-            MongoNpc mongoNpc = new MongoNpc(UUID.randomUUID().toString(), name);
+            String uuid = villager.getUuid().toString();
+            MongoNpc mongoNpc = new MongoNpc(uuid, name);
             mongo.createNpc(mongoNpc);
             world.spawnEntity(villager);
         } catch (Exception e) {
@@ -48,16 +49,11 @@ public class ModEntities {
         villager.setNoGravity(true);
         return villager;
     }
-
     public static void spawnTravelingWelcomer(ServerCommandSource source) {
         // TODO spawn a traveling villager to follow player until welcome convo complete
     }
 
     public static void despawnTravelingWelcomer(ServerCommandSource source) {
-    }
-
-    public static MongoNpc getQuestNPC(ServerCommandSource source, String villagerName) {
-        return null; // TODO return npc queried from DB (with conversation state for config)
     }
 
 }

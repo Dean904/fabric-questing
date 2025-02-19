@@ -55,7 +55,7 @@ public class BookStateUtil {
             List<String> lines = entry.getValue();
             // Combine all lines for this stage into one page
             // You could do more complicated page-splitting if lines are too long.
-            StringBuilder pageText = new StringBuilder("Stage ").append(stageId).append(":\n");
+            StringBuilder pageText = new StringBuilder("Stage ").append(stageId + 1).append(":\n");
             for (String line : lines) {
                 pageText.append(line).append("\n");
                 pages.add(new RawFilteredPair<>(line, Optional.of(line)));
