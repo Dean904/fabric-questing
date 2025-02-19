@@ -1,4 +1,4 @@
-name: Build and Deploy Fabric Plugin
+name: Deploy Fabric Plugin
 
 on:
   push:
@@ -8,33 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Step 2: Set up JDK
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      # Step 3: Grant execute permissions and build
-      - name: Build the jar
-        run: |
-          chmod +x gradlew
-          ./gradlew build
-
-      # Step 4: Archive the build artifacts
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: fabric-plugin-jar
-          path: build/libs/*.jar
-
-
+  
   deploy:
     needs: build
     runs-on: ubuntu-latest
