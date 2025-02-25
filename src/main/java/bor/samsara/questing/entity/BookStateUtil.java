@@ -8,17 +8,24 @@ import net.minecraft.component.type.WritableBookContentComponent;
 import net.minecraft.component.type.WrittenBookContentComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.WritableBookItem;
 import net.minecraft.item.WrittenBookItem;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
 public class BookStateUtil {
+
+    public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
     public static int open(ServerCommandSource source, String name) {
         try {
@@ -48,12 +55,11 @@ public class BookStateUtil {
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         List<RawFilteredPair<String>> pages = new ArrayList<>();
-        for (Map.Entry<Integer, List<String>> entry : npc.getStageConversationMap().entrySet()) {
-            int stageId = entry.getKey();
-            List<String> lines = entry.getValue();
+        for (MongoNpc.Quest quest : npc.getQuests().values()) {
+            List<String> lines = quest.getDialogue();
             // Combine all lines for this stage into one page
             // You could do more complicated page-splitting if lines are too long.
-            StringBuilder pageText = new StringBuilder("Stage ").append(stageId + 1).append(":\n");
+            StringBuilder pageText = new StringBuilder("Quest ").append(quest.getSequence()).append(":\n");
             for (String line : lines) {
                 pageText.append(line).append("\n");
                 pages.add(new RawFilteredPair<>(line, Optional.of(line)));
@@ -73,8 +79,8 @@ public class BookStateUtil {
         try {
             MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
             ItemStack mainHandItemStack = source.getPlayer().getInventory().getMainHandStack();
-            Map<Integer, List<String>> stageConversationMap = readStageConversationsFromBook(mainHandItemStack);
-            npc.setStageConversationMap(stageConversationMap);
+            Map<Integer, MongoNpc.Quest> quests = readQuestsFromBook(mainHandItemStack);
+            npc.setQuests(quests);
 
             NpcMongoClient.updateNpc(npc);
         } catch (Exception e) {
@@ -83,19 +89,28 @@ public class BookStateUtil {
         return 1;
     }
 
-    public static Map<Integer, List<String>> readStageConversationsFromBook(ItemStack bookStack) {
+    /**
+     * example book config = "##0;;hello;;world;;"
+     */
+    public static Map<Integer, MongoNpc.Quest> readQuestsFromBook(ItemStack bookStack) {
         // "pages" is an NBTList of JSON strings
         if (bookStack.getItem() instanceof WrittenBookItem) {
             WrittenBookContentComponent signedBookContent = bookStack.getOrDefault(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT);
-            List<String> signedBookString = signedBookContent.pages().stream().map(pair -> (pair.get(false).getString())).toList();
-            return Map.of(0, signedBookString);
-        }
-        if (bookStack.getItem() instanceof WritableBookItem) {
-            WritableBookContentComponent bookContent = bookStack.getOrDefault(DataComponentTypes.WRITABLE_BOOK_CONTENT, WritableBookContentComponent.DEFAULT);
-            List<String> bookString = bookContent.pages().stream().map(pair -> pair.get(false)).toList();
-            return Map.of(0, bookString);
+            StringBuilder sb = new StringBuilder();
+            signedBookContent.pages().forEach(pair -> sb.append(pair.get(false).getString()));
+            List<String> questStrings = new ArrayList<>(List.of(sb.toString().split("##")));
+            questStrings.removeIf(StringUtils::isEmpty);
+            return questStrings.stream().map(s -> {
+                List<String> allQuestData = new ArrayList<>(Arrays.asList(s.split(";;")));
+                MongoNpc.Quest q = new MongoNpc.Quest();
+                q.setSequence(Integer.parseInt(allQuestData.getFirst()));
+                allQuestData.removeFirst();
+                q.setDialogue(allQuestData);
+                return q;
+            }).collect(Collectors.toMap(MongoNpc.Quest::getSequence, o -> o));
         }
 
+        log.error("ReadQuestsFromBook failed, item is not a WrittenBookItem: {}", bookStack);
         return new HashMap<>(); // Not a book
     }
 

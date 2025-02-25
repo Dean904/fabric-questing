@@ -44,7 +44,6 @@ public class BookSignedMixin {
             int slotIndex = packet.slot();
             ItemStack bookStack = player.getInventory().getStack(slotIndex);
 
-            // TODO if statement not needed?
             if (bookStack.getItem() == Items.WRITTEN_BOOK) {
 
                 NbtComponent bookStackCustomData = bookStack.get(DataComponentTypes.CUSTOM_DATA);
@@ -56,12 +55,13 @@ public class BookSignedMixin {
                     MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName);
 
                     ItemStack mainHandItemStack = player.getInventory().getMainHandStack();
-                    Map<Integer, List<String>> stageConversationMap = BookStateUtil.readStageConversationsFromBook(mainHandItemStack);
-                    npc.setStageConversationMap(stageConversationMap);
+                    Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(mainHandItemStack);
+                    npc.setQuests(questMap);
                     NpcMongoClient.updateNpc(npc);
-                    log.info("Updated {} conversation map {}", encodedNpcName, stageConversationMap);
+                    log.info("Updated {} conversation map {}", encodedNpcName, questMap);
                 } catch (Exception e) {
                     player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
+                    log.error("{}", e.getMessage(), e);
                 }
 
                 // 5) If you want to remove the book from the player’s inventory:

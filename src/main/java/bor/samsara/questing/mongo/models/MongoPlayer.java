@@ -9,11 +9,9 @@ import java.util.UUID;
 
 public class MongoPlayer implements MongoDao<MongoPlayer> {
 
-    // TODO update schema and finish to/from doc
     private final String uuid;
     private String name;
-
-    Map<Integer, List<String>> questLog = new HashMap<>();
+    private Map<String, Integer> npcActiveQuest = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -36,17 +34,26 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Document toDocument() {
-        Document doc = new Document("uuid", uuid)
-                .append("name", name);
+    public Integer getActiveQuestForNpc(String npcUuid) {
+        npcActiveQuest.putIfAbsent(npcUuid, 0);
+        return npcActiveQuest.get(npcUuid);
+    }
 
-        return doc;
+    public void setActiveQuestForNpc(String npcUuid, Integer activeQuest) {
+        npcActiveQuest.put(npcUuid, activeQuest);
+    }
+
+    public Document toDocument() {
+        return new Document("uuid", uuid)
+                .append("name", name)
+                .append("npcActiveQuest", npcActiveQuest);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
-        MongoPlayer p = new MongoPlayer(document.getString("uuid"), document.getString("name"));
+        MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
+        npcActiveQuest = document.get("npcActiveQuest", Map.class);
 
-        return p;
+        return player;
     }
 }

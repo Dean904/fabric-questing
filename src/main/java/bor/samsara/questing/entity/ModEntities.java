@@ -13,6 +13,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
+
 public class ModEntities {
 
 
@@ -22,11 +24,11 @@ public class ModEntities {
         Vec3d pos = player.getPos();
 
         try {
-            VillagerEntity villager = makeVillagerEntity(world, pos, player, name);
-            String uuid = villager.getUuid().toString();
-            MongoNpc mongoNpc = new MongoNpc(uuid, name);
-            NpcMongoClient.createNpc(mongoNpc);
+            UUID villagerUuid = UUID.randomUUID();
+            VillagerEntity villager = makeVillagerEntity(world, villagerUuid, pos, player, name);
             world.spawnEntity(villager);
+            MongoNpc mongoNpc = new MongoNpc(villagerUuid.toString(), name);
+            NpcMongoClient.createNpc(mongoNpc);
         } catch (Exception e) {
             source.sendError(Text.literal("Failed: " + e));
         }
@@ -35,8 +37,9 @@ public class ModEntities {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static @NotNull VillagerEntity makeVillagerEntity(World world, Vec3d pos, ServerPlayerEntity player, String name) {
+    private static @NotNull VillagerEntity makeVillagerEntity(World world, UUID uuid, Vec3d pos, ServerPlayerEntity player, String name) {
         VillagerEntity villager = EntityType.VILLAGER.create(world);
+        villager.setUuid(uuid);
         villager.refreshPositionAndAngles(pos.x, pos.y, pos.z, player.getYaw(), player.getPitch());
         villager.setCustomName(Text.literal(name));
         villager.addCommandTag("questNPC");
@@ -46,6 +49,8 @@ public class ModEntities {
         villager.setNoGravity(true);
         return villager;
     }
+
+
     public static void spawnTravelingWelcomer(ServerCommandSource source) {
         // TODO spawn a traveling villager to follow player until welcome convo complete
     }
