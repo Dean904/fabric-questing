@@ -40,7 +40,7 @@ public class NpcMongoClient {
         if (doc != null) {
             return new MongoNpc().fromDocument(doc);
         }
-        throw new IllegalStateException("The player '%s' was not found".formatted(uuid));
+        throw new IllegalStateException("The MongoNpc '%s' was not found".formatted(uuid));
     }
 
     public static void updateNpc(MongoNpc player) {

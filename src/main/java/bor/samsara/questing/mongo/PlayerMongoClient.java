@@ -10,26 +10,26 @@ public class PlayerMongoClient {
 
     private static final String PLAYER_COLLECTION = "playerCharacters";
 
-    private final MongoDatabase database = MongoClientSingleton.getDatabase();
+    private static final MongoDatabase database = MongoClientSingleton.getDatabase();
 
-    public void createPlayer(MongoPlayer player) {
+    public static void createPlayer(MongoPlayer player) {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
         Document doc = player.toDocument();
         collection.insertOne(doc);
     }
 
-    public MongoNpc getPlayerByUuid(String uuid) throws IllegalStateException {
+    public static MongoPlayer getPlayerByUuid(String uuid) throws IllegalStateException {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
         Document query = new Document("uuid", uuid);
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            return new MongoNpc().fromDocument(doc);
+            return new MongoPlayer().fromDocument(doc);
         }
         throw new IllegalStateException("The player '%s' was not found".formatted(uuid));
     }
 
-    public void updatePlayer(MongoPlayer player) {
+    public static void updatePlayer(MongoPlayer player) {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
         Document query = new Document("uuid", player.getUuid());
         Document update = new Document("$set", player.toDocument());

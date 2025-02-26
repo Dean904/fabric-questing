@@ -8,10 +8,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
 
     private final String uuid;
     private String name;
-    // TODO look into JOML for vector3f @see https://github.com/JOML-CI/JOML/tree/main
-    private int pos_x, pos_y, pos_z;
-
-    Map<Integer, List<String>> stageConversationMap = new HashMap<>();
+    private Map<Integer, Quest> quests = new HashMap<>();
 
     public MongoNpc() {
         this.uuid = UUID.randomUUID().toString();
@@ -34,74 +31,74 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         this.name = name;
     }
 
-    public int getPos_x() {
-        return pos_x;
+    public Map<Integer, Quest> getQuests() {
+        return quests;
     }
 
-    public void setPos_x(int pos_x) {
-        this.pos_x = pos_x;
+    public void setQuests(Map<Integer, Quest> quests) {
+        this.quests = quests;
     }
 
-    public int getPos_y() {
-        return pos_y;
-    }
+    public static class Quest {
 
-    public void setPos_y(int pos_y) {
-        this.pos_y = pos_y;
-    }
+        private Integer sequence;
+        private List<String> dialogue = new ArrayList<>();
+        // TODO add objective
+        // TODO add reward
 
-    public int getPos_z() {
-        return pos_z;
-    }
+        public Integer getSequence() {
+            return sequence;
+        }
 
-    public void setPos_z(int pos_z) {
-        this.pos_z = pos_z;
-    }
+        public void setSequence(Integer sequence) {
+            this.sequence = sequence;
+        }
 
-    public Map<Integer, List<String>> getStageConversationMap() {
-        return stageConversationMap;
-    }
+        public List<String> getDialogue() {
+            return dialogue;
+        }
 
-    public void setStageConversationMap(Map<Integer, List<String>> stageConversationMap) {
-        this.stageConversationMap = stageConversationMap;
+        public void setDialogue(List<String> dialogue) {
+            this.dialogue = dialogue;
+        }
+
+        public Document toDocument() {
+            return new Document()
+                    .append("dialogue", dialogue)
+                    .append("order", sequence);
+        }
+
+        @SuppressWarnings("unchecked")
+        public static Quest fromDocument(Document document) {
+            Quest q = new Quest();
+            q.setDialogue(document.getList("dialogue", String.class));
+            q.setSequence(document.getInteger("order"));
+            return q;
+        }
     }
 
     public Document toDocument() {
-        Document doc = new Document("uuid", uuid)
-                .append("name", name)
-                .append("pos_x", pos_x)
-                .append("pos_y", pos_y)
-                .append("pos_z", pos_z);
-
-        // Convert the stageConversationMap into a list of { stage: X, lines: [ ... ] } documents
-        List<Document> stages = new ArrayList<>();
-        for (Map.Entry<Integer, List<String>> e : stageConversationMap.entrySet()) {
-            Document stageDoc = new Document("stage", e.getKey());
-            stageDoc.append("lines", e.getValue());
-            stages.add(stageDoc);
+        Map<String, Document> questDocs = new HashMap<>();
+        for (Quest quest : quests.values()) {
+            questDocs.put(String.valueOf(quest.getSequence()), quest.toDocument());
         }
-        doc.append("stageConversationMap", stages);
 
-        return doc;
+        return new Document("uuid", uuid)
+                .append("name", name)
+                .append("quests", questDocs);
     }
 
     @SuppressWarnings("unchecked")
     public MongoNpc fromDocument(Document document) {
         MongoNpc p = new MongoNpc(document.getString("uuid"), document.getString("name"));
-        p.setPos_x(document.getInteger("pos_x"));
-        p.setPos_y(document.getInteger("pos_y"));
-        p.setPos_z(document.getInteger("pos_z"));
 
-        // Read the conversation map
-        List<Document> stages = (List<Document>) document.get("stageConversationMap");
-        if (stages != null) {
-            for (Document stageDoc : stages) {
-                int stageId = stageDoc.getInteger("stage");
-                List<String> lines = (List<String>) stageDoc.get("lines");
-                p.stageConversationMap.put(stageId, lines);
-            }
+        Map<String, Document> questDocs = document.get("quests", Map.class);
+        Map<Integer, Quest> questMap = new HashMap<>();
+        for (Map.Entry<String, Document> entry : questDocs.entrySet()) {
+            questMap.put(Integer.valueOf(entry.getKey()), Quest.fromDocument(entry.getValue()));
         }
+        p.setQuests(questMap);
+
         return p;
     }
-
 }

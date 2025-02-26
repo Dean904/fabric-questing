@@ -2,12 +2,16 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.entity.BookStateUtil;
 import bor.samsara.questing.entity.ModEntities;
+import bor.samsara.questing.entity.PlayerQuestState;
 import bor.samsara.questing.mongo.NpcMongoClient;
+import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
+import bor.samsara.questing.mongo.models.MongoPlayer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -59,7 +63,7 @@ public class EventRegisters {
     }
 
     @Deprecated
-    // TODO delete, no longer neede now that sign and close book mixin implemented
+    // TODO delete, no longer supported or needed now that sign and close book mixin implemented
     public static @NotNull CommandRegistrationCallback closeCommandBookForNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
@@ -84,12 +88,23 @@ public class EventRegisters {
 
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
-            if (entity.getCommandTags().contains("questNPC")) { // this could be an int flag on .get(0) instead of a list traversal
-                String uuid = entity.getUuid().toString();
-                MongoNpc npc = NpcMongoClient.getNpc(uuid);
+            if (null != hitResult && entity.getCommandTags().contains("questNPC")) {
+                String playerUuid = player.getUuid().toString();
+                String questNpcUuid = entity.getUuid().toString();
 
-                player.sendMessage(Text.literal(npc.getName()), false);
-                // TODO play villager noise for player
+                MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
+                Integer activeQuestForNpc = playerState.getActiveQuestForNpc(questNpcUuid);
+
+                MongoNpc npc = NpcMongoClient.getNpc(questNpcUuid);
+                MongoNpc.Quest activeQuest = npc.getQuests().get(activeQuestForNpc);
+
+                if (null != activeQuest) {
+                    int dialogueOffset = PlayerQuestState.getDialogueOffset(playerUuid, activeQuestForNpc);
+                    String dialogue = activeQuest.getDialogue().get(dialogueOffset % activeQuest.getDialogue().size());
+                    player.sendMessage(Text.literal(dialogue), false);
+                }
+
+                player.playSound(SoundEvents.ENTITY_VILLAGER_TRADE, 1.0f, 1.0f);
                 return ActionResult.SUCCESS;
             }
             return ActionResult.PASS;
