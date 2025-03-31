@@ -43,7 +43,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
 
         private Integer sequence;
         private List<String> dialogue = new ArrayList<>();
-        // TODO add objective
+        private Objective objective;
         // TODO add reward
 
         public Integer getSequence() {
@@ -62,10 +62,80 @@ public class MongoNpc implements MongoDao<MongoNpc> {
             this.dialogue = dialogue;
         }
 
+        public Objective getObjective() {
+            return objective;
+        }
+
+        public void setObjective(Objective objective) {
+            this.objective = objective;
+        }
+
+        public static class Objective {
+            private Type type; // e.g., "kill"
+            private String target; // e.g., "zombie"
+            private int requiredCount; // e.g., 5
+
+            public Objective() {}
+
+            public Objective(Type type, String target, int requiredCount) {
+                this.type = type;
+                this.target = target;
+                this.requiredCount = requiredCount;
+            }
+
+            public Type getType() {
+                return type;
+            }
+
+            public void setType(Type type) {
+                this.type = type;
+            }
+
+            public String getTarget() {
+                return target;
+            }
+
+            public void setTarget(String target) {
+                this.target = target;
+            }
+
+            public int getRequiredCount() {
+                return requiredCount;
+            }
+
+            public void setRequiredCount(int requiredCount) {
+                this.requiredCount = requiredCount;
+            }
+
+            public enum Type {
+                KILL,
+                TALK,
+                COLLECT
+            }
+
+            public Document toDocument() {
+                return new Document()
+                        .append("type", type.name())
+                        .append("target", target)
+                        .append("requiredCount", requiredCount);
+            }
+
+            public Objective fromDocument(Document document) {
+                Objective o = new Objective();
+                o.setType(Type.valueOf(document.getString("type")));
+                o.setTarget(document.getString("target"));
+                o.setRequiredCount(document.getInteger("requiredCount"));
+                return o;
+            }
+        }
+
+
         public Document toDocument() {
             return new Document()
                     .append("dialogue", dialogue)
-                    .append("order", sequence);
+                    .append("order", sequence)
+                    .append("objective", objective.toDocument());
+
         }
 
         @SuppressWarnings("unchecked")
@@ -73,6 +143,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
             Quest q = new Quest();
             q.setDialogue(document.getList("dialogue", String.class));
             q.setSequence(document.getInteger("order"));
+            q.setObjective(new Objective().fromDocument(document.get("objective", Document.class)));
             return q;
         }
     }
