@@ -65,7 +65,7 @@ public class BookSignedMixin {
                     npc.setQuests(questMap);
                     NpcMongoClient.updateNpc(npc);
                     player.getInventory().removeOne(writtenBook);
-                    player.sendMessage(Text.literal("Successfully updated NPC: " + "TODO"), false);
+                    player.sendMessage(Text.literal("Successfully updated NPC: " + encodedNpcName), false);
                     log.info("Updated {} conversation map {}", encodedNpcName, questMap);
                 } catch (Exception e) {
                     player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
