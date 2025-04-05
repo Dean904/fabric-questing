@@ -1,16 +1,27 @@
-package bor.samsara.questing.entity;
+package bor.samsara.questing.events;
 
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.ZombieEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.world.World;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
-public class EventManager {
+public class QuestActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
@@ -30,6 +41,23 @@ public class EventManager {
             PlayerMongoClient.createPlayer(p);
             return p;
         }
+    }
+
+    public static @NotNull UseEntityCallback rightClickQuestNpc() {
+        return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
+            if (null != hitResult && entity.getCommandTags().contains("questNPC")) {
+                String playerUuid = player.getUuid().toString();
+                String questNpcUuid = entity.getUuid().toString();
+
+                String dialogue = QuestManager.getInstance().getNextDialogue(playerUuid, questNpcUuid);
+                if (StringUtils.isNotBlank(dialogue))
+                    player.sendMessage(Text.literal(dialogue), false);
+
+                player.playSound(SoundEvents.ENTITY_VILLAGER_TRADE, 1.0f, 1.0f);
+                return ActionResult.SUCCESS;
+            }
+            return ActionResult.PASS;
+        };
     }
 
     public static ServerEntityCombatEvents.AfterKilledOtherEntity afterKilledOtherEntity() {

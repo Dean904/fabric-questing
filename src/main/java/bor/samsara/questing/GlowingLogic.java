@@ -1,6 +1,5 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.entity.QuestVillager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;

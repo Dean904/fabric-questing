@@ -1,16 +1,13 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.entity.EventManager;
+import bor.samsara.questing.events.QuestActionEventManager;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.scheduled.QuestRunnable;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,21 +35,19 @@ public class SamsaraFabricQuesting implements ModInitializer {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
 
-        CommandRegistrationCallback.EVENT.register(EventRegisters.createNpc());
-        CommandRegistrationCallback.EVENT.register(EventRegisters.openCommandBookForNpc());
-        CommandRegistrationCallback.EVENT.register(EventRegisters.closeCommandBookForNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
 
-        UseEntityCallback.EVENT.register(EventRegisters.rightClickQuestNpc());
-
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(EventManager.afterKilledOtherEntity());
+        UseEntityCallback.EVENT.register(QuestActionEventManager.rightClickQuestNpc());
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(QuestActionEventManager.afterKilledOtherEntity());
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            EventManager.getOrMakePlayerOnJoin(handler.getPlayer());
+            QuestActionEventManager.getOrMakePlayerOnJoin(handler.getPlayer());
             // should the join event initialize quest trackers in an EventManager to minimize DB calls? I mean we're maybe talking ~60 players per instance?
             ModEntities.spawnTravelingWelcomer(server.getCommandSource());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            EventManager.savePlayerStatsOnExit(handler.getPlayer());
+            QuestActionEventManager.savePlayerStatsOnExit(handler.getPlayer());
             ModEntities.despawnTravelingWelcomer(server.getCommandSource());
         });
     }
