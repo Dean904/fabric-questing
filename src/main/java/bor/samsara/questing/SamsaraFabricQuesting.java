@@ -45,7 +45,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             QuestActionEventManager.getOrMakePlayerOnJoin(handler.getPlayer());
-            // should the join event initialize quest trackers in an EventManager to minimize DB calls? I mean we're maybe talking ~60 players per instance?
             ModEntities.spawnTravelingWelcomer(server.getCommandSource());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {

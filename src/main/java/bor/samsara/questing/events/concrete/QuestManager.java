@@ -52,10 +52,10 @@ public class QuestManager {
     }
 
     public void deactivatePlayer(String playerUuid) {
-        PlayerMongoClient.updatePlayer(playerMap.get(playerUuid));
+        PlayerMongoClient.updatePlayer(getOrFindPlayer(playerUuid));
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
+        playerMap.remove(playerUuid);
     }
-
 
     public String getNextDialogue(String playerUuid, String questNpcUuid) {
         MongoPlayer playerState = getOrFindPlayer(playerUuid);

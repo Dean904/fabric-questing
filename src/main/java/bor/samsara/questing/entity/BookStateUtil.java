@@ -48,7 +48,7 @@ public class BookStateUtil {
 
     /**
      * Convert an NPC's stageConversationMap into a WRITABLE_BOOK ItemStack
-     * Ex = ##0;;hello;;world;;kill=zombies=5;;
+     * Ex = ##0;;hello;;world;;kill=zombie=5;;
      */
     private static ItemStack createConversationBook(MongoNpc npc) {
         ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK);
