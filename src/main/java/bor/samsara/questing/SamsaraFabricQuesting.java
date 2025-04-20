@@ -1,7 +1,8 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.events.QuestActionEventManager;
 import bor.samsara.questing.entity.ModEntities;
+import bor.samsara.questing.events.QuestActionEventManager;
+import bor.samsara.questing.events.concrete.KillSubject;
 import bor.samsara.questing.scheduled.QuestRunnable;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -16,7 +17,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class SamsaraFabricQuesting implements ModInitializer {
 
     public static final String MOD_ID = "samsara";
@@ -25,6 +25,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
     private static final String bot_token = "MTE5MDM0MzM1MDM2NTIxMjY5Mw.Gjq9qk.6MWgRRcifLAe_CC1Eof-ZEM36GviJ40FMjGzGk";
 
     public static final AtomicInteger playerOnlineCount = new AtomicInteger();
+
+    public static final KillSubject killSubject = new KillSubject();
 
     // BIG TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
 
@@ -39,7 +41,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
 
         UseEntityCallback.EVENT.register(QuestActionEventManager.rightClickQuestNpc());
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(QuestActionEventManager.afterKilledOtherEntity());
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             QuestActionEventManager.getOrMakePlayerOnJoin(handler.getPlayer());
@@ -52,7 +54,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
         });
     }
 
-
-    // TODO close mongo connection on close
-
 }
+
+
+// TODO close mongo connection on close

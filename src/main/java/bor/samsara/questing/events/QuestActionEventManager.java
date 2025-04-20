@@ -1,11 +1,10 @@
 package bor.samsara.questing.events;
 
+import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundEvents;
@@ -25,14 +24,13 @@ public class QuestActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
-    // TODO save stats on exit
 
-
+    // TODO do these functions belong here? Or in QuestManager? bad abstraction
     public static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
         try {
             QuestManager questManager = QuestManager.getInstance();
             MongoPlayer playerByUuid = PlayerMongoClient.getPlayerByUuid(serverPlayer.getUuidAsString());
-            questManager.playerMap.put(serverPlayer.getUuidAsString(), playerByUuid);
+            questManager.activatePlayer(serverPlayer.getUuidAsString(), playerByUuid);
             return playerByUuid;
         } catch (IllegalStateException e) {
             String playerName = serverPlayer.getName().getLiteralString();
@@ -49,7 +47,12 @@ public class QuestActionEventManager {
                 String playerUuid = player.getUuid().toString();
                 String questNpcUuid = entity.getUuid().toString();
 
-                String dialogue = QuestManager.getInstance().getNextDialogue(playerUuid, questNpcUuid);
+                QuestManager questManager = QuestManager.getInstance();
+                if (!questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
+                    questManager.registerNpcForPlayer(playerUuid, questNpcUuid);
+                }
+
+                String dialogue = questManager.getNextDialogue(playerUuid, questNpcUuid);
                 if (StringUtils.isNotBlank(dialogue))
                     player.sendMessage(Text.literal(dialogue), false);
 
@@ -60,32 +63,8 @@ public class QuestActionEventManager {
         };
     }
 
-    public static ServerEntityCombatEvents.AfterKilledOtherEntity afterKilledOtherEntity() {
-        return (world, killer, killedEntity) -> {
-            if (!(killer instanceof ServerPlayerEntity)) {
-                return;
-            }
-
-            ServerPlayerEntity player = (ServerPlayerEntity) killer;
-            String playerUuid = player.getUuid().toString();
-
-            // Retrieve the player state from your QuestManager in-memory store.
-            QuestManager questManager = QuestManager.getInstance();
-            MongoPlayer mongoPlayer = questManager.playerMap.get(playerUuid); // TODO weird access
-
-            // TODO Subscription based notification system for determining if an event is pertient to updating quests
-
-            if (killedEntity instanceof ZombieEntity) {
-                // For each active quest registered for this player, increment the objective count.
-                for (String questNpcUuid : mongoPlayer.getNpcActiveQuest().keySet()) {
-                    questManager.incrementQuestObjectiveCount(playerUuid, questNpcUuid);
-                }
-            }
-        };
-    }
-
     public static void savePlayerStatsOnExit(ServerPlayerEntity serverPlayer) {
         QuestManager questManager = QuestManager.getInstance();
-        PlayerMongoClient.updatePlayer(questManager.playerMap.get(serverPlayer.getUuidAsString()));
+        questManager.deactivatePlayer(serverPlayer.getUuidAsString());
     }
 }
