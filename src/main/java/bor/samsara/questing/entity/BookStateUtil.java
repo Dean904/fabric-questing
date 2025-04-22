@@ -85,7 +85,7 @@ public class BookStateUtil {
     public static int close(ServerCommandSource source, String name) {
         try {
             MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
-            ItemStack mainHandItemStack = source.getPlayer().getInventory().getMainHandStack();
+            ItemStack mainHandItemStack = source.getPlayer().getInventory().getSelectedStack();
             Map<Integer, MongoNpc.Quest> quests = readQuestsFromBook(mainHandItemStack);
             npc.setQuests(quests);
 

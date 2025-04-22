@@ -5,6 +5,7 @@ import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -38,7 +39,7 @@ public class ModEntities {
     }
 
     private static @NotNull VillagerEntity makeVillagerEntity(World world, UUID uuid, Vec3d pos, ServerPlayerEntity player, String name) {
-        VillagerEntity villager = EntityType.VILLAGER.create(world);
+        VillagerEntity villager = EntityType.VILLAGER.create(world, SpawnReason.TRIGGERED);
         villager.setUuid(uuid);
         villager.refreshPositionAndAngles(pos.x, pos.y, pos.z, player.getYaw(), player.getPitch());
         villager.setCustomName(Text.literal(name));
