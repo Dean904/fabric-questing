@@ -3,7 +3,6 @@ package bor.samsara.questing.mongo.models;
 import org.bson.Document;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -11,7 +10,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private Map<String, Integer> npcActiveQuest = new HashMap<>();
+    private Map<String, ActiveQuest> npcActiveQuestMap = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -34,26 +33,98 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Integer getActiveQuestForNpc(String npcUuid) {
-        npcActiveQuest.putIfAbsent(npcUuid, 0);
-        return npcActiveQuest.get(npcUuid);
+    public Map<String, ActiveQuest> getNpcActiveQuestMap() {
+        return npcActiveQuestMap;
     }
 
-    public void setActiveQuestForNpc(String npcUuid, Integer activeQuest) {
-        npcActiveQuest.put(npcUuid, activeQuest);
+    public void setNpcActiveQuestMap(Map<String, ActiveQuest> npcActiveQuestMap) {
+        this.npcActiveQuestMap = npcActiveQuestMap;
     }
+
+//    public ActiveQuest getActiveQuestForNpc(String npcUuid) {
+//        return npcActiveQuestMap.get(npcUuid);
+//    }
+
+//    public void advanceActiveQuestForNpc(String npcUuid) {
+//        ActiveQuest q = npcActiveQuest.get(npcUuid);
+//        npcActiveQuest.put(npcUuid, new ActiveQuest(q.getSequence() + 1));
+//    }
 
     public Document toDocument() {
+        Map<String, Document> activeQuestDocs = new HashMap<>();
+        for (Map.Entry<String, ActiveQuest> entry : npcActiveQuestMap.entrySet()) {
+            activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
+        }
+
         return new Document("uuid", uuid)
                 .append("name", name)
-                .append("npcActiveQuest", npcActiveQuest);
+                .append("npcActiveQuest", activeQuestDocs);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
-        npcActiveQuest = document.get("npcActiveQuest", Map.class);
-
+        Map<String, Document> activeQuestDocs = document.get("npcActiveQuest", Map.class);
+        Map<String, ActiveQuest> activeQuestMap = new HashMap<>();
+        for (Map.Entry<String, Document> entry : activeQuestDocs.entrySet()) {
+            activeQuestMap.put(entry.getKey(), ActiveQuest.fromDocument(entry.getValue()));
+        }
+        player.setNpcActiveQuestMap(activeQuestMap);
         return player;
+
+    }
+
+    public static class ActiveQuest {
+        private final int sequence;
+        private long dialogueOffset = 0;
+        private int objectiveCount = 0;
+        private boolean isComplete = false;
+
+        public ActiveQuest(int sequence) {
+            this.sequence = sequence;
+        }
+
+        public int getSequence() {
+            return sequence;
+        }
+
+        public long getDialogueOffset() {
+            return dialogueOffset;
+        }
+
+        public void setDialogueOffset(long dialogueOffset) {
+            this.dialogueOffset = dialogueOffset;
+        }
+
+        public int getObjectiveCount() {
+            return objectiveCount;
+        }
+
+        public void setObjectiveCount(int objectiveCount) {
+            this.objectiveCount = objectiveCount;
+        }
+
+        public boolean isComplete() {
+            return isComplete;
+        }
+
+        public void setComplete(boolean complete) {
+            isComplete = complete;
+        }
+
+        public Document toDocument() {
+            return new Document("sequence", sequence)
+                    .append("dialogueOffset", dialogueOffset)
+                    .append("objectiveCount", objectiveCount)
+                    .append("isComplete", isComplete);
+        }
+
+        public static ActiveQuest fromDocument(Document document) {
+            ActiveQuest aq = new ActiveQuest(document.getInteger("sequence"));
+            aq.setDialogueOffset(document.getLong("dialogueOffset"));
+            aq.setObjectiveCount(document.getInteger("objectiveCount", 0));
+            aq.setComplete(document.getBoolean("isComplete", false));
+            return aq;
+        }
     }
 }

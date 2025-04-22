@@ -15,6 +15,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class BookStateUtil {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
+    public static final String DIV = ";;";
 
     public static int open(ServerCommandSource source, String name) {
         try {
@@ -46,6 +48,7 @@ public class BookStateUtil {
 
     /**
      * Convert an NPC's stageConversationMap into a WRITABLE_BOOK ItemStack
+     * Ex = ##0;;hello;;world;;kill=zombie=5;;
      */
     private static ItemStack createConversationBook(MongoNpc npc) {
         ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK);
@@ -56,14 +59,18 @@ public class BookStateUtil {
 
         List<RawFilteredPair<String>> pages = new ArrayList<>();
         for (MongoNpc.Quest quest : npc.getQuests().values()) {
-            List<String> lines = quest.getDialogue();
-            // Combine all lines for this stage into one page
-            // You could do more complicated page-splitting if lines are too long.
-            StringBuilder pageText = new StringBuilder("Quest ").append(quest.getSequence()).append(":\n");
-            for (String line : lines) {
-                pageText.append(line).append("\n");
-                pages.add(new RawFilteredPair<>(line, Optional.of(line)));
+            // TODO complicated page-splitting if lines are too long.
+            StringBuilder pageText = new StringBuilder("##").append(quest.getSequence()).append(DIV);
+            for (String line : quest.getDialogue()) {
+                pageText.append(line).append(DIV);
             }
+
+            MongoNpc.Quest.Objective objective = quest.getObjective();
+            pageText.append(objective.getType().name().toLowerCase()).append("=")
+                    .append(objective.getTarget()).append("=")
+                    .append(objective.getRequiredCount()).append(DIV);
+
+            pages.add(new RawFilteredPair<>(pageText.toString(), Optional.of(pageText.toString())));
         }
 
         WritableBookContentComponent bookContent = bookStack.getOrDefault(DataComponentTypes.WRITABLE_BOOK_CONTENT, WritableBookContentComponent.DEFAULT);
@@ -90,10 +97,9 @@ public class BookStateUtil {
     }
 
     /**
-     * example book config = "##0;;hello;;world;;"
+     * example book config = "##0;;hello;;world;;kill=zombie=5;;"
      */
     public static Map<Integer, MongoNpc.Quest> readQuestsFromBook(ItemStack bookStack) {
-        // "pages" is an NBTList of JSON strings
         if (bookStack.getItem() instanceof WrittenBookItem) {
             WrittenBookContentComponent signedBookContent = bookStack.getOrDefault(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT);
             StringBuilder sb = new StringBuilder();
@@ -101,10 +107,10 @@ public class BookStateUtil {
             List<String> questStrings = new ArrayList<>(List.of(sb.toString().split("##")));
             questStrings.removeIf(StringUtils::isEmpty);
             return questStrings.stream().map(s -> {
-                List<String> allQuestData = new ArrayList<>(Arrays.asList(s.split(";;")));
+                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(s.split(DIV)));
                 MongoNpc.Quest q = new MongoNpc.Quest();
-                q.setSequence(Integer.parseInt(allQuestData.getFirst()));
-                allQuestData.removeFirst();
+                q.setSequence(Integer.parseInt(allQuestData.pollFirst()));
+                q.setObjective(parseObjective(allQuestData.pollLast()));
                 q.setDialogue(allQuestData);
                 return q;
             }).collect(Collectors.toMap(MongoNpc.Quest::getSequence, o -> o));
@@ -112,6 +118,14 @@ public class BookStateUtil {
 
         log.error("ReadQuestsFromBook failed, item is not a WrittenBookItem: {}", bookStack);
         return new HashMap<>(); // Not a book
+    }
+
+    private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {
+        String[] split = objectiveToken.split("=");
+        MongoNpc.Quest.Objective.Type type = MongoNpc.Quest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
+        MongoNpc.Quest.Objective.Target target = MongoNpc.Quest.Objective.Target.valueOf(StringUtils.upperCase(split[1]));
+
+        return new MongoNpc.Quest.Objective(type, target, Integer.parseInt(split[2]));
     }
 
 }

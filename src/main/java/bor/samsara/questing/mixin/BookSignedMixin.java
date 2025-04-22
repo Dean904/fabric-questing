@@ -5,11 +5,15 @@ import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.component.type.WritableBookContentComponent;
+import net.minecraft.component.type.WrittenBookContentComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.c2s.play.BookUpdateC2SPacket;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +22,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
@@ -42,11 +48,11 @@ public class BookSignedMixin {
 
         if (packet.title().isPresent()) {
             int slotIndex = packet.slot();
-            ItemStack bookStack = player.getInventory().getStack(slotIndex);
+            ItemStack writtenBook = player.getInventory().getStack(slotIndex);
 
-            if (bookStack.getItem() == Items.WRITTEN_BOOK) {
+            if (writtenBook.getItem() == Items.WRITTEN_BOOK) {
 
-                NbtComponent bookStackCustomData = bookStack.get(DataComponentTypes.CUSTOM_DATA);
+                NbtComponent bookStackCustomData = writtenBook.get(DataComponentTypes.CUSTOM_DATA);
                 log.info("written book custom data: {}", bookStackCustomData);
 
                 // 1) Load the NPC from DB
@@ -58,18 +64,38 @@ public class BookSignedMixin {
                     Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(mainHandItemStack);
                     npc.setQuests(questMap);
                     NpcMongoClient.updateNpc(npc);
+                    player.getInventory().removeOne(writtenBook);
+                    player.sendMessage(Text.literal("Successfully updated NPC: " + "TODO"), false);
                     log.info("Updated {} conversation map {}", encodedNpcName, questMap);
                 } catch (Exception e) {
                     player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
-                    log.error("{}", e.getMessage(), e);
+                    ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook);
+                    player.getInventory().removeOne(writtenBook);
+                    player.getInventory().insertStack(writableBook);
+                    log.info("Failed to update NPC from signed book: {}", e.getMessage());
                 }
-
-                // 5) If you want to remove the book from the player’s inventory:
-                player.getInventory().removeOne(bookStack);
-
-                // 6) Send feedback
-                player.sendMessage(Text.literal("Successfully updated NPC: " + "TODO"), false);
             }
         }
+    }
+
+    private ItemStack convertWrittenBookToWritableBook(ItemStack writtenBook) {
+        ItemStack writable = new ItemStack(Items.WRITABLE_BOOK);
+
+        NbtComponent bookStackCustomData = writtenBook.get(DataComponentTypes.CUSTOM_DATA);
+        String encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
+
+        NbtCompound nbtCompound = new NbtCompound();
+        nbtCompound.putString("npcName", encodedNpcName);
+        writable.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
+
+        WrittenBookContentComponent signedBookContent = writtenBook.getOrDefault(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT);
+        List<RawFilteredPair<String>> pages = signedBookContent.pages().stream().map(textPair -> new RawFilteredPair<>(textPair.get(false).getString(), Optional.of(textPair.get(false).getString()))).toList();
+
+        WritableBookContentComponent bookContent = writable.getOrDefault(DataComponentTypes.WRITABLE_BOOK_CONTENT, WritableBookContentComponent.DEFAULT);
+
+        writable.set(DataComponentTypes.WRITABLE_BOOK_CONTENT, bookContent.withPages(pages));
+        writable.set(DataComponentTypes.CUSTOM_NAME, Text.literal("NPC " + encodedNpcName + " Conversation Editor"));
+
+        return writable;
     }
 }

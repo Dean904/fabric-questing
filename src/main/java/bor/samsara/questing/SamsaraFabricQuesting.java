@@ -1,14 +1,14 @@
 package bor.samsara.questing;
 
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.models.MongoPlayer;
+import bor.samsara.questing.events.QuestActionEventManager;
+import bor.samsara.questing.events.concrete.KillSubject;
 import bor.samsara.questing.scheduled.QuestRunnable;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.server.network.ServerPlayerEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +16,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -27,6 +26,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     public static final AtomicInteger playerOnlineCount = new AtomicInteger();
 
+    public static final KillSubject killSubject = new KillSubject();
+
     // BIG TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
 
     @Override
@@ -36,33 +37,23 @@ public class SamsaraFabricQuesting implements ModInitializer {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
 
-        CommandRegistrationCallback.EVENT.register(EventRegisters.createNpc());
-        CommandRegistrationCallback.EVENT.register(EventRegisters.openCommandBookForNpc());
-        CommandRegistrationCallback.EVENT.register(EventRegisters.closeCommandBookForNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
 
-        UseEntityCallback.EVENT.register(EventRegisters.rightClickQuestNpc());
+        UseEntityCallback.EVENT.register(QuestActionEventManager.rightClickQuestNpc());
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            getOrMakePlayer(handler.getPlayer());
+            QuestActionEventManager.getOrMakePlayerOnJoin(handler.getPlayer());
             ModEntities.spawnTravelingWelcomer(server.getCommandSource());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            QuestActionEventManager.savePlayerStatsOnExit(handler.getPlayer());
             ModEntities.despawnTravelingWelcomer(server.getCommandSource());
         });
     }
 
-    private MongoPlayer getOrMakePlayer(ServerPlayerEntity serverPlayer) {
-        try {
-            return PlayerMongoClient.getPlayerByUuid(serverPlayer.getUuidAsString());
-        } catch (IllegalStateException e) {
-            String playerName = serverPlayer.getName().getLiteralString();
-            log.info("{} joining for first time.", playerName);
-            MongoPlayer p = new MongoPlayer(serverPlayer.getUuidAsString(), playerName);
-            PlayerMongoClient.createPlayer(p);
-            return p;
-        }
-    }
-
-    // TODO close mongo connection on close
-
 }
+
+
+// TODO close mongo connection on close
