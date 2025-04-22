@@ -48,7 +48,7 @@ public class BookStateUtil {
 
     /**
      * Convert an NPC's stageConversationMap into a WRITABLE_BOOK ItemStack
-     * Ex = ##0;;hello;;world;;kill=zombies=5;;
+     * Ex = ##0;;hello;;world;;kill=zombie=5;;
      */
     private static ItemStack createConversationBook(MongoNpc npc) {
         ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK);
@@ -85,7 +85,7 @@ public class BookStateUtil {
     public static int close(ServerCommandSource source, String name) {
         try {
             MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
-            ItemStack mainHandItemStack = source.getPlayer().getInventory().getMainHandStack();
+            ItemStack mainHandItemStack = source.getPlayer().getInventory().getSelectedStack();
             Map<Integer, MongoNpc.Quest> quests = readQuestsFromBook(mainHandItemStack);
             npc.setQuests(quests);
 
@@ -97,7 +97,7 @@ public class BookStateUtil {
     }
 
     /**
-     * example book config = "##0;;hello;;world;;kill=zombies=5;;"
+     * example book config = "##0;;hello;;world;;kill=zombie=5;;"
      */
     public static Map<Integer, MongoNpc.Quest> readQuestsFromBook(ItemStack bookStack) {
         if (bookStack.getItem() instanceof WrittenBookItem) {
@@ -123,7 +123,9 @@ public class BookStateUtil {
     private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {
         String[] split = objectiveToken.split("=");
         MongoNpc.Quest.Objective.Type type = MongoNpc.Quest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
-        return new MongoNpc.Quest.Objective(type, split[1], Integer.parseInt(split[2]));
+        MongoNpc.Quest.Objective.Target target = MongoNpc.Quest.Objective.Target.valueOf(StringUtils.upperCase(split[1]));
+
+        return new MongoNpc.Quest.Objective(type, target, Integer.parseInt(split[2]));
     }
 
 }

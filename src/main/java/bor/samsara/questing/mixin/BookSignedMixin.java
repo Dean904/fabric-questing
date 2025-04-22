@@ -22,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,7 +32,6 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class BookSignedMixin {
 
     private static final Logger log = LoggerFactory.getLogger(MOD_ID);
-
 
     /**
      * We inject after vanilla finishes processing BookUpdateC2SPacket,
@@ -55,34 +53,30 @@ public class BookSignedMixin {
                 NbtComponent bookStackCustomData = writtenBook.get(DataComponentTypes.CUSTOM_DATA);
                 log.info("written book custom data: {}", bookStackCustomData);
 
-                // 1) Load the NPC from DB
-                try {
-                    String encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
-                    MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName);
-
-                    ItemStack mainHandItemStack = player.getInventory().getMainHandStack();
-                    Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(mainHandItemStack);
-                    npc.setQuests(questMap);
-                    NpcMongoClient.updateNpc(npc);
-                    player.getInventory().removeOne(writtenBook);
-                    player.sendMessage(Text.literal("Successfully updated NPC: " + encodedNpcName), false);
-                    log.info("Updated {} conversation map {}", encodedNpcName, questMap);
-                } catch (Exception e) {
-                    player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
-                    ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook);
-                    player.getInventory().removeOne(writtenBook);
-                    player.getInventory().insertStack(writableBook);
-                    log.info("Failed to update NPC from signed book: {}", e.getMessage());
+                Optional<String> encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
+                if (encodedNpcName.isPresent()) {
+                    try {
+                        MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName.get());
+                        Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(writtenBook);
+                        npc.setQuests(questMap);
+                        NpcMongoClient.updateNpc(npc);
+                        player.getInventory().removeOne(writtenBook);
+                        player.sendMessage(Text.literal("Successfully updated NPC: " + encodedNpcName), false);
+                        log.info("Updated {} conversation map {}", encodedNpcName, questMap);
+                    } catch (Exception e) {
+                        player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
+                        ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook, encodedNpcName.get());
+                        player.getInventory().removeOne(writtenBook);
+                        player.getInventory().insertStack(writableBook);
+                        log.info("Failed to update NPC from signed book: {}", e.getMessage());
+                    }
                 }
             }
         }
     }
 
-    private ItemStack convertWrittenBookToWritableBook(ItemStack writtenBook) {
+    private ItemStack convertWrittenBookToWritableBook(ItemStack writtenBook, String encodedNpcName) {
         ItemStack writable = new ItemStack(Items.WRITABLE_BOOK);
-
-        NbtComponent bookStackCustomData = writtenBook.get(DataComponentTypes.CUSTOM_DATA);
-        String encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
 
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString("npcName", encodedNpcName);

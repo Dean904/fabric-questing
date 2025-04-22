@@ -72,12 +72,12 @@ public class MongoNpc implements MongoDao<MongoNpc> {
 
         public static class Objective {
             private Type type; // e.g., "kill"
-            private String target; // e.g., "zombie"
+            private Target target; // e.g., "zombie"
             private int requiredCount; // e.g., 5
 
             public Objective() {}
 
-            public Objective(Type type, String target, int requiredCount) {
+            public Objective(Type type, Target target, int requiredCount) {
                 this.type = type;
                 this.target = target;
                 this.requiredCount = requiredCount;
@@ -91,11 +91,11 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                 this.type = type;
             }
 
-            public String getTarget() {
+            public Target getTarget() {
                 return target;
             }
 
-            public void setTarget(String target) {
+            public void setTarget(Target target) {
                 this.target = target;
             }
 
@@ -113,17 +113,23 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                 COLLECT
             }
 
+            public enum Target {
+                ZOMBIE,
+                SKELETON,
+                CREEPER
+            }
+
             public Document toDocument() {
                 return new Document()
                         .append("type", type.name())
-                        .append("target", target)
+                        .append("target", target.name())
                         .append("requiredCount", requiredCount);
             }
 
             public Objective fromDocument(Document document) {
                 Objective o = new Objective();
                 o.setType(Type.valueOf(document.getString("type")));
-                o.setTarget(document.getString("target"));
+                o.setTarget(Target.valueOf(document.getString("target")));
                 o.setRequiredCount(document.getInteger("requiredCount"));
                 return o;
             }

@@ -3,7 +3,6 @@ package bor.samsara.questing.mongo.models;
 import org.bson.Document;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -11,7 +10,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private Map<String, ActiveQuest> npcActiveQuest = new HashMap<>();
+    private Map<String, ActiveQuest> npcActiveQuestMap = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -34,27 +33,26 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Map<String, ActiveQuest> getNpcActiveQuest() {
-        return npcActiveQuest;
+    public Map<String, ActiveQuest> getNpcActiveQuestMap() {
+        return npcActiveQuestMap;
     }
 
-    public void setNpcActiveQuest(Map<String, ActiveQuest> npcActiveQuest) {
-        this.npcActiveQuest = npcActiveQuest;
+    public void setNpcActiveQuestMap(Map<String, ActiveQuest> npcActiveQuestMap) {
+        this.npcActiveQuestMap = npcActiveQuestMap;
     }
 
-    public ActiveQuest getActiveQuestForNpc(String npcUuid) {
-        npcActiveQuest.putIfAbsent(npcUuid, new ActiveQuest(0));
-        return npcActiveQuest.get(npcUuid);
-    }
+//    public ActiveQuest getActiveQuestForNpc(String npcUuid) {
+//        return npcActiveQuestMap.get(npcUuid);
+//    }
 
-    public void advanceActiveQuestForNpc(String npcUuid) {
-        ActiveQuest q = npcActiveQuest.get(npcUuid);
-        npcActiveQuest.put(npcUuid, new ActiveQuest(q.getSequence() + 1));
-    }
+//    public void advanceActiveQuestForNpc(String npcUuid) {
+//        ActiveQuest q = npcActiveQuest.get(npcUuid);
+//        npcActiveQuest.put(npcUuid, new ActiveQuest(q.getSequence() + 1));
+//    }
 
     public Document toDocument() {
         Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, ActiveQuest> entry : npcActiveQuest.entrySet()) {
+        for (Map.Entry<String, ActiveQuest> entry : npcActiveQuestMap.entrySet()) {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
@@ -71,7 +69,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         for (Map.Entry<String, Document> entry : activeQuestDocs.entrySet()) {
             activeQuestMap.put(entry.getKey(), ActiveQuest.fromDocument(entry.getValue()));
         }
-        player.setNpcActiveQuest(activeQuestMap);
+        player.setNpcActiveQuestMap(activeQuestMap);
         return player;
 
     }
