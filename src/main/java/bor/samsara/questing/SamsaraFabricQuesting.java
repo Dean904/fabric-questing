@@ -2,6 +2,7 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.QuestActionEventManager;
+import bor.samsara.questing.events.concrete.CollectItemSubject;
 import bor.samsara.questing.events.concrete.KillSubject;
 import bor.samsara.questing.scheduled.QuestRunnable;
 import net.fabricmc.api.ModInitializer;
@@ -27,6 +28,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final AtomicInteger playerOnlineCount = new AtomicInteger();
 
     public static final KillSubject killSubject = new KillSubject();
+    public static final CollectItemSubject collectItemSubject = new CollectItemSubject();
 
     // BIG TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
 
@@ -45,7 +47,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             QuestActionEventManager.getOrMakePlayerOnJoin(handler.getPlayer());
-            ModEntities.spawnTravelingWelcomer(server.getCommandSource());
+            ModEntities.spawnWelcomingTraveler(handler.getPlayer());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             QuestActionEventManager.savePlayerStatsOnExit(handler.getPlayer());

@@ -14,9 +14,9 @@ public class NpcMongoClient {
     private NpcMongoClient() {
     }
 
-    public static void createNpc(MongoNpc player) {
+    public static void createNpc(MongoNpc npc) {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
-        Document doc = player.toDocument();
+        Document doc = npc.toDocument();
         collection.insertOne(doc);
     }
 

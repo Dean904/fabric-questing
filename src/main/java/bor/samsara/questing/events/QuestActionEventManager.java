@@ -24,7 +24,6 @@ public class QuestActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
-
     // TODO do these functions belong here? Or in QuestManager? bad abstraction
     public static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
         try {
@@ -44,8 +43,12 @@ public class QuestActionEventManager {
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
             if (null != hitResult && entity.getCommandTags().contains("questNPC")) {
+                // TODO Add && tag of QUEST_START_POINT ?
                 String playerUuid = player.getUuid().toString();
                 String questNpcUuid = entity.getUuid().toString();
+
+                // A Quest NPC needs 2 or 3 states per player
+                //          , uninitiated giver, target npc (dependent quest), finished?
 
                 QuestManager questManager = QuestManager.getInstance();
                 if (!questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
@@ -57,7 +60,7 @@ public class QuestActionEventManager {
                     player.sendMessage(Text.literal(dialogue), false);
 
                 player.playSound(SoundEvents.ENTITY_VILLAGER_TRADE, 1.0f, 1.0f);
-                return ActionResult.SUCCESS;
+                return ActionResult.SUCCESS; // prevents other actions from performing.
             }
             return ActionResult.PASS;
         };

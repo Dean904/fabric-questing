@@ -6,11 +6,17 @@ import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
+
 public class QuestManager {
+
+    public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
     private static QuestManager singleton;
 
@@ -38,7 +44,7 @@ public class QuestManager {
 
         MongoNpc npc = getOrFindNpc(questNpcUuid);
         MongoNpc.Quest firstQuest = npc.getQuests().get(0);
-        SamsaraFabricQuesting.killSubject.attach(new QuestListener(playerUuid, questNpcUuid, firstQuest.getObjective()));
+        attachQuestListenerToPertinentSubject(playerState, npc, firstQuest.getObjective());
     }
 
     public void activatePlayer(String playerUuid, MongoPlayer mongoPlayer) {
@@ -47,13 +53,25 @@ public class QuestManager {
             String questNpcUuid = activeQuestKv.getKey();
             MongoNpc questNpc = getOrFindNpc(questNpcUuid);
             MongoNpc.Quest quest = questNpc.getQuests().get(activeQuestKv.getValue().getSequence());
-            SamsaraFabricQuesting.killSubject.attach(new QuestListener(playerUuid, questNpcUuid, quest.getObjective()));
+            attachQuestListenerToPertinentSubject(mongoPlayer, questNpc, quest.getObjective());
+        }
+    }
+
+    private static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoNpc npc, MongoNpc.Quest.Objective questObjective) {
+        QuestListener questListener = new QuestListener(playerState.getUuid(), npc.getUuid(), questObjective);
+        MongoNpc.Quest.Objective.Type objectiveType = questObjective.getType();
+        switch (objectiveType) {
+            case KILL -> SamsaraFabricQuesting.killSubject.attach(questListener);
+            case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(questListener);
+            case TALK -> log.info("Todo");
+            default -> log.warn("Unknown Objective Type '{}' when registering NPC {} for Player {}", objectiveType, npc.getName(), playerState.getName());
         }
     }
 
     public void deactivatePlayer(String playerUuid) {
         PlayerMongoClient.updatePlayer(getOrFindPlayer(playerUuid));
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
+        SamsaraFabricQuesting.collectItemSubject.detachPlayer(playerUuid);
         playerMap.remove(playerUuid);
     }
 

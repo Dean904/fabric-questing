@@ -3,7 +3,9 @@
   "package": "bor.samsara.questing.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "BookSignedMixin"
+    "BookSignedMixin",
+    "PathAwareEntityAccessor",
+    "PlayerInventoryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
