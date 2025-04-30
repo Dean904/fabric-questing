@@ -2,6 +2,7 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.entity.BookStateUtil;
 import bor.samsara.questing.entity.ModEntities;
+import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,6 +18,7 @@ public class QuestCreationEventRegisters {
     public static @NotNull CommandRegistrationCallback createNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
+                        .requires(Permissions.require("samsara.quest.admin"))
                         .then(literal("add")
                                 .then(literal("npc")
                                         .then(argument("name", greedyString())
@@ -34,6 +36,7 @@ public class QuestCreationEventRegisters {
     public static @NotNull CommandRegistrationCallback openCommandBookForNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
+                        .requires(Permissions.require("samsara.quest.admin"))
                         .then(literal("config")
                                 .then(literal("npc")
                                         .then(argument("name", greedyString())

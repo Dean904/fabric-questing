@@ -33,6 +33,10 @@ public class BookSignedMixin {
 
     private static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
+    static {
+        log.info("Loading BookSignedMixin...");
+    }
+
     /**
      * We inject after vanilla finishes processing BookUpdateC2SPacket,
      * so we can see if a book was just signed.
@@ -53,22 +57,24 @@ public class BookSignedMixin {
                 NbtComponent bookStackCustomData = writtenBook.get(DataComponentTypes.CUSTOM_DATA);
                 log.info("written book custom data: {}", bookStackCustomData);
 
-                Optional<String> encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
-                if (encodedNpcName.isPresent()) {
-                    try {
-                        MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName.get());
-                        Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(writtenBook);
-                        npc.setQuests(questMap);
-                        NpcMongoClient.updateNpc(npc);
-                        player.getInventory().removeOne(writtenBook);
-                        player.sendMessage(Text.literal("Successfully updated NPC: " + encodedNpcName), false);
-                        log.info("Updated {} conversation map {}", encodedNpcName, questMap);
-                    } catch (Exception e) {
-                        player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
-                        ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook, encodedNpcName.get());
-                        player.getInventory().removeOne(writtenBook);
-                        player.getInventory().insertStack(writableBook);
-                        log.info("Failed to update NPC from signed book: {}", e.getMessage());
+                if (null != bookStackCustomData.getNbt()) {
+                    Optional<String> encodedNpcName = bookStackCustomData.getNbt().get("npcName").asString();
+                    if (encodedNpcName.isPresent()) {
+                        try {
+                            MongoNpc npc = NpcMongoClient.getFirstNpcByName(encodedNpcName.get());
+                            Map<Integer, MongoNpc.Quest> questMap = BookStateUtil.readQuestsFromBook(writtenBook);
+                            npc.setQuests(questMap);
+                            NpcMongoClient.updateNpc(npc);
+                            player.getInventory().removeOne(writtenBook);
+                            player.sendMessage(Text.literal("Successfully updated NPC: " + encodedNpcName), false);
+                            log.info("Updated {} conversation map {}", encodedNpcName, questMap);
+                        } catch (Exception e) {
+                            player.sendMessage(Text.literal("[Samsara] Failed to update NPC from signed book: " + e), false);
+                            ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook, encodedNpcName.get());
+                            player.getInventory().removeOne(writtenBook);
+                            player.getInventory().insertStack(writableBook);
+                            log.info("Failed to update NPC from signed book: {}", e.getMessage());
+                        }
                     }
                 }
             }
