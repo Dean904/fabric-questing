@@ -1,6 +1,5 @@
 package bor.samsara.questing.entity;
 
-import bor.samsara.questing.mixin.PathAwareEntityAccessor;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mojang.brigadier.Command;
@@ -34,6 +33,7 @@ public class ModEntities {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
+    private ModEntities() {}
 
     public static void spawnWelcomingTraveler(ServerPlayerEntity player) {
         World world = player.getWorld();
@@ -105,7 +105,6 @@ public class ModEntities {
 
         return trader;
     }
-
 
     public static int createQuestNPC(ServerCommandSource source, String name) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
