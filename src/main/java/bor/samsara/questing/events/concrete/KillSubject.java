@@ -3,7 +3,6 @@ package bor.samsara.questing.events.concrete;
 import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.QuestListener;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
-import net.minecraft.entity.EntityType;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Iterator;
@@ -34,7 +33,7 @@ public class KillSubject extends QuestEventSubject {
                     QuestManager questManager = QuestManager.getInstance();
                     boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
                     if (isComplete)
-                        ite.remove();
+                        detach(listener, ite);
                 }
             }
         };

@@ -4,6 +4,10 @@ plugins {
     id 'maven-publish'
 }
 
+loom {
+    log4jConfigs.from file("src/main/resources/log4j.xml")
+}
+
 version = project.mod_version
 group = project.maven_group
 
@@ -17,6 +21,7 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    include(modImplementation 'org.apache.commons:commons-collections4:4.4')
 
     compileOnly "net.luckperms:api:5.4"
     include(modImplementation('me.lucko:fabric-permissions-api:0.3.3'))

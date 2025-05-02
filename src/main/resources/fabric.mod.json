@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "id": "samsaradiscordgaming",
+  "id": "samsara-fabric-questing",
   "version": "${version}",
-  "name": "samsaraDiscordGaming",
+  "name": "samsara-fabric-questing",
   "description": "",
   "authors": [],
   "contact": {
-    "repo": "https://github.com/socce/samsaraDiscordGaming"
+    "repo": "https://github.com/socce/samsaraFabricQuesting"
   },
   "license": "All-Rights-Reserved",
-  "icon": "assets/samsaradiscordgaming/icon.png",
+  "icon": "assets/samsaraFabricQuesting/icon.png",
   "environment": "server",
   "entrypoints": {
     "main": [

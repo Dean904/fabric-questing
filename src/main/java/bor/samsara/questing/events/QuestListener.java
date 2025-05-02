@@ -26,4 +26,12 @@ public class QuestListener {
         return objective;
     }
 
+    @Override
+    public String toString() {
+        return "QuestListener{" +
+                "playerUuid='" + playerUuid + '\'' +
+                ", questUuid='" + questUuid + '\'' +
+                ", objective=" + objective +
+                '}';
+    }
 }

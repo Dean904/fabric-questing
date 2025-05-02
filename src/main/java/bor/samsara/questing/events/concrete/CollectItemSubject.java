@@ -42,7 +42,7 @@ public class CollectItemSubject extends QuestEventSubject {
                 QuestManager questManager = QuestManager.getInstance();
                 boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
                 if (isComplete)
-                    ite.remove();
+                    detach(listener, ite);
             }
         }
 

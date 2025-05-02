@@ -1,9 +1,11 @@
 package bor.samsara.questing.entity;
 
+import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.goal.*;
@@ -15,6 +17,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -32,30 +35,67 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class ModEntities {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
+    public static final String QUEST_NPC = "questNPC";
+    public static final String QUEST_START_NODE = "questStartNode";
 
     private ModEntities() {}
+
+    public static void despawnTravelingWelcomer(ServerPlayerEntity player) {
+        World world = player.getWorld();
+        try {
+            String travelerName = "§ Hey, " + player.getName().getString() + "!";
+            MongoNpc mongoNpc = NpcMongoClient.getFirstNpcByName(travelerName);
+            Entity trader = world.getEntity(UUID.fromString(mongoNpc.getUuid()));
+            if (null != trader)
+                player.getServer().execute(trader::discard);
+        } catch (Exception e) {
+            log.warn("Failed removing welcoming traverler: {}", e.getMessage(), e);
+        }
+        log.debug("RemovedWelcoming Traveler for {}", player.getName());
+    }
 
     public static void spawnWelcomingTraveler(ServerPlayerEntity player) {
         World world = player.getWorld();
         try {
-            UUID traderUuid = UUID.randomUUID();
             String travelerName = "§ Hey, " + player.getName().getString() + "!";
+            MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(travelerName);
 
-            WanderingTraderEntity trader = makeWanderingTraderEntity(world, traderUuid, player, travelerName);
-            configureWelcomeGoal(trader);
-            world.spawnEntity(trader);
-            MongoNpc mongoNpc = new MongoNpc(traderUuid.toString(), travelerName);
-            MongoNpc.Quest q = new MongoNpc.Quest();
-            q.setSequence(0);
-            q.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.TALK, "OldMan", 1));
-            q.setDialogue(List.of("What are you doing here?!?", "This must mean the cycle has started again.", "Quick, go talk to the old man in the village, Brom.", "Go!", "Now fool!"));
-            mongoNpc.setQuests(Map.of(0, q));
-            NpcMongoClient.createNpc(mongoNpc);
+            QuestManager questManager = QuestManager.getInstance();
+            if (!questManager.isQuestCompleteForPlayer(player.getUuidAsString(), mongoNpc.getUuid())) {
+                questManager.registerNpcForPlayer(player.getUuidAsString(), mongoNpc.getUuid());
+                WanderingTraderEntity trader = makeWanderingTraderEntity(world, mongoNpc.getUuid(), player, travelerName);
+                //configureWelcomeGoal(trader); TODO
+                world.spawnEntity(trader);
+                log.debug("Spawned a Welcoming Traveler for {}!", player.getName());
+            }
         } catch (Exception e) {
             log.error("Failed spawning welcoming traverler: {}", e.getMessage(), e);
-
         }
-        log.debug("Spawned a Welcoming Traveler for {}!", player.getName());
+    }
+
+    private static MongoNpc getOrMakeWelcomeTravelerForPlayer(String travelerName) {
+        try {
+            return NpcMongoClient.getFirstNpcByName(travelerName);
+        } catch (IllegalStateException e) {
+            MongoNpc mongoNpc = new MongoNpc(UUID.randomUUID().toString(), travelerName);
+            MongoNpc.Quest q = new MongoNpc.Quest();
+            q.setSequence(0);
+            q.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.TALK, travelerName, 4));
+            q.setReward(new MongoNpc.Quest.Reward("minecraft:map", 1, 15));
+            List<String> dialogue = List.of("What are you doing here?!?", "This must mean the cycle has started again.", "Quick, go talk to the old man in the village, Bondred.",
+                    "Go!", "Now fool!", "...", "Is this some sort of game to you?", "This is SERIOUS!");
+            q.setDialogue(dialogue);
+
+            MongoNpc.Quest qFin = new MongoNpc.Quest();
+            qFin.setSequence(1);
+            qFin.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.FIN, "", -1));
+            qFin.setReward(new MongoNpc.Quest.Reward("none", 0, 0));
+            qFin.setDialogue(dialogue);
+
+            mongoNpc.setQuests(Map.of(0, q, 1, qFin));
+            NpcMongoClient.createNpc(mongoNpc);
+            return mongoNpc;
+        }
     }
 
     private static void configureWelcomeGoal(WanderingTraderEntity trader) {
@@ -86,16 +126,17 @@ public class ModEntities {
         return goToWalkTargetGoal;
     }
 
-    private static WanderingTraderEntity makeWanderingTraderEntity(World world, UUID uuid, ServerPlayerEntity player, String name) {
+    private static WanderingTraderEntity makeWanderingTraderEntity(World world, String uuid, ServerPlayerEntity player, String name) {
         WanderingTraderEntity trader = EntityType.WANDERING_TRADER.create(world, SpawnReason.TRIGGERED);
-        trader.setUuid(uuid);
-        trader.refreshPositionAndAngles(player.getPos().x, player.getPos().y, player.getPos().z, player.getYaw(), player.getPitch());
+        trader.setUuid(UUID.fromString(uuid));
+
+        Vec3d forward = player.getRotationVec(1.0f).normalize();
+        trader.refreshPositionAndAngles(player.getPos().x + forward.x * 2, player.getPos().y, player.getPos().z + forward.z * 2, player.getYaw(), player.getPitch());
         trader.setCustomName(Text.literal(name));
         trader.setCustomNameVisible(true);
-        trader.addCommandTag("questNPC");
+        trader.addCommandTag(QUEST_NPC);
         trader.setAiDisabled(false);
         trader.setSilent(false);
-        trader.setInvulnerable(true);
         trader.setNoGravity(false);
         trader.setGlowing(true);
         trader.getOffers().clear();
@@ -106,13 +147,16 @@ public class ModEntities {
         return trader;
     }
 
-    public static int createQuestNPC(ServerCommandSource source, String name) throws CommandSyntaxException {
+    public static int createQuestNPC(ServerCommandSource source, String name, boolean isStartNode) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
         World world = player.getWorld();
 
         try {
             UUID villagerUuid = UUID.randomUUID();
             VillagerEntity villager = makeVillagerEntity(world, villagerUuid, player, name);
+            villager.addCommandTag(QUEST_NPC);
+            if (isStartNode)
+                villager.addCommandTag(QUEST_START_NODE);
             world.spawnEntity(villager);
             MongoNpc mongoNpc = new MongoNpc(villagerUuid.toString(), name);
             NpcMongoClient.createNpc(mongoNpc);
@@ -129,7 +173,6 @@ public class ModEntities {
         villager.setUuid(uuid);
         villager.refreshPositionAndAngles(player.getPos().x, player.getPos().y, player.getPos().z, player.getYaw(), player.getPitch());
         villager.setCustomName(Text.literal(name));
-        villager.addCommandTag("questNPC");
         villager.setAiDisabled(true);
         villager.setSilent(true);
         villager.setInvulnerable(true);
@@ -137,9 +180,6 @@ public class ModEntities {
         return villager;
     }
 
-
-    public static void despawnTravelingWelcomer(ServerCommandSource source) {
-    }
 
 }
 

@@ -48,8 +48,8 @@ public class BookStateUtil {
 
     /**
      * Convert an NPC's stageConversationMap into a WRITABLE_BOOK ItemStack
-     * Ex1 = ##0;;hello;;world;;kill=zombie=5;;
-     * Ex2 = ##0;;heyyy;;slaya!;;how are you today?;;collect=minecraft:rotten_flesh=3;;
+     * Ex1 = ##0;;hello;;world;;kill=zombie=5;;minecraft:emerald=3=100;;
+     * Ex2 = ##0;;heyyy;;slaya!;;how are you today?;;collect=minecraft:rotten_flesh=3;;minecraft:emerald=3=100;;
      */
     private static ItemStack createConversationBook(MongoNpc npc) {
         ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK);
@@ -70,6 +70,11 @@ public class BookStateUtil {
             pageText.append(objective.getType().name().toLowerCase()).append("=")
                     .append(objective.getTarget()).append("=")
                     .append(objective.getRequiredCount()).append(DIV);
+
+            MongoNpc.Quest.Reward reward = quest.getReward();
+            pageText.append(reward.getItemName().toLowerCase()).append("=")
+                    .append(reward.getCount()).append("=")
+                    .append(reward.getXpValue()).append(";;");
 
             pages.add(new RawFilteredPair<>(pageText.toString(), Optional.of(pageText.toString())));
         }
@@ -97,6 +102,7 @@ public class BookStateUtil {
                 LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(s.split(DIV)));
                 MongoNpc.Quest q = new MongoNpc.Quest();
                 q.setSequence(Integer.parseInt(allQuestData.pollFirst()));
+                q.setReward(parseReward(allQuestData.pollLast()));
                 q.setObjective(parseObjective(allQuestData.pollLast()));
                 q.setDialogue(allQuestData);
                 return q;
@@ -105,6 +111,11 @@ public class BookStateUtil {
 
         log.error("ReadQuestsFromBook failed, item is not a WrittenBookItem: {}", bookStack);
         return new HashMap<>(); // Not a book
+    }
+
+    private static MongoNpc.Quest.Reward parseReward(String rewardToken) {
+        String[] split = rewardToken.split("=");
+        return new MongoNpc.Quest.Reward(split[0], Integer.parseInt(split[1]), Integer.parseInt(split[2]));
     }
 
     private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {

@@ -2,6 +2,8 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.entity.BookStateUtil;
 import bor.samsara.questing.entity.ModEntities;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import org.jetbrains.annotations.NotNull;
@@ -21,12 +23,23 @@ public class QuestCreationEventRegisters {
                         .requires(Permissions.require("samsara.quest.admin"))
                         .then(literal("add")
                                 .then(literal("npc")
-                                        .then(argument("name", greedyString())
-                                                .executes(context -> {
-                                                            String villagerName = getString(context, "name");
-                                                            return ModEntities.createQuestNPC(context.getSource(), villagerName);
-                                                        }
+                                        // ────── Branch A: bool + name ──────
+                                        .then(argument("isStartNode", BoolArgumentType.bool())
+                                                .then(argument("name", StringArgumentType.greedyString())
+                                                        .executes(ctx -> {
+                                                            boolean isStart = BoolArgumentType.getBool(ctx, "isStartNode");
+                                                            String name = StringArgumentType.getString(ctx, "name");
+                                                            return ModEntities.createQuestNPC(ctx.getSource(), name, isStart);
+                                                        })
                                                 )
+                                        )
+                                        // ────── Branch B: name only ──────
+                                        .then(argument("name", StringArgumentType.greedyString())
+                                                .executes(ctx -> {
+                                                    // no bool provided → default false
+                                                    String name = StringArgumentType.getString(ctx, "name");
+                                                    return ModEntities.createQuestNPC(ctx.getSource(), name, /*isStart=*/false);
+                                                })
                                         )
                                 )
                         )
