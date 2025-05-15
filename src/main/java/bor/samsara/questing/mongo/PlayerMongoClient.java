@@ -1,6 +1,5 @@
 package bor.samsara.questing.mongo;
 
-import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -10,7 +9,7 @@ public class PlayerMongoClient {
 
     private static final String PLAYER_COLLECTION = "playerCharacters";
 
-    private static final MongoDatabase database = MongoClientSingleton.getDatabase();
+    private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
 
     public static void createPlayer(MongoPlayer player) {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);

@@ -1,29 +1,25 @@
 package bor.samsara.questing.mongo;
 
-import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
 
 import java.io.Closeable;
 import java.io.IOException;
 
-public class MongoClientSingleton implements Closeable {
+public class MongoDatabaseSingleton implements Closeable {
 
-    private static MongoClientSingleton singleton;
+    private static MongoDatabaseSingleton singleton;
 
-
-    private static final String MONGO_URI = "mongodb://localhost:27017";
+    private static final String MONGO_URI = "mongodb://admin:forgot12@192.168.50.77:27017/?authSource=admin";
     private final MongoClient mongoClient = MongoClients.create(MONGO_URI);
     private final MongoDatabase database = mongoClient.getDatabase("samsara");
 
-    private MongoClientSingleton() {}
+    private MongoDatabaseSingleton() {}
 
-    public static MongoClientSingleton getInstance() {
+    public static MongoDatabaseSingleton getInstance() {
         if (singleton == null) {
-            singleton = new MongoClientSingleton();
+            singleton = new MongoDatabaseSingleton();
         }
         return singleton;
     }

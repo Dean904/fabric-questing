@@ -1,22 +1,37 @@
 package bor.samsara.questing.events;
 
+import bor.samsara.questing.SamsaraFabricQuesting;
+import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.PlayerMongoClient;
+import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
@@ -29,7 +44,7 @@ public class QuestActionEventManager {
         try {
             QuestManager questManager = QuestManager.getInstance();
             MongoPlayer playerByUuid = PlayerMongoClient.getPlayerByUuid(serverPlayer.getUuidAsString());
-            questManager.activatePlayer(serverPlayer.getUuidAsString(), playerByUuid);
+            questManager.activatePlayer(serverPlayer.getUuidAsString(), playerByUuid); // TODO activatePlayer throwing exception and dupping players if NPC does not exist...
             return playerByUuid;
         } catch (IllegalStateException e) {
             String playerName = serverPlayer.getName().getLiteralString();
@@ -42,28 +57,71 @@ public class QuestActionEventManager {
 
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
-            if (null != hitResult && entity.getCommandTags().contains("questNPC")) {
-                // TODO Add && tag of QUEST_START_POINT ?
+            if (null != hitResult && entity.getCommandTags().contains(ModEntities.QUEST_NPC)) {
                 String playerUuid = player.getUuid().toString();
                 String questNpcUuid = entity.getUuid().toString();
+                QuestManager questManager = QuestManager.getInstance();
 
-                // A Quest NPC needs 2 or 3 states per player
+                // TODO A Quest NPC needs 2 or 3 states per player ?
                 //          , uninitiated giver, target npc (dependent quest), finished?
 
-                QuestManager questManager = QuestManager.getInstance();
-                if (!questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
+                SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, entity, hitResult);
+
+                if (!questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
                     questManager.registerNpcForPlayer(playerUuid, questNpcUuid);
+                    player.playSoundToPlayer(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 }
 
-                String dialogue = questManager.getNextDialogue(playerUuid, questNpcUuid);
-                if (StringUtils.isNotBlank(dialogue))
-                    player.sendMessage(Text.literal(dialogue), false);
+                if (questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
+                    if (questManager.isQuestCompleteForPlayer(playerUuid, questNpcUuid)) {
+                        MongoNpc.Quest.Reward reward = questManager.getQuestReward(playerUuid, questNpcUuid);
+                        if (!StringUtils.equals(reward.getItemName(), "none")) {
+                            player.addExperience(reward.getXpValue());
+                            player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                            ItemStack stack = getItemStack(reward, world);
+                            boolean added = player.giveItemStack(stack);
+                            if (!added) {
+                                player.dropItem(stack, false);
+                            }
+                        }
+                        questManager.progressPlayerToNextQuestSequence(playerUuid, questNpcUuid);
+                    }
 
-                player.playSound(SoundEvents.ENTITY_VILLAGER_TRADE, 1.0f, 1.0f);
-                return ActionResult.SUCCESS; // prevents other actions from performing.
+                    String dialogue = questManager.getNextDialogue(playerUuid, questNpcUuid);
+                    if (StringUtils.isNotBlank(dialogue))
+                        player.sendMessage(Text.literal(dialogue), false);
+
+                    player.playSoundToPlayer(SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                    return ActionResult.SUCCESS; // prevents other actions from performing.
+                }
             }
+
             return ActionResult.PASS;
         };
+    }
+
+    private static @NotNull ItemStack getItemStack(MongoNpc.Quest.Reward reward, World world) {
+        String itemDefinition = reward.getItemName();
+        Identifier id = Identifier.of(extractItemName(itemDefinition));
+        Item item = Registries.ITEM.get(id);
+        ItemStack itemStack = new ItemStack(item, reward.getCount());
+        if (itemDefinition.contains("{")) {
+            // TODO generic NBT handling
+            String nbtCoords = itemDefinition.substring(itemDefinition.indexOf('{') + 1, itemDefinition.indexOf('}'));
+            String[] pos = nbtCoords.split(",");
+            GlobalPos globalPos = GlobalPos.create(world.getRegistryKey(), new BlockPos(Integer.parseInt(pos[0]), Integer.parseInt(pos[1]), Integer.parseInt(pos[2])));
+            LodestoneTrackerComponent tracker = new LodestoneTrackerComponent(Optional.of(globalPos), false);
+            itemStack.set(DataComponentTypes.LODESTONE_TRACKER, tracker);
+        }
+
+        return itemStack;
+    }
+
+    private static String extractItemName(String itemDefinition) {
+        if (itemDefinition.contains("{")) {
+            return itemDefinition.substring(0, itemDefinition.indexOf('{'));
+        }
+        return itemDefinition;
     }
 
     public static void savePlayerStatsOnExit(ServerPlayerEntity serverPlayer) {
