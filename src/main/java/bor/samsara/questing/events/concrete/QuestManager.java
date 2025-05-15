@@ -20,7 +20,6 @@ public class QuestManager {
 
     private static QuestManager singleton;
 
-    Map<String, MongoNpc> npcMap = new HashMap<>(); // Static NPC data probably shouldnt live in memory
     Map<String, MongoPlayer> playerMap = new HashMap<>(); // Player stats between onJoin and onLeave? Good mem
 
     private QuestManager() {}
@@ -160,12 +159,7 @@ public class QuestManager {
     }
 
     private MongoNpc getOrFindNpc(String questNpcUuid) {
-        if (npcMap.containsKey(questNpcUuid))
-            return npcMap.get(questNpcUuid);
-
-        MongoNpc playerByUuid = NpcMongoClient.getNpc(questNpcUuid);
-        npcMap.put(questNpcUuid, playerByUuid);
-        return playerByUuid;
+        return NpcMongoClient.getNpc(questNpcUuid);
     }
 
 

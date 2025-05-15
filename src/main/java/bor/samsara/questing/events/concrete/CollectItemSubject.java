@@ -4,6 +4,8 @@ import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.QuestListener;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -41,8 +43,12 @@ public class CollectItemSubject extends QuestEventSubject {
             if (StringUtils.equalsIgnoreCase(itemName, listener.getObjective().getTarget())) {
                 QuestManager questManager = QuestManager.getInstance();
                 boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
-                if (isComplete)
+                player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                if (isComplete) {
+                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     detach(listener, ite);
+                }
             }
         }
 

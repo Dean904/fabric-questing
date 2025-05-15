@@ -73,8 +73,10 @@ public class BookSignedMixin {
                             ItemStack writableBook = convertWrittenBookToWritableBook(writtenBook, encodedNpcName.get());
                             player.getInventory().removeOne(writtenBook);
                             player.getInventory().insertStack(writableBook);
-                            log.info("Failed to update NPC from signed book: {}", e.getMessage());
+                            log.warn("Failed to update NPC from signed book: {}", e.getMessage(), e);
                         }
+                    } else {
+                        log.error("No encodedNpcName found on configuring quest book.");
                     }
                 }
             }

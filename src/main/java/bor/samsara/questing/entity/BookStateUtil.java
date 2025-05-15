@@ -97,9 +97,10 @@ public class BookStateUtil {
             StringBuilder sb = new StringBuilder();
             signedBookContent.pages().forEach(pair -> sb.append(pair.get(false).getString()));
             List<String> questStrings = new ArrayList<>(List.of(sb.toString().split("##")));
-            questStrings.removeIf(StringUtils::isEmpty);
-            return questStrings.stream().map(s -> {
-                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(s.split(DIV)));
+            questStrings.removeIf(StringUtils::isBlank);
+            return questStrings.stream().map(questString -> {
+                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(questString.split(DIV)));
+                allQuestData.removeIf(s -> StringUtils.isBlank(s) || StringUtils.equals(s.trim(), "\n"));
                 MongoNpc.Quest q = new MongoNpc.Quest();
                 q.setSequence(Integer.parseInt(allQuestData.pollFirst()));
                 q.setReward(parseReward(allQuestData.pollLast()));
@@ -115,11 +116,13 @@ public class BookStateUtil {
 
     private static MongoNpc.Quest.Reward parseReward(String rewardToken) {
         String[] split = rewardToken.split("=");
+        if (split.length != 3) throw new IllegalStateException("Parsing reward split size != 3: " + rewardToken);
         return new MongoNpc.Quest.Reward(split[0], Integer.parseInt(split[1]), Integer.parseInt(split[2]));
     }
 
     private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {
         String[] split = objectiveToken.split("=");
+        if (split.length != 3) throw new IllegalStateException("Parsing objective split size != 3: " + objectiveToken);
         MongoNpc.Quest.Objective.Type type = MongoNpc.Quest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
         String target = StringUtils.lowerCase(split[1]).trim();
 

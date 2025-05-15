@@ -136,6 +136,15 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                 o.setRequiredCount(document.getInteger("requiredCount"));
                 return o;
             }
+
+            @Override
+            public String toString() {
+                return "Objective{" +
+                        "type=" + type +
+                        ", target='" + target + '\'' +
+                        ", requiredCount=" + requiredCount +
+                        '}';
+            }
         }
 
         public static class Reward {
@@ -189,6 +198,15 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                 r.setXpValue(document.getInteger("xpValue"));
                 return r;
             }
+
+            @Override
+            public String toString() {
+                return "Reward{" +
+                        "itemName='" + itemName + '\'' +
+                        ", count=" + count +
+                        ", xpValue=" + xpValue +
+                        '}';
+            }
         }
 
         public Document toDocument() {
@@ -207,6 +225,16 @@ public class MongoNpc implements MongoDao<MongoNpc> {
             q.setObjective(Objective.fromDocument(document.get("objective", Document.class)));
             q.setReward(Reward.fromDocument(document.get("reward", Document.class)));
             return q;
+        }
+
+        @Override
+        public String toString() {
+            return "Quest{" +
+                    "sequence=" + sequence +
+                    ", dialogue=" + dialogue +
+                    ", objective=" + objective +
+                    ", reward=" + reward +
+                    '}';
         }
     }
 
@@ -233,5 +261,14 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         p.setQuests(questMap);
 
         return p;
+    }
+
+    @Override
+    public String toString() {
+        return "MongoNpc{" +
+                "uuid='" + uuid + '\'' +
+                ", name='" + name + '\'' +
+                ", quests=" + quests +
+                '}';
     }
 }

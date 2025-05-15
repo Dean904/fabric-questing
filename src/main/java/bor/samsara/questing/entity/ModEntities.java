@@ -81,7 +81,7 @@ public class ModEntities {
             MongoNpc.Quest q = new MongoNpc.Quest();
             q.setSequence(0);
             q.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.TALK, travelerName, 4));
-            q.setReward(new MongoNpc.Quest.Reward("minecraft:map", 1, 15));
+            q.setReward(new MongoNpc.Quest.Reward("minecraft:totem_of_undying", 1, 15));
             List<String> dialogue = List.of("What are you doing here?!?", "This must mean the cycle has started again.", "Quick, go talk to the old man in the village, Bondred.",
                     "Go!", "Now fool!", "...", "Is this some sort of game to you?", "This is SERIOUS!");
             q.setDialogue(dialogue);

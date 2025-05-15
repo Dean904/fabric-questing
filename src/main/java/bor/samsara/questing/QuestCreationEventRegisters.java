@@ -20,7 +20,7 @@ public class QuestCreationEventRegisters {
     public static @NotNull CommandRegistrationCallback createNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
-                        .requires(Permissions.require("samsara.quest.admin"))
+                        .requires(Permissions.require("samsara.quest.admin", 2))
                         .then(literal("add")
                                 .then(literal("npc")
                                         // ────── Branch A: bool + name ──────
@@ -49,7 +49,7 @@ public class QuestCreationEventRegisters {
     public static @NotNull CommandRegistrationCallback openCommandBookForNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
-                        .requires(Permissions.require("samsara.quest.admin"))
+                        .requires(Permissions.require("samsara.quest.admin", 2))
                         .then(literal("config")
                                 .then(literal("npc")
                                         .then(argument("name", greedyString())
