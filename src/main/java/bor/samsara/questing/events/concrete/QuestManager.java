@@ -20,7 +20,6 @@ public class QuestManager {
 
     private static QuestManager singleton;
 
-    Map<String, MongoNpc> npcMap = new HashMap<>(); // Static NPC data probably shouldnt live in memory
     Map<String, MongoPlayer> playerMap = new HashMap<>(); // Player stats between onJoin and onLeave? Good mem
 
     private QuestManager() {}
@@ -37,13 +36,50 @@ public class QuestManager {
         return playerState.getNpcActiveQuestMap().containsKey(questNpcUuid);
     }
 
+    public boolean isQuestCompleteForPlayer(String playerUuid, String questNpcUuid) {
+        MongoPlayer playerState = getOrFindPlayer(playerUuid);
+        if (playerState.getNpcActiveQuestMap().containsKey(questNpcUuid)) {
+            MongoPlayer.ActiveQuest quest = playerState.getNpcActiveQuestMap().get(questNpcUuid);
+            return quest.isComplete();
+        }
+        return false;
+    }
+
+    public MongoNpc.Quest.Reward getQuestReward(String playerUuid, String questNpcUuid) {
+        MongoPlayer playerState = getOrFindPlayer(playerUuid);
+        MongoPlayer.ActiveQuest activeQuest = playerState.getNpcActiveQuestMap().get(questNpcUuid);
+        MongoNpc npc = getOrFindNpc(questNpcUuid);
+        return npc.getQuests().get(activeQuest.getSequence()).getReward();
+    }
+
+    public void progressPlayerToNextQuestSequence(String playerUuid, String questNpcUuid) {
+        MongoPlayer playerState = getOrFindPlayer(playerUuid);
+        MongoNpc npc = getOrFindNpc(questNpcUuid);
+
+        int nextQuestSequence = playerState.getNpcActiveQuestMap().get(questNpcUuid).getSequence() + 1;
+        if (nextQuestSequence < npc.getQuests().size()) {
+            MongoPlayer.ActiveQuest nextActiveQuest = new MongoPlayer.ActiveQuest(nextQuestSequence);
+            MongoNpc.Quest nextQuest = npc.getQuests().get(nextQuestSequence);
+            if (MongoNpc.Quest.Objective.Type.FIN == nextQuest.getObjective().getType()) {
+                nextActiveQuest.setComplete(true);
+            }
+
+            playerState.getNpcActiveQuestMap().put(questNpcUuid, nextActiveQuest);
+            PlayerMongoClient.updatePlayer(playerState);
+            log.debug("Progressing {} to next quest sequence, {}, for {}", playerState.getName(), nextQuestSequence, npc.getName());
+            attachQuestListenerToPertinentSubject(playerState, npc, nextQuest.getObjective());
+        }
+    }
+
     public void registerNpcForPlayer(String playerUuid, String questNpcUuid) {
+        // TODO merge with ProgressToNextSequence, lotsa dupped code
         MongoPlayer playerState = getOrFindPlayer(playerUuid);
         playerState.getNpcActiveQuestMap().put(questNpcUuid, new MongoPlayer.ActiveQuest(0));
         PlayerMongoClient.updatePlayer(playerState);
 
         MongoNpc npc = getOrFindNpc(questNpcUuid);
         MongoNpc.Quest firstQuest = npc.getQuests().get(0);
+        log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
         attachQuestListenerToPertinentSubject(playerState, npc, firstQuest.getObjective());
     }
 
@@ -63,7 +99,8 @@ public class QuestManager {
         switch (objectiveType) {
             case KILL -> SamsaraFabricQuesting.killSubject.attach(questListener);
             case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(questListener);
-            case TALK -> log.info("Todo");
+            case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(questListener);
+            case FIN -> {}
             default -> log.warn("Unknown Objective Type '{}' when registering NPC {} for Player {}", objectiveType, npc.getName(), playerState.getName());
         }
     }
@@ -91,6 +128,12 @@ public class QuestManager {
         return "";
     }
 
+    public int getQuestObjectiveCount(QuestListener listener) {
+        MongoPlayer playerState = getOrFindPlayer(listener.getPlayerUuid());
+        MongoPlayer.ActiveQuest activeQuestForNpc = playerState.getNpcActiveQuestMap().get(listener.getQuestUuid());
+        return activeQuestForNpc.getObjectiveCount();
+    }
+
     public boolean incrementQuestObjectiveCount(QuestListener listener) {
         MongoPlayer playerState = getOrFindPlayer(listener.getPlayerUuid());
         MongoPlayer.ActiveQuest activeQuestForNpc = playerState.getNpcActiveQuestMap().get(listener.getQuestUuid());
@@ -99,11 +142,12 @@ public class QuestManager {
 
         MongoNpc npc = getOrFindNpc(listener.getQuestUuid());
         MongoNpc.Quest staticQuest = npc.getQuests().get(activeQuestForNpc.getSequence());
+        log.debug("Incrementing quest objective count of '{}#{}' for player {}", npc.getName(), activeQuestForNpc.getSequence(), playerState.getName());
 
         if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-            // TODO when should we increment to next active quest sequence? Now or on is_complete right click? Finer conversation controls?
             activeQuestForNpc.setComplete(true);
             PlayerMongoClient.updatePlayer(playerState);
+            log.debug("Marking '{}#{}' quest complete for player {}", npc.getName(), activeQuestForNpc.getSequence(), playerState.getName());
             return true;
         }
 
@@ -121,14 +165,8 @@ public class QuestManager {
     }
 
     private MongoNpc getOrFindNpc(String questNpcUuid) {
-        if (npcMap.containsKey(questNpcUuid))
-            return npcMap.get(questNpcUuid);
-
-        MongoNpc playerByUuid = NpcMongoClient.getNpc(questNpcUuid);
-        npcMap.put(questNpcUuid, playerByUuid);
-        return playerByUuid;
+        return NpcMongoClient.getNpc(questNpcUuid);
     }
-
 
 }
 

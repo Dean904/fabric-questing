@@ -48,8 +48,8 @@ public class BookStateUtil {
 
     /**
      * Convert an NPC's stageConversationMap into a WRITABLE_BOOK ItemStack
-     * Ex1 = ##0;;hello;;world;;kill=zombie=5;;
-     * Ex2 = ##0;;heyyy;;slaya!;;how are you today?;;collect=minecraft:rotten_flesh=3;;
+     * Ex1 = ##0;;hello;;world;;kill=zombie=5;;minecraft:emerald=3=100;;
+     * Ex2 = ##0;;heyyy;;slaya!;;how are you today?;;collect=minecraft:rotten_flesh=5;;minecraft:emerald=3=100;;
      */
     private static ItemStack createConversationBook(MongoNpc npc) {
         ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK);
@@ -70,6 +70,11 @@ public class BookStateUtil {
             pageText.append(objective.getType().name().toLowerCase()).append("=")
                     .append(objective.getTarget()).append("=")
                     .append(objective.getRequiredCount()).append(DIV);
+
+            MongoNpc.Quest.Reward reward = quest.getReward();
+            pageText.append(reward.getItemName().toLowerCase()).append("=")
+                    .append(reward.getCount()).append("=")
+                    .append(reward.getXpValue()).append(";;");
 
             pages.add(new RawFilteredPair<>(pageText.toString(), Optional.of(pageText.toString())));
         }
@@ -92,11 +97,13 @@ public class BookStateUtil {
             StringBuilder sb = new StringBuilder();
             signedBookContent.pages().forEach(pair -> sb.append(pair.get(false).getString()));
             List<String> questStrings = new ArrayList<>(List.of(sb.toString().split("##")));
-            questStrings.removeIf(StringUtils::isEmpty);
-            return questStrings.stream().map(s -> {
-                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(s.split(DIV)));
+            questStrings.removeIf(StringUtils::isBlank);
+            return questStrings.stream().map(questString -> {
+                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(questString.split(DIV)));
+                allQuestData.removeIf(s -> StringUtils.isBlank(s) || StringUtils.equals(s.trim(), "\n"));
                 MongoNpc.Quest q = new MongoNpc.Quest();
                 q.setSequence(Integer.parseInt(allQuestData.pollFirst()));
+                q.setReward(parseReward(allQuestData.pollLast()));
                 q.setObjective(parseObjective(allQuestData.pollLast()));
                 q.setDialogue(allQuestData);
                 return q;
@@ -107,8 +114,15 @@ public class BookStateUtil {
         return new HashMap<>(); // Not a book
     }
 
+    private static MongoNpc.Quest.Reward parseReward(String rewardToken) {
+        String[] split = rewardToken.split("=");
+        if (split.length != 3) throw new IllegalStateException("Parsing reward split size != 3: " + rewardToken);
+        return new MongoNpc.Quest.Reward(split[0], Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+    }
+
     private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {
         String[] split = objectiveToken.split("=");
+        if (split.length != 3) throw new IllegalStateException("Parsing objective split size != 3: " + objectiveToken);
         MongoNpc.Quest.Objective.Type type = MongoNpc.Quest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
         String target = StringUtils.lowerCase(split[1]).trim();
 

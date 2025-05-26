@@ -3,7 +3,10 @@ package bor.samsara.questing.events.concrete;
 import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.QuestListener;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
-import net.minecraft.entity.EntityType;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Iterator;
@@ -18,23 +21,29 @@ public class KillSubject extends QuestEventSubject {
             if (!playerSubscriberMap.containsKey(playerUuid))
                 return;
 
-//            MongoNpc.Quest.Objective.Target killedType = switch (killedEntity) {
-//                case ZombieEntity z -> MongoNpc.Quest.Objective.Target.ZOMBIE;
-//                case SkeletonEntity s -> MongoNpc.Quest.Objective.Target.SKELETON;
-//                case CreeperEntity c -> MongoNpc.Quest.Objective.Target.CREEPER;
-//                default -> null;
-//            };
-
             List<QuestListener> questListeners = playerSubscriberMap.get(playerUuid);
             String entityTypeName = killedEntity.getType().getName().getString();
-
+            log.debug("Tracking {}, killed a {}", killer.getName().getString(), entityTypeName);
             for (Iterator<QuestListener> ite = questListeners.iterator(); ite.hasNext(); ) {
                 QuestListener listener = ite.next();
                 if (StringUtils.equalsIgnoreCase(entityTypeName, listener.getObjective().getTarget())) {
                     QuestManager questManager = QuestManager.getInstance();
                     boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
-                    if (isComplete)
-                        ite.remove();
+
+                    if (isComplete) {
+                        killer.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                        detach(listener, ite);
+                    } else {
+                        Vec3d pos = killer.getPos();
+                        world.playSound(
+                                null, // `null` means only the player hears it; use `player` to make it audible to others too
+                                pos.x, pos.y, pos.z,
+                                SoundEvents.BLOCK_ANVIL_USE,
+                                SoundCategory.PLAYERS,
+                                0.4f, // volume
+                                0.6f  // pitch
+                        );
+                    }
                 }
             }
         };

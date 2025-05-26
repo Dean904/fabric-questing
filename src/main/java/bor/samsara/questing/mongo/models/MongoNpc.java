@@ -44,7 +44,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         private Integer sequence;
         private List<String> dialogue = new ArrayList<>();
         private Objective objective;
-        // TODO add reward
+        private Reward reward;
 
         public Integer getSequence() {
             return sequence;
@@ -68,6 +68,14 @@ public class MongoNpc implements MongoDao<MongoNpc> {
 
         public void setObjective(Objective objective) {
             this.objective = objective;
+        }
+
+        public Reward getReward() {
+            return reward;
+        }
+
+        public void setReward(Reward reward) {
+            this.reward = reward;
         }
 
         public static class Objective {
@@ -110,7 +118,8 @@ public class MongoNpc implements MongoDao<MongoNpc> {
             public enum Type {
                 KILL,
                 TALK,
-                COLLECT
+                COLLECT,
+                FIN
             }
 
             public Document toDocument() {
@@ -120,22 +129,92 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                         .append("requiredCount", requiredCount);
             }
 
-            public Objective fromDocument(Document document) {
+            public static Objective fromDocument(Document document) {
                 Objective o = new Objective();
                 o.setType(Type.valueOf(document.getString("type")));
                 o.setTarget(document.getString("target"));
                 o.setRequiredCount(document.getInteger("requiredCount"));
                 return o;
             }
+
+            @Override
+            public String toString() {
+                return "Objective{" +
+                        "type=" + type +
+                        ", target='" + target + '\'' +
+                        ", requiredCount=" + requiredCount +
+                        '}';
+            }
         }
 
+        public static class Reward {
+            private String itemName;
+            private int count;
+            private int xpValue;
+
+            public Reward() {}
+
+            public Reward(String itemName, int count, int xpValue) {
+                this.itemName = itemName;
+                this.count = count;
+                this.xpValue = xpValue;
+            }
+
+            public String getItemName() {
+                return itemName;
+            }
+
+            public void setItemName(String itemName) {
+                this.itemName = itemName;
+            }
+
+            public int getCount() {
+                return count;
+            }
+
+            public void setCount(int count) {
+                this.count = count;
+            }
+
+            public int getXpValue() {
+                return xpValue;
+            }
+
+            public void setXpValue(int xpValue) {
+                this.xpValue = xpValue;
+            }
+
+            public Document toDocument() {
+                return new Document()
+                        .append("itemName", itemName)
+                        .append("count", count)
+                        .append("xpValue", xpValue);
+            }
+
+            public static Reward fromDocument(Document document) {
+                Reward r = new Reward();
+                r.setItemName(document.getString("itemName"));
+                r.setCount(document.getInteger("count"));
+                r.setXpValue(document.getInteger("xpValue"));
+                return r;
+            }
+
+            @Override
+            public String toString() {
+                return "Reward{" +
+                        "itemName='" + itemName + '\'' +
+                        ", count=" + count +
+                        ", xpValue=" + xpValue +
+                        '}';
+            }
+        }
 
         public Document toDocument() {
             return new Document()
                     .append("dialogue", dialogue)
                     .append("order", sequence)
-                    .append("objective", objective.toDocument());
-
+                    .append("objective", objective.toDocument())
+                    .append("reward", reward.toDocument());
         }
 
         @SuppressWarnings("unchecked")
@@ -143,8 +222,19 @@ public class MongoNpc implements MongoDao<MongoNpc> {
             Quest q = new Quest();
             q.setDialogue(document.getList("dialogue", String.class));
             q.setSequence(document.getInteger("order"));
-            q.setObjective(new Objective().fromDocument(document.get("objective", Document.class)));
+            q.setObjective(Objective.fromDocument(document.get("objective", Document.class)));
+            q.setReward(Reward.fromDocument(document.get("reward", Document.class)));
             return q;
+        }
+
+        @Override
+        public String toString() {
+            return "Quest{" +
+                    "sequence=" + sequence +
+                    ", dialogue=" + dialogue +
+                    ", objective=" + objective +
+                    ", reward=" + reward +
+                    '}';
         }
     }
 
@@ -171,5 +261,14 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         p.setQuests(questMap);
 
         return p;
+    }
+
+    @Override
+    public String toString() {
+        return "MongoNpc{" +
+                "uuid='" + uuid + '\'' +
+                ", name='" + name + '\'' +
+                ", quests=" + quests +
+                '}';
     }
 }

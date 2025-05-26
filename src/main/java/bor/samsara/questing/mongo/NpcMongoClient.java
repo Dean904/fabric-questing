@@ -9,7 +9,7 @@ public class NpcMongoClient {
 
     private static final String NPC_COLLECTION = "nonPlayerCharacters";
 
-    private static final MongoDatabase database = MongoClientSingleton.getDatabase();
+    private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
 
     private NpcMongoClient() {
     }
@@ -29,7 +29,7 @@ public class NpcMongoClient {
             return new MongoNpc().fromDocument(doc);
         }
 
-        throw new IllegalStateException("The player '%s' was not found".formatted(name));
+        throw new IllegalStateException("The npc '%s' was not found".formatted(name));
     }
 
     public static MongoNpc getNpc(String uuid) throws IllegalStateException {
