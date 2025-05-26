@@ -41,13 +41,18 @@ public class CollectItemSubject extends QuestEventSubject {
         for (Iterator<QuestListener> ite = questListeners.iterator(); ite.hasNext(); ) {
             QuestListener listener = ite.next();
             if (StringUtils.equalsIgnoreCase(itemName, listener.getObjective().getTarget())) {
+
                 QuestManager questManager = QuestManager.getInstance();
-                boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
-                player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                if (isComplete) {
-                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                    detach(listener, ite);
+                // TODO set objective count to count picked up, not just 1
+                if (player.getInventory().getStack(slot).getCount() + stack.getCount() > questManager.getQuestObjectiveCount(listener)) {
+                    boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
+                    if (isComplete) {
+                        player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                        detach(listener, ite);
+                    } else {
+                        player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                        player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                    }
                 }
             }
         }

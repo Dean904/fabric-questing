@@ -13,10 +13,10 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -38,6 +38,7 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class QuestActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
+
 
     // TODO do these functions belong here? Or in QuestManager? bad abstraction
     public static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
@@ -66,10 +67,15 @@ public class QuestActionEventManager {
                 //          , uninitiated giver, target npc (dependent quest), finished?
 
                 SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, entity, hitResult);
+                SoundEvent rightClickSoundEffect = SoundEvents.ITEM_BOOK_PAGE_TURN; // default sound effect
+                boolean playedSound = false;
 
                 if (!questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
                     questManager.registerNpcForPlayer(playerUuid, questNpcUuid);
-                    player.playSoundToPlayer(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                    //playOrchestra(player);
+                    //playZeldaPuzzleSolved(player);
+                    SamsaraNoteBlockTunes.playSonicChaosEmerald(player);
+                    playedSound = true;
                 }
 
                 if (questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
@@ -77,7 +83,7 @@ public class QuestActionEventManager {
                         MongoNpc.Quest.Reward reward = questManager.getQuestReward(playerUuid, questNpcUuid);
                         if (!StringUtils.equals(reward.getItemName(), "none")) {
                             player.addExperience(reward.getXpValue());
-                            player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                            player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.8f, 1.5f);
                             ItemStack stack = getItemStack(reward, world);
                             boolean added = player.giveItemStack(stack);
                             if (!added) {
@@ -91,7 +97,8 @@ public class QuestActionEventManager {
                     if (StringUtils.isNotBlank(dialogue))
                         player.sendMessage(Text.literal(dialogue), false);
 
-                    player.playSoundToPlayer(SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                    if (!playedSound)
+                        player.playSoundToPlayer(rightClickSoundEffect, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     return ActionResult.SUCCESS; // prevents other actions from performing.
                 }
             }
@@ -128,4 +135,6 @@ public class QuestActionEventManager {
         QuestManager questManager = QuestManager.getInstance();
         questManager.deactivatePlayer(serverPlayer.getUuidAsString());
     }
+
+
 }

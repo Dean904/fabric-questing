@@ -128,6 +128,12 @@ public class QuestManager {
         return "";
     }
 
+    public int getQuestObjectiveCount(QuestListener listener) {
+        MongoPlayer playerState = getOrFindPlayer(listener.getPlayerUuid());
+        MongoPlayer.ActiveQuest activeQuestForNpc = playerState.getNpcActiveQuestMap().get(listener.getQuestUuid());
+        return activeQuestForNpc.getObjectiveCount();
+    }
+
     public boolean incrementQuestObjectiveCount(QuestListener listener) {
         MongoPlayer playerState = getOrFindPlayer(listener.getPlayerUuid());
         MongoPlayer.ActiveQuest activeQuestForNpc = playerState.getNpcActiveQuestMap().get(listener.getQuestUuid());
@@ -161,7 +167,6 @@ public class QuestManager {
     private MongoNpc getOrFindNpc(String questNpcUuid) {
         return NpcMongoClient.getNpc(questNpcUuid);
     }
-
 
 }
 

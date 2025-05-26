@@ -3,8 +3,10 @@ package bor.samsara.questing.events.concrete;
 import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.QuestListener;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.math.Vec3d;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Iterator;
@@ -27,11 +29,20 @@ public class KillSubject extends QuestEventSubject {
                 if (StringUtils.equalsIgnoreCase(entityTypeName, listener.getObjective().getTarget())) {
                     QuestManager questManager = QuestManager.getInstance();
                     boolean isComplete = questManager.incrementQuestObjectiveCount(listener);
-                    killer.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
-                    killer.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
+
                     if (isComplete) {
                         killer.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
                         detach(listener, ite);
+                    } else {
+                        Vec3d pos = killer.getPos();
+                        world.playSound(
+                                null, // `null` means only the player hears it; use `player` to make it audible to others too
+                                pos.x, pos.y, pos.z,
+                                SoundEvents.BLOCK_ANVIL_USE,
+                                SoundCategory.PLAYERS,
+                                0.4f, // volume
+                                0.6f  // pitch
+                        );
                     }
                 }
             }
