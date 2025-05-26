@@ -1,5 +1,6 @@
 package bor.samsara.questing;
 
+import bor.samsara.questing.config.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.QuestActionEventManager;
 import bor.samsara.questing.events.concrete.CollectItemSubject;
@@ -32,6 +33,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         // ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         // scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
+        AppConfiguration.loadConfiguration();
 
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
