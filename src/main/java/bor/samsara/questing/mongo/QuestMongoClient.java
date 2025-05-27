@@ -4,12 +4,9 @@ import bor.samsara.questing.mongo.models.MongoQuest;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Indexes;
-import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
@@ -22,19 +19,11 @@ public class QuestMongoClient {
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
     private static final MongoCollection<Document> collection = database.getCollection(QUEST_COLLECTION);
 
-    private static final AtomicInteger uniqueId;
-
     private QuestMongoClient() {}
 
     static {
         log.info("Creating ID index for MongoDB collection '{}'", QUEST_COLLECTION);
-        collection.createIndex(Indexes.ascending("id"));
-        Document doc = collection.find().sort(Sorts.descending("id")).limit(1).first();
-        uniqueId = doc == null ? new AtomicInteger(0) : new AtomicInteger(doc.getInteger("id", 0));
-    }
-
-    public static int getNextUniqueId() {
-        return uniqueId.getAndIncrement();
+        collection.createIndex(Indexes.ascending("uuid"));
     }
 
     public static void createQuest(MongoQuest quest) {

@@ -2,7 +2,6 @@ package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -66,7 +65,7 @@ public class RightClickActionEventManager {
                     PlayerMongoClient.updatePlayer(playerState);
 
                     log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
-                    QuestManager.attachQuestListenerToPertinentSubject(playerState, npc, firstQuest.getObjective());
+                    SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, npc, firstQuest.getObjective());
 
                     //playOrchestra(player);
                     //playZeldaPuzzleSolved(player);
@@ -99,7 +98,8 @@ public class RightClickActionEventManager {
                             playerState.getNpcActiveQuestMap().put(questNpcUuid, nextActiveQuest);
                             PlayerMongoClient.updatePlayer(playerState);
                             log.debug("Progressing {} to next quest sequence, {}, for {}", playerState.getName(), nextQuestSequence, npc.getName());
-                            QuestManager.attachQuestListenerToPertinentSubject(playerState, npc, nextQuest.getObjective());
+                            // TODO consolidate common nextQuest progression to function
+                            SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, npc, nextQuest.getObjective());
                         }
                     }
 

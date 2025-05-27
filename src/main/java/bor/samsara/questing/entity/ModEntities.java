@@ -1,6 +1,6 @@
 package bor.samsara.questing.entity;
 
-import bor.samsara.questing.events.concrete.QuestManager;
+import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -73,7 +73,7 @@ public class ModEntities {
             playerState.getNpcActiveQuestMap().put(mongoNpc.getUuid(), new MongoPlayer.ActiveQuest(firstQuestId, firstQuest.getTitle(), 0));
             PlayerMongoClient.updatePlayer(playerState);
 
-            QuestManager.attachQuestListenerToPertinentSubject(playerState, mongoNpc, firstQuest.getObjective());
+            SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, mongoNpc, firstQuest.getObjective());
             WanderingTraderEntity trader = makeWanderingTraderEntity(world, mongoNpc.getUuid(), player, travelerName);
             //configureWelcomeGoal(trader); TODO
             world.spawnEntity(trader);

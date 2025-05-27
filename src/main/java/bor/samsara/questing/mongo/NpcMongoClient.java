@@ -1,7 +1,6 @@
 package bor.samsara.questing.mongo;
 
 import bor.samsara.questing.mongo.models.MongoNpc;
-import bor.samsara.questing.mongo.models.MongoQuest;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
