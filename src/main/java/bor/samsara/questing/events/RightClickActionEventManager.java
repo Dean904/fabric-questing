@@ -6,6 +6,7 @@ import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
+import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LodestoneTrackerComponent;
@@ -38,7 +39,6 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class QuestActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
-
 
     // TODO do these functions belong here? Or in QuestManager? bad abstraction
     public static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
@@ -80,7 +80,7 @@ public class QuestActionEventManager {
 
                 if (questManager.isNpcActiveForPlayer(playerUuid, questNpcUuid)) {
                     if (questManager.isQuestCompleteForPlayer(playerUuid, questNpcUuid)) {
-                        MongoNpc.Quest.Reward reward = questManager.getQuestReward(playerUuid, questNpcUuid);
+                        MongoQuest.Reward reward = questManager.getQuestReward(playerUuid, questNpcUuid);
                         if (!StringUtils.equals(reward.getItemName(), "none")) {
                             player.addExperience(reward.getXpValue());
                             player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.8f, 1.5f);
@@ -107,7 +107,7 @@ public class QuestActionEventManager {
         };
     }
 
-    private static @NotNull ItemStack getItemStack(MongoNpc.Quest.Reward reward, World world) {
+    private static @NotNull ItemStack getItemStack(MongoQuest.Reward reward, World world) {
         String itemDefinition = reward.getItemName();
         Identifier id = Identifier.of(extractItemName(itemDefinition));
         Item item = Registries.ITEM.get(id);

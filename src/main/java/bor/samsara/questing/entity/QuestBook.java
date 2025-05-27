@@ -1,7 +1,9 @@
 package bor.samsara.questing.entity;
 
 import bor.samsara.questing.mongo.NpcMongoClient;
+import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
+import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.WritableBookContentComponent;
@@ -59,19 +61,20 @@ public class BookStateUtil {
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         List<RawFilteredPair<String>> pages = new ArrayList<>();
-        for (MongoNpc.Quest quest : npc.getQuests().values()) {
+        for (int questId : npc.getQuestIds()) {
             // TODO complicated page-splitting if lines are too long.
+            MongoQuest quest = QuestMongoClient.getQuestById(questId);
             StringBuilder pageText = new StringBuilder("##").append(quest.getSequence()).append(DIV);
             for (String line : quest.getDialogue()) {
                 pageText.append(line).append(DIV);
             }
 
-            MongoNpc.Quest.Objective objective = quest.getObjective();
+            MongoQuest.Objective objective = quest.getObjective();
             pageText.append(objective.getType().name().toLowerCase()).append("=")
                     .append(objective.getTarget()).append("=")
                     .append(objective.getRequiredCount()).append(DIV);
 
-            MongoNpc.Quest.Reward reward = quest.getReward();
+            MongoQuest.Reward reward = quest.getReward();
             pageText.append(reward.getItemName().toLowerCase()).append("=")
                     .append(reward.getCount()).append("=")
                     .append(reward.getXpValue()).append(";;");
@@ -88,10 +91,7 @@ public class BookStateUtil {
         return bookStack;
     }
 
-    /**
-     * example book config = "##0;;hello;;world;;kill=zombie=5;;"
-     */
-    public static Map<Integer, MongoNpc.Quest> readQuestsFromBook(ItemStack bookStack) {
+    public static List<MongoQuest> readQuestsFromBook(ItemStack bookStack) {
         if (bookStack.getItem() instanceof WrittenBookItem) {
             WrittenBookContentComponent signedBookContent = bookStack.getOrDefault(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT);
             StringBuilder sb = new StringBuilder();
@@ -101,32 +101,33 @@ public class BookStateUtil {
             return questStrings.stream().map(questString -> {
                 LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(questString.split(DIV)));
                 allQuestData.removeIf(s -> StringUtils.isBlank(s) || StringUtils.equals(s.trim(), "\n"));
-                MongoNpc.Quest q = new MongoNpc.Quest();
+                MongoQuest q = new MongoQuest();
+                q.setId(Integer);
                 q.setSequence(Integer.parseInt(allQuestData.pollFirst()));
                 q.setReward(parseReward(allQuestData.pollLast()));
                 q.setObjective(parseObjective(allQuestData.pollLast()));
                 q.setDialogue(allQuestData);
                 return q;
-            }).collect(Collectors.toMap(MongoNpc.Quest::getSequence, o -> o));
+            }).collect(Collectors.toList());
         }
 
         log.error("ReadQuestsFromBook failed, item is not a WrittenBookItem: {}", bookStack);
-        return new HashMap<>(); // Not a book
+        return new ArrayList<>(); // Not a book
     }
 
-    private static MongoNpc.Quest.Reward parseReward(String rewardToken) {
+    private static MongoQuest.Reward parseReward(String rewardToken) {
         String[] split = rewardToken.split("=");
         if (split.length != 3) throw new IllegalStateException("Parsing reward split size != 3: " + rewardToken);
-        return new MongoNpc.Quest.Reward(split[0], Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+        return new MongoQuest.Reward(split[0], Integer.parseInt(split[1]), Integer.parseInt(split[2]));
     }
 
-    private static MongoNpc.Quest.@NotNull Objective parseObjective(String objectiveToken) {
+    private static MongoQuest.@NotNull Objective parseObjective(String objectiveToken) {
         String[] split = objectiveToken.split("=");
         if (split.length != 3) throw new IllegalStateException("Parsing objective split size != 3: " + objectiveToken);
-        MongoNpc.Quest.Objective.Type type = MongoNpc.Quest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
+        MongoQuest.Objective.Type type = MongoQuest.Objective.Type.valueOf(StringUtils.upperCase(split[0]));
         String target = StringUtils.lowerCase(split[1]).trim();
 
-        return new MongoNpc.Quest.Objective(type, target, Integer.parseInt(split[2]));
+        return new MongoQuest.Objective(type, target, Integer.parseInt(split[2]));
     }
 
 }
