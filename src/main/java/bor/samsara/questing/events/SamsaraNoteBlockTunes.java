@@ -189,7 +189,7 @@ public class SamsaraNoteBlockTunes {
         });
     }
 
-    public static void playSonicChaosEmerald(PlayerEntity player) {
+    public static void playChaosEmerald(PlayerEntity player) {
         executor.submit(() -> {
             try {
                 float[] pitches = {1.26f, 1.50f, 2.00f, 1.34f, 1.68f, 1.26f}; // E5, G5, C6, F5, A5, E5

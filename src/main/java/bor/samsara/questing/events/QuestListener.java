@@ -1,14 +1,14 @@
 package bor.samsara.questing.events;
 
-import bor.samsara.questing.mongo.models.MongoNpc;
+import bor.samsara.questing.mongo.models.MongoQuest;
 
 public class QuestListener {
 
     private final String playerUuid;
     private final String questUuid;
-    private final MongoNpc.Quest.Objective objective;
+    private final MongoQuest.Objective objective;
 
-    public QuestListener(String playerUuid, String questNpcUuid, MongoNpc.Quest.Objective objective) {
+    public QuestListener(String playerUuid, String questNpcUuid, MongoQuest.Objective objective) {
         this.playerUuid = playerUuid;
         this.questUuid = questNpcUuid;
         this.objective = objective;
@@ -22,7 +22,7 @@ public class QuestListener {
         return questUuid;
     }
 
-    public MongoNpc.Quest.Objective getObjective() {
+    public MongoQuest.Objective getObjective() {
         return objective;
     }
 

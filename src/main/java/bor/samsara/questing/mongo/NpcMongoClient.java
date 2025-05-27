@@ -1,6 +1,7 @@
 package bor.samsara.questing.mongo;
 
 import bor.samsara.questing.mongo.models.MongoNpc;
+import bor.samsara.questing.mongo.models.MongoQuest;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
@@ -11,8 +12,7 @@ public class NpcMongoClient {
 
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
 
-    private NpcMongoClient() {
-    }
+    private NpcMongoClient() {}
 
     public static void createNpc(MongoNpc npc) {
         MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
@@ -49,4 +49,5 @@ public class NpcMongoClient {
         Document update = new Document("$set", player.toDocument());
         collection.updateOne(query, update);
     }
+
 }

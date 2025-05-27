@@ -41,15 +41,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.npcActiveQuestMap = npcActiveQuestMap;
     }
 
-//    public ActiveQuest getActiveQuestForNpc(String npcUuid) {
-//        return npcActiveQuestMap.get(npcUuid);
-//    }
-
-//    public void advanceActiveQuestForNpc(String npcUuid) {
-//        ActiveQuest q = npcActiveQuest.get(npcUuid);
-//        npcActiveQuest.put(npcUuid, new ActiveQuest(q.getSequence() + 1));
-//    }
-
     public Document toDocument() {
         Map<String, Document> activeQuestDocs = new HashMap<>();
         for (Map.Entry<String, ActiveQuest> entry : npcActiveQuestMap.entrySet()) {
@@ -75,13 +66,21 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     }
 
     public static class ActiveQuest {
+        private final String questUuid;
+        private final String questTitle;
         private final int sequence;
         private long dialogueOffset = 0;
         private int objectiveCount = 0;
         private boolean isComplete = false;
 
-        public ActiveQuest(int sequence) {
+        public ActiveQuest(String questUuid, String questTitle, int sequence) {
+            this.questUuid = questUuid;
+            this.questTitle = questTitle;
             this.sequence = sequence;
+        }
+
+        public String getQuestUuid() {
+            return questUuid;
         }
 
         public int getSequence() {
@@ -113,14 +112,16 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         }
 
         public Document toDocument() {
-            return new Document("sequence", sequence)
+            return new Document("questUuid", questUuid)
+                    .append("questTitle", questTitle)
+                    .append("sequence", sequence)
                     .append("dialogueOffset", dialogueOffset)
                     .append("objectiveCount", objectiveCount)
                     .append("isComplete", isComplete);
         }
 
         public static ActiveQuest fromDocument(Document document) {
-            ActiveQuest aq = new ActiveQuest(document.getInteger("sequence"));
+            ActiveQuest aq = new ActiveQuest(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
             aq.setDialogueOffset(document.getLong("dialogueOffset"));
             aq.setObjectiveCount(document.getInteger("objectiveCount", 0));
             aq.setComplete(document.getBoolean("isComplete", false));

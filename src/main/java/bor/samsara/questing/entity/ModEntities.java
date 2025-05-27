@@ -2,7 +2,11 @@ package bor.samsara.questing.entity;
 
 import bor.samsara.questing.events.concrete.QuestManager;
 import bor.samsara.questing.mongo.NpcMongoClient;
+import bor.samsara.questing.mongo.PlayerMongoClient;
+import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
+import bor.samsara.questing.mongo.models.MongoPlayer;
+import bor.samsara.questing.mongo.models.MongoQuest;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.entity.Entity;
@@ -26,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
@@ -49,7 +52,7 @@ public class ModEntities {
             if (null != trader)
                 player.getServer().execute(trader::discard);
         } catch (Exception e) {
-            log.warn("Failed removing welcoming traverler: {}", e.getMessage(), e);
+            log.warn("Failed removing welcoming traveler: {}", e.getMessage(), e);
         }
         log.debug("RemovedWelcoming Traveler for {}", player.getName());
     }
@@ -59,15 +62,22 @@ public class ModEntities {
         try {
             String travelerName = "§ Hey, " + player.getName().getString() + "!";
             MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(travelerName);
+            MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
 
-            QuestManager questManager = QuestManager.getInstance();
-            if (!questManager.isQuestCompleteForPlayer(player.getUuidAsString(), mongoNpc.getUuid())) {
-                questManager.registerNpcForPlayer(player.getUuidAsString(), mongoNpc.getUuid());
-                WanderingTraderEntity trader = makeWanderingTraderEntity(world, mongoNpc.getUuid(), player, travelerName);
-                //configureWelcomeGoal(trader); TODO
-                world.spawnEntity(trader);
-                log.debug("Spawned a Welcoming Traveler for {}!", player.getName());
+            if (playerState.getNpcActiveQuestMap().containsKey(mongoNpc.getUuid()) && playerState.getNpcActiveQuestMap().get(mongoNpc.getUuid()).isComplete()) {
+                return;
             }
+
+            String firstQuestId = mongoNpc.getQuestIds().getFirst();
+            MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
+            playerState.getNpcActiveQuestMap().put(mongoNpc.getUuid(), new MongoPlayer.ActiveQuest(firstQuestId, firstQuest.getTitle(), 0));
+            PlayerMongoClient.updatePlayer(playerState);
+
+            QuestManager.attachQuestListenerToPertinentSubject(playerState, mongoNpc, firstQuest.getObjective());
+            WanderingTraderEntity trader = makeWanderingTraderEntity(world, mongoNpc.getUuid(), player, travelerName);
+            //configureWelcomeGoal(trader); TODO
+            world.spawnEntity(trader);
+            log.debug("Spawned a Welcoming Traveler for {}!", player.getName());
         } catch (Exception e) {
             log.error("Failed spawning welcoming traverler: {}", e.getMessage(), e);
         }
@@ -78,23 +88,45 @@ public class ModEntities {
             return NpcMongoClient.getFirstNpcByName(travelerName);
         } catch (IllegalStateException e) {
             MongoNpc mongoNpc = new MongoNpc(UUID.randomUUID().toString(), travelerName);
-            MongoNpc.Quest q = new MongoNpc.Quest();
-            q.setSequence(0);
-            q.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.TALK, travelerName, 4));
-            q.setReward(new MongoNpc.Quest.Reward("minecraft:totem_of_undying", 1, 15));
-            List<String> dialogue = List.of("What are you doing here?!?", "This must mean the cycle has started again.", "Quick, go talk to the old man in the village, Bondred.",
-                    "Go!", "Now fool!", "...", "Is this some sort of game to you?", "This is SERIOUS!");
-            q.setDialogue(dialogue);
-
-            MongoNpc.Quest qFin = new MongoNpc.Quest();
-            qFin.setSequence(1);
-            qFin.setObjective(new MongoNpc.Quest.Objective(MongoNpc.Quest.Objective.Type.FIN, "", -1));
-            qFin.setReward(new MongoNpc.Quest.Reward("none", 0, 0));
-            qFin.setDialogue(dialogue);
-
-            mongoNpc.setQuests(Map.of(0, q, 1, qFin));
+            mongoNpc.setDialogueType("WELCOME");
+            mongoNpc.setQuestIds(getWelcomingQuestUuids());
             NpcMongoClient.createNpc(mongoNpc);
             return mongoNpc;
+        }
+    }
+
+    private static List<String> getWelcomingQuestUuids() {
+        String travelerStartQuestTitle = "Traveler Greeting";
+        String travelerEndQuestTitle = "Traveler Farewell";
+
+        try {
+            MongoQuest qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
+            MongoQuest qEnd = QuestMongoClient.getQuestByTitle(travelerEndQuestTitle);
+            return List.of(qStart.getUuid(), qEnd.getUuid());
+        } catch (IllegalStateException e) {
+            log.info("Creating Welcoming Traveler quests for the first time.");
+            List<String> dialogue = List.of("What are you doing here?!?",
+                    "This must mean the cycle has started again.",
+                    "Quick, go talk to the old man in the village, Bondred.",
+                    "Go!", "Now fool!", "...", "Is this some sort of game to you?", "This is SERIOUS!");
+
+            MongoQuest qStart = new MongoQuest();
+            qStart.setTitle(travelerStartQuestTitle);
+            qStart.setSequence(0);
+            qStart.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4));
+            qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
+            qStart.setDialogue(dialogue);
+            QuestMongoClient.createQuest(qStart);
+
+            MongoQuest qEnd = new MongoQuest();
+            qEnd.setTitle(travelerEndQuestTitle);
+            qEnd.setSequence(1);
+            qEnd.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1));
+            qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
+            qEnd.setDialogue(dialogue);
+            QuestMongoClient.createQuest(qEnd);
+
+            return List.of(qStart.getUuid(), qEnd.getUuid());
         }
     }
 
