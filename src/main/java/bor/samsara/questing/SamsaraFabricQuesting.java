@@ -1,6 +1,6 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.config.AppConfiguration;
+import bor.samsara.questing.settings.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.events.RightClickActionEventManager;
