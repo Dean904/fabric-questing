@@ -200,6 +200,31 @@ public class ModEntities {
         return Command.SINGLE_SUCCESS;
     }
 
+    public static int spawnEntityFromUUID(ServerCommandSource source, String uuid) throws CommandSyntaxException {
+        ServerPlayerEntity player = source.getPlayerOrThrow();
+        World world = player.getWorld();
+
+        try {
+            MongoNpc mongoNpc = NpcMongoClient.getNpc(uuid);
+            if (mongoNpc == null) {
+                source.sendError(Text.literal("No NPC found with UUID: " + uuid));
+                return 0;
+            }
+            VillagerEntity villager = makeVillagerEntity(world, UUID.fromString(mongoNpc.getUuid()), player, mongoNpc.getName());
+            villager.addCommandTag(QUEST_NPC);
+            villager.addCommandTag(QUEST_START_NODE);
+            if (mongoNpc.isStartNode()) {
+                villager.addCommandTag(QUEST_START_NODE);
+            }
+            world.spawnEntity(villager);
+        } catch (Exception e) {
+            source.sendError(Text.literal("Failed: " + e));
+        }
+
+        source.sendFeedback(() -> Text.literal("Spawned NPC with UUID: " + uuid), true);
+        return Command.SINGLE_SUCCESS;
+    }
+
     private static @NotNull VillagerEntity makeVillagerEntity(World world, UUID uuid, ServerPlayerEntity player, String name) {
         VillagerEntity villager = EntityType.VILLAGER.create(world, SpawnReason.TRIGGERED);
         villager.setUuid(uuid);

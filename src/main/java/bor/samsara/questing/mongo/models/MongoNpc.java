@@ -10,6 +10,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
     private String name;
     private String dialogueType;
     private List<String> questIds = new ArrayList<>();
+    private boolean isStartNode;
 
     public MongoNpc() {
         this.uuid = UUID.randomUUID().toString();
@@ -48,11 +49,20 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         this.questIds = questIds;
     }
 
+    public boolean isStartNode() {
+        return isStartNode;
+    }
+
+    public void setStartNode(boolean startNode) {
+        isStartNode = startNode;
+    }
+
     public Document toDocument() {
         return new Document("uuid", uuid)
                 .append("name", name)
                 .append("dialogueType", dialogueType)
-                .append("questIds", questIds);
+                .append("questIds", questIds)
+                .append("isStartNode", isStartNode);
     }
 
     @SuppressWarnings("unchecked")
@@ -60,6 +70,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
         MongoNpc p = new MongoNpc(document.getString("uuid"), document.getString("name"));
         p.setDialogueType(document.getString("dialogueType"));
         p.setQuestIds(document.getList("questIds", String.class));
+        p.isStartNode = document.getBoolean("isStartNode", false);
         return p;
     }
 
@@ -69,6 +80,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
                 "uuid='" + uuid + '\'' +
                 ", name='" + name + '\'' +
                 ", dialogueType='" + dialogueType + '\'' +
+                ", isStartNode=" + isStartNode +
                 ", questIds=" + questIds +
                 '}';
     }

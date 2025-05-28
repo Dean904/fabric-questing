@@ -43,6 +43,15 @@ public class QuestCreationEventRegisters {
                                         )
                                 )
                         )
+                        .then(literal("spawn")
+                                .then(literal("npc")
+                                        .then(argument("uuid", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            String uuid = StringArgumentType.getString(ctx, "uuid");
+                                            return ModEntities.spawnEntityFromUUID(ctx.getSource(), uuid);
+                                        })
+                                )
+                        ))
         );
     }
 
