@@ -12,29 +12,29 @@ public abstract class QuestEventSubject {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
-    protected Map<String, List<QuestListener>> playerSubscriberMap = new HashMap<>();
+    protected Map<String, List<ActionSubscription>> playerSubsriptionMap = new HashMap<>();
 
     @Deprecated
     public abstract Object hook();
 
-    public void attach(QuestListener listener) {
+    public void attach(ActionSubscription listener) {
         log.debug("{} Attached for {} ", this.getClass().getSimpleName(), listener);
-        playerSubscriberMap.putIfAbsent(listener.getPlayerUuid(), new ArrayList<>());
-        playerSubscriberMap.get(listener.getPlayerUuid()).add(listener);
+        playerSubsriptionMap.putIfAbsent(listener.getPlayerUuid(), new ArrayList<>());
+        playerSubsriptionMap.get(listener.getPlayerUuid()).add(listener);
     }
 
-    public void detach(QuestListener listener, Iterator<QuestListener> ite) {
+    public void detach(ActionSubscription listener, Iterator<ActionSubscription> ite) {
         log.debug("{} Detached for {} ", this.getClass().getSimpleName(), listener);
-        List<QuestListener> listeners = playerSubscriberMap.get(listener.getPlayerUuid());
+        List<ActionSubscription> listeners = playerSubsriptionMap.get(listener.getPlayerUuid());
         ite.remove();
         if (CollectionUtils.isEmpty(listeners)) {
             log.debug("No listeners left for player, removing from map.");
-            playerSubscriberMap.remove(listener.getPlayerUuid());
+            playerSubsriptionMap.remove(listener.getPlayerUuid());
         }
     }
 
     public void detachPlayer(String playerUuid) {
-        playerSubscriberMap.remove(playerUuid);
+        playerSubsriptionMap.remove(playerUuid);
     }
 
 

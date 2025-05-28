@@ -1,6 +1,6 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.entity.BookStateUtil;
+import bor.samsara.questing.entity.QuestBook;
 import bor.samsara.questing.entity.ModEntities;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -55,7 +55,7 @@ public class QuestCreationEventRegisters {
                                         .then(argument("name", greedyString())
                                                 .executes(context -> {
                                                             String villagerName = getString(context, "name");
-                                                            return BookStateUtil.open(context.getSource(), villagerName);
+                                                            return QuestBook.open(context.getSource(), villagerName);
                                                         }
                                                 )
                                         )
