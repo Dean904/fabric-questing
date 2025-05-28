@@ -1,14 +1,12 @@
 package bor.samsara.questing.events.concrete;
 
 import bor.samsara.questing.events.QuestEventSubject;
-import bor.samsara.questing.events.QuestListener;
-import bor.samsara.questing.mongo.NpcMongoClient;
+import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
@@ -26,31 +24,29 @@ public class TalkToNpcSubject extends QuestEventSubject {
         return null;
     }
 
-    public void talkedToQuestNpc(PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) {
+    public void talkedToQuestNpc(PlayerEntity player, World world, Hand hand, EntityHitResult hitResult, MongoPlayer playerState, MongoNpc mongoNpc) {
         String playerUuid = player.getUuidAsString();
-        if (!playerSubscriberMap.containsKey(playerUuid))
+        if (!playerSubsriptionMap.containsKey(playerUuid))
             return;
 
-        List<QuestListener> questListeners = playerSubscriberMap.get(playerUuid);
-        for (Iterator<QuestListener> ite = questListeners.iterator(); ite.hasNext(); ) {
-            QuestListener listener = ite.next();
-            MongoNpc npc = NpcMongoClient.getFirstNpcByName(entity.getName().getString());
-            if (StringUtils.equalsAnyIgnoreCase(listener.getObjective().getTarget(), npc.getName(), npc.getDialogueType())) {
+        List<ActionSubscription> actionSubscriptions = playerSubsriptionMap.get(playerUuid);
+        for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
+            ActionSubscription listener = ite.next();
+            if (StringUtils.equalsAnyIgnoreCase(listener.getObjective().getTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
                 boolean isComplete = false;
 
-                MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(listener.getPlayerUuid());
-                MongoPlayer.ActiveQuest activeQuestForNpc = playerState.getNpcActiveQuestMap().get(listener.getQuestUuid());
-                int objectiveCount = activeQuestForNpc.getObjectiveCount() + 1;
-                activeQuestForNpc.setObjectiveCount(objectiveCount);
+                MongoPlayer.QuestProgress questProgressForNpc = playerState.getNpcQuestProgressMap().get(listener.getQuestNpcUuid());
+                int objectiveCount = questProgressForNpc.getObjectiveCount() + 1;
+                questProgressForNpc.setObjectiveCount(objectiveCount);
 
-                MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(activeQuestForNpc.getQuestUuid());
+                MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgressForNpc.getQuestUuid());
 
-                log.debug("Incrementing quest objective count of '{}#{}' for player {}", npc.getName(), activeQuestForNpc.getSequence(), playerState.getName());
+                log.debug("Incrementing quest objective count of '{}#{}' for player {}", mongoNpc.getName(), questProgressForNpc.getSequence(), playerState.getName());
 
                 if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-                    activeQuestForNpc.setComplete(true);
+                    questProgressForNpc.setComplete(true);
                     PlayerMongoClient.updatePlayer(playerState);
-                    log.debug("Marking '{}#{}' quest complete for player {}", npc.getName(), activeQuestForNpc.getSequence(), playerState.getName());
+                    log.debug("Marking '{}#{}' quest complete for player {}", mongoNpc.getName(), questProgressForNpc.getSequence(), playerState.getName());
                     isComplete = true;
                 }
 

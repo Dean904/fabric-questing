@@ -201,7 +201,7 @@ public class SamsaraNoteBlockTunes {
                         SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(),
                         SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(),
                 };
-                long[] durations = {120, 120, 120, 120, 200, 250};
+                long[] durations = {120, 120, 120, 120, 200, 275};
 
                 for (int i = 0; i < pitches.length; i++) {
                     player.playSoundToPlayer(instruments[i], SoundCategory.PLAYERS, 1.0f, pitches[i]);
@@ -209,7 +209,7 @@ public class SamsaraNoteBlockTunes {
                 }
 
                 // Final reward sound
-                player.playSoundToPlayer(SoundEvents.UI_HUD_BUBBLE_POP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                player.playSoundToPlayer(SoundEvents.UI_HUD_BUBBLE_POP, SoundCategory.PLAYERS, 2.0f, 1.0f);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

@@ -64,13 +64,13 @@ public class ModEntities {
             MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(travelerName);
             MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
 
-            if (playerState.getNpcActiveQuestMap().containsKey(mongoNpc.getUuid()) && playerState.getNpcActiveQuestMap().get(mongoNpc.getUuid()).isComplete()) {
+            if (playerState.getNpcQuestProgressMap().containsKey(mongoNpc.getUuid()) && playerState.getNpcQuestProgressMap().get(mongoNpc.getUuid()).isComplete()) {
                 return;
             }
 
             String firstQuestId = mongoNpc.getQuestIds().getFirst();
             MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
-            playerState.getNpcActiveQuestMap().put(mongoNpc.getUuid(), new MongoPlayer.ActiveQuest(firstQuestId, firstQuest.getTitle(), 0));
+            playerState.getNpcQuestProgressMap().put(mongoNpc.getUuid(), new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
             PlayerMongoClient.updatePlayer(playerState);
 
             SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, mongoNpc, firstQuest.getObjective());

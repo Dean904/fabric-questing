@@ -2,7 +2,7 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.config.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.events.QuestListener;
+import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.events.RightClickActionEventManager;
 import bor.samsara.questing.events.concrete.CollectItemSubject;
 import bor.samsara.questing.events.concrete.KillSubject;
@@ -64,7 +64,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
         try {
             MongoPlayer mongoPlayer = PlayerMongoClient.getPlayerByUuid(serverPlayer.getUuidAsString());
             // TODO activatePlayer throwing exception and dupping players if NPC does not exist...
-            for (Map.Entry<String, MongoPlayer.ActiveQuest> activeQuestKv : mongoPlayer.getNpcActiveQuestMap().entrySet()) {
+            for (Map.Entry<String, MongoPlayer.QuestProgress> activeQuestKv : mongoPlayer.getNpcQuestProgressMap().entrySet()) {
                 String questNpcUuid = activeQuestKv.getKey();
                 MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestKv.getValue().getQuestUuid());
                 MongoNpc questNpc = NpcMongoClient.getNpc(questNpcUuid);
@@ -81,12 +81,12 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     public static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoNpc npc, MongoQuest.Objective questObjective) {
-        QuestListener questListener = new QuestListener(playerState.getUuid(), npc.getUuid(), questObjective);
+        ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), npc.getUuid(), questObjective);
         MongoQuest.Objective.Type objectiveType = questObjective.getType();
         switch (objectiveType) {
-            case KILL -> SamsaraFabricQuesting.killSubject.attach(questListener);
-            case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(questListener);
-            case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(questListener);
+            case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);
+            case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
+            case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
             case FIN -> {}
             default -> log.warn("Unknown Objective Type '{}' when registering NPC {} for Player {}", objectiveType, npc.getName(), playerState.getName());
         }

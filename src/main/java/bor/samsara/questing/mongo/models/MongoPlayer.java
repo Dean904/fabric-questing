@@ -10,7 +10,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private Map<String, ActiveQuest> npcActiveQuestMap = new HashMap<>();
+    private Map<String, QuestProgress> npcActiveQuestMap = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -33,17 +33,17 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Map<String, ActiveQuest> getNpcActiveQuestMap() {
+    public Map<String, QuestProgress> getNpcQuestProgressMap() {
         return npcActiveQuestMap;
     }
 
-    public void setNpcActiveQuestMap(Map<String, ActiveQuest> npcActiveQuestMap) {
+    public void setNpcActiveQuestMap(Map<String, QuestProgress> npcActiveQuestMap) {
         this.npcActiveQuestMap = npcActiveQuestMap;
     }
 
     public Document toDocument() {
         Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, ActiveQuest> entry : npcActiveQuestMap.entrySet()) {
+        for (Map.Entry<String, QuestProgress> entry : npcActiveQuestMap.entrySet()) {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
@@ -56,24 +56,25 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
         Map<String, Document> activeQuestDocs = document.get("npcActiveQuest", Map.class);
-        Map<String, ActiveQuest> activeQuestMap = new HashMap<>();
+        Map<String, QuestProgress> activeQuestMap = new HashMap<>();
         for (Map.Entry<String, Document> entry : activeQuestDocs.entrySet()) {
-            activeQuestMap.put(entry.getKey(), ActiveQuest.fromDocument(entry.getValue()));
+            activeQuestMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
         }
         player.setNpcActiveQuestMap(activeQuestMap);
         return player;
 
     }
 
-    public static class ActiveQuest {
+    public static class QuestProgress {
         private final String questUuid;
         private final String questTitle;
+        @Deprecated
         private final int sequence;
         private long dialogueOffset = 0;
         private int objectiveCount = 0;
         private boolean isComplete = false;
 
-        public ActiveQuest(String questUuid, String questTitle, int sequence) {
+        public QuestProgress(String questUuid, String questTitle, int sequence) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
             this.sequence = sequence;
@@ -83,6 +84,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             return questUuid;
         }
 
+        @Deprecated
         public int getSequence() {
             return sequence;
         }
@@ -120,8 +122,8 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
                     .append("isComplete", isComplete);
         }
 
-        public static ActiveQuest fromDocument(Document document) {
-            ActiveQuest aq = new ActiveQuest(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
+        public static QuestProgress fromDocument(Document document) {
+            QuestProgress aq = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
             aq.setDialogueOffset(document.getLong("dialogueOffset"));
             aq.setObjectiveCount(document.getInteger("objectiveCount", 0));
             aq.setComplete(document.getBoolean("isComplete", false));
