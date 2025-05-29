@@ -212,7 +212,6 @@ public class ModEntities {
             }
             VillagerEntity villager = makeVillagerEntity(world, UUID.fromString(mongoNpc.getUuid()), player, mongoNpc.getName());
             villager.addCommandTag(QUEST_NPC);
-            villager.addCommandTag(QUEST_START_NODE);
             if (mongoNpc.isStartNode()) {
                 villager.addCommandTag(QUEST_START_NODE);
             }
