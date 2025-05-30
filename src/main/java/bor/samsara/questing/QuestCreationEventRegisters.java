@@ -1,6 +1,6 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.entity.BookStateUtil;
+import bor.samsara.questing.entity.QuestBook;
 import bor.samsara.questing.entity.ModEntities;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -43,6 +43,15 @@ public class QuestCreationEventRegisters {
                                         )
                                 )
                         )
+                        .then(literal("spawn")
+                                .then(literal("npc")
+                                        .then(argument("uuid", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            String uuid = StringArgumentType.getString(ctx, "uuid");
+                                            return ModEntities.spawnEntityFromUUID(ctx.getSource(), uuid);
+                                        })
+                                )
+                        ))
         );
     }
 
@@ -55,7 +64,7 @@ public class QuestCreationEventRegisters {
                                         .then(argument("name", greedyString())
                                                 .executes(context -> {
                                                             String villagerName = getString(context, "name");
-                                                            return BookStateUtil.open(context.getSource(), villagerName);
+                                                            return QuestBook.open(context.getSource(), villagerName);
                                                         }
                                                 )
                                         )

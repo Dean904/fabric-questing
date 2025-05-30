@@ -1,6 +1,6 @@
 package bor.samsara.questing.mongo;
 
-import bor.samsara.questing.config.AppConfiguration;
+import bor.samsara.questing.settings.AppConfiguration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
