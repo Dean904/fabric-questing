@@ -60,16 +60,20 @@ public class ModEntities {
             MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
             if (playerState.getQuestPlayerProgressMap().containsKey(welcomingQuestUuids.getLast()) &&
                     playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.getLast()).isComplete()) {
-                log.debug("Welcoming Traveler already spawned for player {}", player.getName().getString());
-                return; // Welcoming Traveler already spawned
+                log.debug("{} has completed welcoming quest line.", player.getName().getString());
+                return;
             }
 
             MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(player);
-            String firstQuestId = mongoNpc.getQuestIds().getFirst();
-            MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
-            playerState.setActiveQuest(mongoNpc.getUuid(), firstQuestId, new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
-            PlayerMongoClient.updatePlayer(playerState);
-            SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
+            for (String questId : mongoNpc.getQuestIds()) {
+                if (!playerState.getQuestPlayerProgressMap().containsKey(questId) || !playerState.getQuestPlayerProgressMap().get(questId).isComplete()) {
+                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
+                    playerState.setActiveQuest(mongoNpc.getUuid(), questId, new MongoPlayer.QuestProgress(questId, quest.getTitle(), quest.getSequence()));
+                    PlayerMongoClient.updatePlayer(playerState);
+                    SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
+                    break;
+                }
+            }
 
             WanderingTraderEntity trader = makeWanderingTraderEntity(world, player, mongoNpc.getUuid());
             playerWelcomerMap.put(player.getUuidAsString(), trader.getUuidAsString());
@@ -94,7 +98,7 @@ public class ModEntities {
 
     private static List<String> getWelcomingQuestUuids() {
         String travelerStartQuestTitle = "Traveler Greeting";
-        String travelerEndQuestTitle = "Traveler Farewell";
+        String travelerEndQuestTitle = "Traveler Call To Action";
 
         try {
             MongoQuest qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
@@ -118,7 +122,7 @@ public class ModEntities {
             MongoQuest qEnd = new MongoQuest();
             qEnd.setTitle(travelerEndQuestTitle);
             qEnd.setSequence(1);
-            qEnd.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1));
+            qEnd.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1));
             qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
             qEnd.setDialogue(dialogue);
             QuestMongoClient.createQuest(qEnd);

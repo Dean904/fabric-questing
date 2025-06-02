@@ -5,8 +5,8 @@ import bor.samsara.questing.mongo.models.MongoQuest;
 public class ActionSubscription {
 
     private final String playerUuid;
-    private final String questUuid; // TODO does not need to be npc uuid - replace with quest uuid
-    private final MongoQuest.Objective objective;
+    private final String questUuid;
+    private final MongoQuest.Objective objective; // TODO Do we still need objective or is a quuest lookup required everywhere?
 
     public ActionSubscription(String playerUuid, String questUuid, MongoQuest.Objective objective) {
         this.playerUuid = playerUuid;

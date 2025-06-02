@@ -34,7 +34,6 @@ public class QuestCreationEventRegisters {
     public static @NotNull UseItemCallback updateQuestLogWhenOpened() {
         return (player, world, hand) -> {
             ItemStack itemStack = player.getStackInHand(hand);
-            // TODO should the book be updated when the quest progress is incremented?
             if (itemStack.getItem() == Items.WRITTEN_BOOK && hasTrackingNbtTags(itemStack)) {
                 NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
                 String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
@@ -42,6 +41,7 @@ public class QuestCreationEventRegisters {
 
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                 MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
+                // TODO should the book only be updated when the quest progress has changed? Store count in tag?
                 WrittenBookContentComponent t = getWrittenBookContentComponent(quest, playerState, itemStack);
                 itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
                 return ActionResult.PASS;
