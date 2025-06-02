@@ -2,6 +2,7 @@ package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.entity.ModEntities;
+import bor.samsara.questing.entity.QuestLogBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -50,12 +51,12 @@ public class RightClickActionEventManager {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuid().toString());
                 MongoNpc npc = NpcMongoClient.getNpc(entity.getUuid().toString());
 
-                boolean hasPlayerProgressedNpc = playerState.getNpcQuestProgressMap().containsKey(npc.getUuid());
-                if (!hasPlayerProgressedNpc && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
-                    initializeFirstNpcQuestForPlayer(player, npc, playerState);
+                if (!playerState.hasPlayerProgressedNpc(npc.getUuid()) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
+                    MongoQuest firstQuest = initializeFirstNpcQuestForPlayer(player, npc, playerState);
+                    QuestLogBook.open(player, firstQuest, playerState);
                 }
 
-                MongoPlayer.QuestProgress questProgress = playerState.getNpcQuestProgressMap().get(npc.getUuid());
+                MongoPlayer.QuestProgress questProgress = playerState.getProgressForNpc(npc.getUuid());
                 MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
 
                 if (questProgress.isComplete()) {
@@ -68,9 +69,10 @@ public class RightClickActionEventManager {
                         String nextQuestId = npc.getQuestIds().get(nextQuestSequence);
                         quest = QuestMongoClient.getQuestByUuid(nextQuestId);
                         questProgress = new MongoPlayer.QuestProgress(nextQuestId, quest.getTitle(), nextQuestSequence);
-                        playerState.getNpcQuestProgressMap().put(npc.getUuid(), questProgress);
+                        playerState.setActiveQuest(npc.getUuid(), nextQuestId, questProgress);
                         PlayerMongoClient.updatePlayer(playerState);
-                        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, npc, quest.getObjective());
+                        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
+                        QuestLogBook.open(player, quest, playerState);
                         log.debug("Progressing {} to next quest sequence, {}, for {}", playerState.getName(), nextQuestSequence, npc.getName());
                     }
                 }
@@ -104,15 +106,16 @@ public class RightClickActionEventManager {
         return true;
     }
 
-    private static void initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
+    private static MongoQuest initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
         String firstQuestId = npc.getQuestIds().getFirst();
         MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
-        playerState.getNpcQuestProgressMap().put(npc.getUuid(), new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
+        playerState.setActiveQuest(npc.getUuid(), firstQuestId, new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
         PlayerMongoClient.updatePlayer(playerState);
 
         log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
-        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, npc, firstQuest.getObjective());
+        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
         SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
+        return firstQuest;
     }
 
     private static void rewardPlayer(PlayerEntity player, World world, MongoQuest quest) {

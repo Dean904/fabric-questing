@@ -22,7 +22,7 @@ import java.util.*;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
-public class QuestBook {
+public class QuestConfigBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
     public static final String DIV = ";;";
@@ -32,7 +32,7 @@ public class QuestBook {
     public static int open(ServerCommandSource source, String name) {
         try {
             MongoNpc npc = NpcMongoClient.getFirstNpcByName(name); // load from DB
-            ItemStack book = QuestBook.createConversationBook(npc);
+            ItemStack book = QuestConfigBook.createConversationBook(npc);
             ServerPlayerEntity player = source.getPlayerOrThrow();
             if (player.getInventory().insertStack(book)) {
                 source.sendFeedback(() -> Text.literal("Given conversation book for NPC " + npc.getName()), false);

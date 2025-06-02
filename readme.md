@@ -8,3 +8,6 @@
   * TODO look into JOML for vector3f @see https://github.com/JOML-CI/JOML/tree/main
 
 
+https://wiki.fabricmc.net/tutorial:datagen_setup
+
+

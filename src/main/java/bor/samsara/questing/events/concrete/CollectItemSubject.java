@@ -43,7 +43,7 @@ public class CollectItemSubject extends QuestEventSubject {
             ActionSubscription subscription = ite.next();
             if (StringUtils.equalsIgnoreCase(itemName, subscription.getObjective().getTarget())) {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                MongoPlayer.QuestProgress questProgress = playerState.getNpcQuestProgressMap().get(subscription.getQuestNpcUuid());
+                MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
 
                 int totalStackSize = player.getInventory().getStack(slot).getCount();
                 boolean doesStackSizeCompleteObjective = totalStackSize >= subscription.getObjective().getRequiredCount();

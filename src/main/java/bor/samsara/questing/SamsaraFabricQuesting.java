@@ -1,5 +1,6 @@
 package bor.samsara.questing;
 
+import bor.samsara.questing.entity.QuestLogBook;
 import bor.samsara.questing.settings.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
@@ -17,12 +18,24 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
+import net.minecraft.component.type.WritableBookContentComponent;
+import net.minecraft.component.type.WrittenBookContentComponent;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.ActionResult;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+
+import static bor.samsara.questing.entity.QuestLogBook.getWrittenBookContentComponent;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -47,6 +60,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
 
+        UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
+
         UseEntityCallback.EVENT.register(RightClickActionEventManager.rightClickQuestNpc());
         ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
 
@@ -60,18 +75,14 @@ public class SamsaraFabricQuesting implements ModInitializer {
         });
     }
 
+
     private static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
         try {
             MongoPlayer mongoPlayer = PlayerMongoClient.getPlayerByUuid(serverPlayer.getUuidAsString());
-            // TODO activatePlayer throwing exception and dupping players if NPC does not exist...
-            for (Map.Entry<String, MongoPlayer.QuestProgress> activeQuestKv : mongoPlayer.getNpcQuestProgressMap().entrySet()) {
-                String questNpcUuid = activeQuestKv.getKey();
-                MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestKv.getValue().getQuestUuid());
-                MongoNpc questNpc = NpcMongoClient.getNpc(questNpcUuid);
-                attachQuestListenerToPertinentSubject(mongoPlayer, questNpc, quest.getObjective());
-            }
+            registerPlayerQuests(mongoPlayer);
             return mongoPlayer;
         } catch (IllegalStateException e) {
+            log.debug(e.getMessage());
             String playerName = serverPlayer.getName().getLiteralString();
             log.info("{} joining for first time.", playerName);
             MongoPlayer p = new MongoPlayer(serverPlayer.getUuidAsString(), playerName);
@@ -80,15 +91,26 @@ public class SamsaraFabricQuesting implements ModInitializer {
         }
     }
 
-    public static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoNpc npc, MongoQuest.Objective questObjective) {
-        ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), npc.getUuid(), questObjective);
-        MongoQuest.Objective.Type objectiveType = questObjective.getType();
+    private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
+        for (String questKey : mongoPlayer.getQuestPlayerProgressMap().keySet()) {
+            try {
+                MongoQuest quest = QuestMongoClient.getQuestByUuid(questKey);
+                attachQuestListenerToPertinentSubject(mongoPlayer, quest);
+            } catch (Exception e) {
+                log.error("Failed to attach quest listener for player {} on quest {}: {}", mongoPlayer.getName(), questKey, e.getMessage(), e);
+            }
+        }
+    }
+
+    public static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoQuest quest) {
+        ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), quest.getUuid(), quest.getObjective());
+        MongoQuest.Objective.Type objectiveType = quest.getObjective().getType();
         switch (objectiveType) {
             case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);
             case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
             case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
             case FIN -> {}
-            default -> log.warn("Unknown Objective Type '{}' when registering NPC {} for Player {}", objectiveType, npc.getName(), playerState.getName());
+            default -> log.warn("Unknown Objective Type '{}' when registering Quest {} for Player {}", objectiveType, quest.getTitle(), playerState.getName());
         }
     }
 

@@ -10,7 +10,9 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private Map<String, QuestProgress> npcActiveQuestMap = new HashMap<>();
+
+    private Map<String, String> npcActiveQuestMap = new HashMap<>();
+    private Map<String, QuestProgress> questPlayerProgressMap = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -33,34 +35,63 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Map<String, QuestProgress> getNpcQuestProgressMap() {
+    public boolean hasPlayerProgressedNpc(String npcUuid) {
+        return npcActiveQuestMap.containsKey(npcUuid);
+    }
+
+    public QuestProgress getProgressForNpc(String npcUuid) {
+        String questUuid = npcActiveQuestMap.get(npcUuid);
+        return questPlayerProgressMap.get(questUuid);
+    }
+
+    public void setActiveQuest(String npcUuid, String questUuid, QuestProgress progress) {
+        npcActiveQuestMap.put(npcUuid, questUuid);
+        questPlayerProgressMap.put(questUuid, progress);
+    }
+
+    protected Map<String, String> getNpcActiveQuestUuidMap() {
         return npcActiveQuestMap;
     }
 
-    public void setNpcActiveQuestMap(Map<String, QuestProgress> npcActiveQuestMap) {
+    protected void setNpcActiveQuestMap(Map<String, String> npcActiveQuestMap) {
         this.npcActiveQuestMap = npcActiveQuestMap;
+    }
+
+    /**
+     * keyed by quest uuid, returns the players quest progress
+     *
+     * @return QuestProgress
+     */
+    public Map<String, QuestProgress> getQuestPlayerProgressMap() {
+        return questPlayerProgressMap;
+    }
+
+    public void setQuestPlayerProgressMap(Map<String, QuestProgress> questPlayerProgressMap) {
+        this.questPlayerProgressMap = questPlayerProgressMap;
     }
 
     public Document toDocument() {
         Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, QuestProgress> entry : npcActiveQuestMap.entrySet()) {
+        for (Map.Entry<String, QuestProgress> entry : questPlayerProgressMap.entrySet()) {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
         return new Document("uuid", uuid)
                 .append("name", name)
+                .append("questPlayerProgress", activeQuestDocs)
                 .append("npcActiveQuest", activeQuestDocs);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
-        Map<String, Document> activeQuestDocs = document.get("npcActiveQuest", Map.class);
+        player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
+        Map<String, Document> questPlayerProgressDocs = document.get("questPlayerProgress", Map.class);
         Map<String, QuestProgress> activeQuestMap = new HashMap<>();
-        for (Map.Entry<String, Document> entry : activeQuestDocs.entrySet()) {
+        for (Map.Entry<String, Document> entry : questPlayerProgressDocs.entrySet()) {
             activeQuestMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
         }
-        player.setNpcActiveQuestMap(activeQuestMap);
+        player.setQuestPlayerProgressMap(activeQuestMap);
         return player;
 
     }

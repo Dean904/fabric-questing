@@ -5,12 +5,12 @@ import bor.samsara.questing.mongo.models.MongoQuest;
 public class ActionSubscription {
 
     private final String playerUuid;
-    private final String questNpcUuid;
+    private final String questUuid; // TODO does not need to be npc uuid - replace with quest uuid
     private final MongoQuest.Objective objective;
 
-    public ActionSubscription(String playerUuid, String questNpcUuid, MongoQuest.Objective objective) {
+    public ActionSubscription(String playerUuid, String questUuid, MongoQuest.Objective objective) {
         this.playerUuid = playerUuid;
-        this.questNpcUuid = questNpcUuid;
+        this.questUuid = questUuid;
         this.objective = objective;
     }
 
@@ -18,8 +18,8 @@ public class ActionSubscription {
         return playerUuid;
     }
 
-    public String getQuestNpcUuid() {
-        return questNpcUuid;
+    public String getQuestUuid() {
+        return questUuid;
     }
 
     public MongoQuest.Objective getObjective() {
@@ -30,7 +30,7 @@ public class ActionSubscription {
     public String toString() {
         return "QuestListener{" +
                 "playerUuid='" + playerUuid + '\'' +
-                ", questUuid='" + questNpcUuid + '\'' +
+                ", questUuid='" + questUuid + '\'' +
                 ", objective=" + objective +
                 '}';
     }

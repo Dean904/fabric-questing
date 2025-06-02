@@ -11,6 +11,9 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     private final String uuid;
     private String title;
     private Integer sequence;
+    private String summary;
+    private String description;
+    private boolean providesQuestBook = true;
     private List<String> dialogue = new ArrayList<>();
     private MongoQuest.Objective objective;
     private MongoQuest.Reward reward;
@@ -41,6 +44,30 @@ public class MongoQuest implements MongoDao<MongoQuest> {
 
     public void setSequence(Integer sequence) {
         this.sequence = sequence;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean doesProvideQuestBook() {
+        return providesQuestBook;
+    }
+
+    public void setProvidesQuestBook(boolean providesQuestBook) {
+        this.providesQuestBook = providesQuestBook;
     }
 
     public List<String> getDialogue() {
@@ -202,6 +229,9 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         return new Document()
                 .append("uuid", uuid)
                 .append("title", title)
+                .append("summary", summary)
+                .append("description", description)
+                .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
                 .append("order", sequence)
                 .append("objective", objective == null ? null : objective.toDocument())
@@ -214,6 +244,9 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         q.setTitle(document.getString("title"));
         q.setDialogue(document.getList("dialogue", String.class));
         q.setSequence(document.getInteger("order"));
+        q.setSummary(document.getString("summary"));
+        q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
+        q.setDescription(document.getString("description"));
         q.setObjective(MongoQuest.Objective.fromDocument(document.get("objective", Document.class)));
         q.setReward(MongoQuest.Reward.fromDocument(document.get("reward", Document.class)));
         return q;

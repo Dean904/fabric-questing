@@ -3,6 +3,7 @@ package bor.samsara.questing.mongo;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
 
 public class NpcMongoClient {
@@ -39,7 +40,7 @@ public class NpcMongoClient {
         if (doc != null) {
             return new MongoNpc().fromDocument(doc);
         }
-        throw new IllegalStateException("The MongoNpc '%s' was not found".formatted(uuid));
+        throw new IllegalStateException("The MongoNpc for UUID '%s' was not found".formatted(uuid));
     }
 
     public static void updateNpc(MongoNpc player) {
@@ -49,4 +50,8 @@ public class NpcMongoClient {
         collection.updateOne(query, update);
     }
 
+    public static DeleteResult deleteNpc(String s) {
+        MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
+        return collection.deleteOne(new Document("uuid", s));
+    }
 }
