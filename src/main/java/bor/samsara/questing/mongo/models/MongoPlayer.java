@@ -79,7 +79,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         return new Document("uuid", uuid)
                 .append("name", name)
                 .append("questPlayerProgress", activeQuestDocs)
-                .append("npcActiveQuest", activeQuestDocs);
+                .append("npcActiveQuest", npcActiveQuestMap);
     }
 
     @SuppressWarnings("unchecked")
@@ -101,8 +101,9 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         private final String questTitle;
         @Deprecated
         private final int sequence;
-        private long dialogueOffset = 0;
+        private int dialogueOffset = 0;
         private int objectiveCount = 0;
+        private boolean receivedQuestBook = false;
         private boolean isComplete = false;
 
         public QuestProgress(String questUuid, String questTitle, int sequence) {
@@ -115,16 +116,20 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             return questUuid;
         }
 
+        public String getQuestTitle() {
+            return questTitle;
+        }
+
         @Deprecated
         public int getSequence() {
             return sequence;
         }
 
-        public long getDialogueOffset() {
+        public int getDialogueOffset() {
             return dialogueOffset;
         }
 
-        public void setDialogueOffset(long dialogueOffset) {
+        public void setDialogueOffset(int dialogueOffset) {
             this.dialogueOffset = dialogueOffset;
         }
 
@@ -134,6 +139,14 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
         public void setObjectiveCount(int objectiveCount) {
             this.objectiveCount = objectiveCount;
+        }
+
+        public boolean hasReceivedQuestBook() {
+            return receivedQuestBook;
+        }
+
+        public void setReceivedQuestBook(boolean receivedQuestBook) {
+            this.receivedQuestBook = receivedQuestBook;
         }
 
         public boolean isComplete() {
@@ -150,15 +163,17 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
                     .append("sequence", sequence)
                     .append("dialogueOffset", dialogueOffset)
                     .append("objectiveCount", objectiveCount)
+                    .append("receivedQuestBook", receivedQuestBook)
                     .append("isComplete", isComplete);
         }
 
         public static QuestProgress fromDocument(Document document) {
-            QuestProgress aq = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
-            aq.setDialogueOffset(document.getLong("dialogueOffset"));
-            aq.setObjectiveCount(document.getInteger("objectiveCount", 0));
-            aq.setComplete(document.getBoolean("isComplete", false));
-            return aq;
+            QuestProgress q = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
+            q.setDialogueOffset(document.getInteger("dialogueOffset"));
+            q.setObjectiveCount(document.getInteger("objectiveCount", 0));
+            q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
+            q.setComplete(document.getBoolean("isComplete", false));
+            return q;
         }
     }
 }

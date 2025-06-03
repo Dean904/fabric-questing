@@ -116,6 +116,7 @@ public class ModEntities {
             qStart.setSequence(0);
             qStart.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4));
             qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
+            qStart.setProvidesQuestBook(false);
             qStart.setDialogue(dialogue);
             QuestMongoClient.createQuest(qStart);
 

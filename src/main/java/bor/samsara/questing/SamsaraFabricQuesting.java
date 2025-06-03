@@ -1,6 +1,5 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.entity.QuestLogBook;
 import bor.samsara.questing.settings.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
@@ -8,10 +7,8 @@ import bor.samsara.questing.events.RightClickActionEventManager;
 import bor.samsara.questing.events.concrete.CollectItemSubject;
 import bor.samsara.questing.events.concrete.KillSubject;
 import bor.samsara.questing.events.concrete.TalkToNpcSubject;
-import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
-import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.api.ModInitializer;
@@ -20,22 +17,9 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.component.type.WritableBookContentComponent;
-import net.minecraft.component.type.WrittenBookContentComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.ActionResult;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-
-import static bor.samsara.questing.entity.QuestLogBook.getWrittenBookContentComponent;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -92,12 +76,14 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
-        for (String questKey : mongoPlayer.getQuestPlayerProgressMap().keySet()) {
-            try {
-                MongoQuest quest = QuestMongoClient.getQuestByUuid(questKey);
-                attachQuestListenerToPertinentSubject(mongoPlayer, quest);
-            } catch (Exception e) {
-                log.error("Failed to attach quest listener for player {} on quest {}: {}", mongoPlayer.getName(), questKey, e.getMessage(), e);
+        for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getQuestPlayerProgressMap().values()) {
+            if (!questProgress.isComplete()) {
+                try {
+                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
+                    attachQuestListenerToPertinentSubject(mongoPlayer, quest);
+                } catch (Exception e) {
+                    log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), questProgress, e.getMessage(), e);
+                }
             }
         }
     }

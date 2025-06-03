@@ -38,7 +38,7 @@ public class QuestLogBook {
         try {
             ItemStack book = QuestLogBook.createTrackingBook(quest, mongoPlayer);
             if (player.getInventory().insertStack(book)) {
-                log.debug("Given quest book for {}", quest.getTitle());
+                log.debug("Giving {} quest book for {}", player.getName().getString(), quest.getTitle());
             } else {
                 // If inventory is full, drop it on the ground
                 player.sendMessage(Text.literal("You dropped your quest book! You should pick that up."), true);
@@ -92,9 +92,11 @@ public class QuestLogBook {
 
         // Rewards
         MongoQuest.Reward reward = quest.getReward();
-        bookBuilder.append(Text.literal("Reward:").formatted(Formatting.BOLD, Formatting.DARK_GREEN)).newLine()
-                .append(Text.literal(formatMinecraftString(reward.getItemName().toLowerCase()) + " x " + reward.getCount()).formatted(Formatting.GREEN)).newLine()
-                .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
+        if (reward != null && !StringUtils.equalsAnyIgnoreCase(reward.getItemName(), "none", "na")) {
+            bookBuilder.append(Text.literal("Reward:").formatted(Formatting.BOLD, Formatting.DARK_GREEN)).newLine()
+                    .append(Text.literal(formatMinecraftString(reward.getItemName().toLowerCase()) + " x " + reward.getCount()).formatted(Formatting.GREEN)).newLine()
+                    .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
+        }
 
         if (questProgress.isComplete()) {
             bookBuilder.append(Text.literal("\n[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));

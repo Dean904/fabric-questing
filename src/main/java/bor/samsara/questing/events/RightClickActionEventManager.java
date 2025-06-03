@@ -52,8 +52,7 @@ public class RightClickActionEventManager {
                 MongoNpc npc = NpcMongoClient.getNpc(entity.getUuid().toString());
 
                 if (!playerState.hasPlayerProgressedNpc(npc.getUuid()) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
-                    MongoQuest firstQuest = initializeFirstNpcQuestForPlayer(player, npc, playerState);
-                    QuestLogBook.open(player, firstQuest, playerState);
+                    initializeFirstNpcQuestForPlayer(player, npc, playerState);
                 }
 
                 MongoPlayer.QuestProgress questProgress = playerState.getProgressForNpc(npc.getUuid());
@@ -72,15 +71,21 @@ public class RightClickActionEventManager {
                         playerState.setActiveQuest(npc.getUuid(), nextQuestId, questProgress);
                         PlayerMongoClient.updatePlayer(playerState);
                         SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
-                        QuestLogBook.open(player, quest, playerState);
                         log.debug("Progressing {} to next quest sequence, {}, for {}", playerState.getName(), nextQuestSequence, npc.getName());
                     }
                 }
 
-                String dialogue = getNextDialogue(questProgress, quest);
+                int dialogueOffset = questProgress.getDialogueOffset();
+                questProgress.setDialogueOffset((dialogueOffset + 1) % quest.getDialogue().size());
+                String dialogue = quest.getDialogue().get(dialogueOffset);
                 if (StringUtils.isNotBlank(dialogue)) {
                     player.sendMessage(Text.literal(dialogue), false);
                     player.playSoundToPlayer(SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                }
+                if (!questProgress.hasReceivedQuestBook() && quest.doesProvideQuestBook() && dialogueOffset + 1 == quest.getDialogue().size()) {
+                    QuestLogBook.open(player, quest, playerState);
+                    questProgress.setReceivedQuestBook(true);
+                    PlayerMongoClient.updatePlayer(playerState);
                 }
 
                 SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, hitResult, playerState, npc);
@@ -106,7 +111,7 @@ public class RightClickActionEventManager {
         return true;
     }
 
-    private static MongoQuest initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
+    private static void initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
         String firstQuestId = npc.getQuestIds().getFirst();
         MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
         playerState.setActiveQuest(npc.getUuid(), firstQuestId, new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
@@ -115,7 +120,6 @@ public class RightClickActionEventManager {
         log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
         SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
         SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
-        return firstQuest;
     }
 
     private static void rewardPlayer(PlayerEntity player, World world, MongoQuest quest) {
@@ -128,16 +132,6 @@ public class RightClickActionEventManager {
                 player.dropItem(stack, false);
             }
         }
-    }
-
-    private static String getNextDialogue(MongoPlayer.QuestProgress questProgressForNpc, MongoQuest staticQuest) {
-        if (null != staticQuest) {
-            long dialogueOffset = questProgressForNpc.getDialogueOffset();
-            questProgressForNpc.setDialogueOffset((dialogueOffset + 1) % staticQuest.getDialogue().size());
-            return staticQuest.getDialogue().get((int) dialogueOffset);
-        }
-
-        return "";
     }
 
     private static @NotNull ItemStack getItemStack(MongoQuest.Reward reward, World world) {
