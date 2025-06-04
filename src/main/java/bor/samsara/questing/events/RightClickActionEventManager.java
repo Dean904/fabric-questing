@@ -42,9 +42,6 @@ public class RightClickActionEventManager {
 
     private RightClickActionEventManager() {}
 
-    // TODO A Quest NPC needs 2 or 3 states per player ?
-    //          , uninitiated giver, target npc (dependent quest), finished?
-
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
             if (null != hitResult && entity.getCommandTags().contains(ModEntities.QUEST_NPC)) {

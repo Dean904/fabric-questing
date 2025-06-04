@@ -1,4 +1,4 @@
-package bor.samsara.questing;
+package bor.samsara.questing.events;
 
 import bor.samsara.questing.entity.QuestConfigBook;
 import bor.samsara.questing.entity.ModEntities;
@@ -38,17 +38,28 @@ public class QuestCreationEventRegisters {
                 NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
                 String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
                 String questUuid = customData.getNbt().get(QuestLogBook.QUEST_UUID).asString().orElseThrow();
+                int playerProgress = customData.getNbt().getInt(QuestLogBook.PLAYER_PROGRESS).orElseThrow();
 
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
-                // TODO should the book only be updated when the quest progress has changed? Store count in tag?
-                WrittenBookContentComponent t = getWrittenBookContentComponent(quest, playerState, itemStack);
-                itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
+                if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount() != playerProgress) {
+                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
+                    WrittenBookContentComponent t = getWrittenBookContentComponent(quest, playerState, itemStack);
+                    itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
+                    itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestTags(questUuid, playerUuid, playerState)));
+                }
                 return ActionResult.PASS;
             }
 
             return ActionResult.PASS;
         };
+    }
+
+    private static NbtCompound updateQuestTags(String questUuid, String playerUuid, MongoPlayer playerState) {
+        NbtCompound nbtCompound = new NbtCompound();
+        nbtCompound.putString(QuestLogBook.QUEST_UUID, questUuid);
+        nbtCompound.putString(QuestLogBook.PLAYER_UUID, playerUuid);
+        nbtCompound.putInt(QuestLogBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount());
+        return nbtCompound;
     }
 
     private static boolean hasTrackingNbtTags(ItemStack itemStack) {
@@ -59,7 +70,6 @@ public class QuestCreationEventRegisters {
         }
         return false;
     }
-
 
     public static @NotNull CommandRegistrationCallback createNpc() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(

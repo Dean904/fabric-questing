@@ -1,11 +1,8 @@
-package bor.samsara.questing.events.concrete;
+package bor.samsara.questing.events.subject;
 
-import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.ActionSubscription;
-import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
-import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;

@@ -1,5 +1,6 @@
-package bor.samsara.questing.events;
+package bor.samsara.questing.events.subject;
 
+import bor.samsara.questing.events.ActionSubscription;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

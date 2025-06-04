@@ -1,6 +1,5 @@
-package bor.samsara.questing.events.concrete;
+package bor.samsara.questing.events.subject;
 
-import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
