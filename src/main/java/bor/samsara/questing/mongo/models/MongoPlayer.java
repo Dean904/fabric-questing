@@ -10,7 +10,9 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private Map<String, QuestProgress> npcActiveQuestMap = new HashMap<>();
+
+    private Map<String, String> npcActiveQuestMap = new HashMap<>();
+    private Map<String, QuestProgress> questPlayerProgressMap = new HashMap<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -33,34 +35,63 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public Map<String, QuestProgress> getNpcQuestProgressMap() {
+    public boolean hasPlayerProgressedNpc(String npcUuid) {
+        return npcActiveQuestMap.containsKey(npcUuid);
+    }
+
+    public QuestProgress getProgressForNpc(String npcUuid) {
+        String questUuid = npcActiveQuestMap.get(npcUuid);
+        return questPlayerProgressMap.get(questUuid);
+    }
+
+    public void setActiveQuest(String npcUuid, String questUuid, QuestProgress progress) {
+        npcActiveQuestMap.put(npcUuid, questUuid);
+        questPlayerProgressMap.put(questUuid, progress);
+    }
+
+    protected Map<String, String> getNpcActiveQuestUuidMap() {
         return npcActiveQuestMap;
     }
 
-    public void setNpcActiveQuestMap(Map<String, QuestProgress> npcActiveQuestMap) {
+    protected void setNpcActiveQuestMap(Map<String, String> npcActiveQuestMap) {
         this.npcActiveQuestMap = npcActiveQuestMap;
+    }
+
+    /**
+     * keyed by quest uuid, returns the players quest progress
+     *
+     * @return QuestProgress
+     */
+    public Map<String, QuestProgress> getQuestPlayerProgressMap() {
+        return questPlayerProgressMap;
+    }
+
+    public void setQuestPlayerProgressMap(Map<String, QuestProgress> questPlayerProgressMap) {
+        this.questPlayerProgressMap = questPlayerProgressMap;
     }
 
     public Document toDocument() {
         Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, QuestProgress> entry : npcActiveQuestMap.entrySet()) {
+        for (Map.Entry<String, QuestProgress> entry : questPlayerProgressMap.entrySet()) {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
         return new Document("uuid", uuid)
                 .append("name", name)
-                .append("npcActiveQuest", activeQuestDocs);
+                .append("questPlayerProgress", activeQuestDocs)
+                .append("npcActiveQuest", npcActiveQuestMap);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
-        Map<String, Document> activeQuestDocs = document.get("npcActiveQuest", Map.class);
+        player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
+        Map<String, Document> questPlayerProgressDocs = document.get("questPlayerProgress", Map.class);
         Map<String, QuestProgress> activeQuestMap = new HashMap<>();
-        for (Map.Entry<String, Document> entry : activeQuestDocs.entrySet()) {
+        for (Map.Entry<String, Document> entry : questPlayerProgressDocs.entrySet()) {
             activeQuestMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
         }
-        player.setNpcActiveQuestMap(activeQuestMap);
+        player.setQuestPlayerProgressMap(activeQuestMap);
         return player;
 
     }
@@ -70,8 +101,9 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         private final String questTitle;
         @Deprecated
         private final int sequence;
-        private long dialogueOffset = 0;
+        private int dialogueOffset = 0;
         private int objectiveCount = 0;
+        private boolean receivedQuestBook = false;
         private boolean isComplete = false;
 
         public QuestProgress(String questUuid, String questTitle, int sequence) {
@@ -84,16 +116,20 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             return questUuid;
         }
 
+        public String getQuestTitle() {
+            return questTitle;
+        }
+
         @Deprecated
         public int getSequence() {
             return sequence;
         }
 
-        public long getDialogueOffset() {
+        public int getDialogueOffset() {
             return dialogueOffset;
         }
 
-        public void setDialogueOffset(long dialogueOffset) {
+        public void setDialogueOffset(int dialogueOffset) {
             this.dialogueOffset = dialogueOffset;
         }
 
@@ -103,6 +139,14 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
         public void setObjectiveCount(int objectiveCount) {
             this.objectiveCount = objectiveCount;
+        }
+
+        public boolean hasReceivedQuestBook() {
+            return receivedQuestBook;
+        }
+
+        public void setReceivedQuestBook(boolean receivedQuestBook) {
+            this.receivedQuestBook = receivedQuestBook;
         }
 
         public boolean isComplete() {
@@ -119,15 +163,17 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
                     .append("sequence", sequence)
                     .append("dialogueOffset", dialogueOffset)
                     .append("objectiveCount", objectiveCount)
+                    .append("receivedQuestBook", receivedQuestBook)
                     .append("isComplete", isComplete);
         }
 
         public static QuestProgress fromDocument(Document document) {
-            QuestProgress aq = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
-            aq.setDialogueOffset(document.getLong("dialogueOffset"));
-            aq.setObjectiveCount(document.getInteger("objectiveCount", 0));
-            aq.setComplete(document.getBoolean("isComplete", false));
-            return aq;
+            QuestProgress q = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
+            q.setDialogueOffset(document.getInteger("dialogueOffset"));
+            q.setObjectiveCount(document.getInteger("objectiveCount", 0));
+            q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
+            q.setComplete(document.getBoolean("isComplete", false));
+            return q;
         }
     }
 }

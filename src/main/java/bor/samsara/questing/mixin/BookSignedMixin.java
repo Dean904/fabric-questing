@@ -1,6 +1,6 @@
 package bor.samsara.questing.mixin;
 
-import bor.samsara.questing.entity.QuestBook;
+import bor.samsara.questing.entity.QuestConfigBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
@@ -61,7 +61,7 @@ public class BookSignedMixin {
                 if (null != bookStackCustomData.getNbt()) {
                     log.info("Signed custom book data: {}", bookStackCustomData.getNbt());
 
-                    Optional<String> encodedNpcName = bookStackCustomData.getNbt().get(QuestBook.NPC_NAME).asString();
+                    Optional<String> encodedNpcName = bookStackCustomData.getNbt().get(QuestConfigBook.NPC_NAME).asString();
                     if (encodedNpcName.isPresent()) {
                         try {
                             List<String> encodedQuestIds = getEncodedQuestUuids(bookStackCustomData);
@@ -90,8 +90,8 @@ public class BookSignedMixin {
 
     private static @NotNull List<String> getEncodedQuestUuids(NbtComponent bookStackCustomData) {
         List<String> encodedQuestIds = new ArrayList<>();
-        if (null != bookStackCustomData.getNbt().get(QuestBook.QUEST_IDS)) {
-            encodedQuestIds = new ArrayList<>(Arrays.asList(bookStackCustomData.getNbt().get(QuestBook.QUEST_IDS).asString().orElseThrow().split(",")));
+        if (null != bookStackCustomData.getNbt().get(QuestConfigBook.QUEST_IDS)) {
+            encodedQuestIds = new ArrayList<>(Arrays.asList(bookStackCustomData.getNbt().get(QuestConfigBook.QUEST_IDS).asString().orElseThrow().split(",")));
         }
         encodedQuestIds.removeIf(StringUtils::isBlank);
         return encodedQuestIds;
@@ -111,7 +111,7 @@ public class BookSignedMixin {
             List<String> questStrings = new ArrayList<>(List.of(sb.toString().split("##")));
             questStrings.removeIf(StringUtils::isBlank);
             return questStrings.stream().map(questString -> {
-                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(questString.split(QuestBook.DIV)));
+                LinkedList<String> allQuestData = new LinkedList<>(Arrays.asList(questString.split(QuestConfigBook.DIV)));
                 allQuestData.removeIf(s -> StringUtils.isBlank(s) || StringUtils.equals(s.trim(), "\n"));
                 MongoQuest q;
                 int questSequence = Integer.parseInt(allQuestData.pollFirst());

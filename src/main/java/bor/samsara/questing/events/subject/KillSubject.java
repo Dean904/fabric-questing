@@ -1,11 +1,8 @@
-package bor.samsara.questing.events.concrete;
+package bor.samsara.questing.events.subject;
 
-import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.ActionSubscription;
-import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
-import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
@@ -30,22 +27,22 @@ public class KillSubject extends QuestEventSubject {
             String entityTypeName = killedEntity.getType().getName().getString();
             log.debug("Tracking {}, killed a {}", killer.getName().getString(), entityTypeName);
             for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
-                ActionSubscription listener = ite.next();
-                if (StringUtils.equalsIgnoreCase(entityTypeName, listener.getObjective().getTarget())) {
-                    MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(listener.getPlayerUuid());
-                    MongoPlayer.QuestProgress questProgressForNpc = playerState.getNpcQuestProgressMap().get(listener.getQuestNpcUuid());
-                    int objectiveCount = questProgressForNpc.getObjectiveCount() + 1;
-                    questProgressForNpc.setObjectiveCount(objectiveCount);
+                ActionSubscription subscription = ite.next();
+                if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjective().getTarget())) {
+                    MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
+                    MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
+                    int objectiveCount = questProgress.getObjectiveCount() + 1;
+                    questProgress.setObjectiveCount(objectiveCount);
 
-                    MongoNpc npc = NpcMongoClient.getNpc(listener.getQuestNpcUuid());
-                    MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgressForNpc.getQuestUuid());
-                    log.debug("Incrementing quest objective count of '{}#{}' for player {}", npc.getName(), questProgressForNpc.getSequence(), playerState.getName());
+                    MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
+                    log.debug("Incrementing quest {} objective count {} for player {}", staticQuest.getTitle(), staticQuest.getObjective().getType().name(), playerState.getName());
 
                     boolean isComplete = false;
                     if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-                        questProgressForNpc.setComplete(true);
+                        questProgress.setComplete(true);
                         PlayerMongoClient.updatePlayer(playerState);
-                        log.debug("Marking '{}#{}' quest complete for player {}", npc.getName(), questProgressForNpc.getSequence(), playerState.getName());
+                        log.debug("Marking quest {} {} complete for player {}", staticQuest.getObjective().getType().name(), staticQuest.getTitle(), playerState.getName());
+
                         isComplete = true;
                     }
 
@@ -61,7 +58,7 @@ public class KillSubject extends QuestEventSubject {
                                 0.6f, // volume
                                 1.0f  // pitch
                         );
-                        detach(listener, ite);
+                        detach(subscription, ite);
                     } else {
                         world.playSound(
                                 null, // `null` means only the player hears it; use `player` to make it audible to others too

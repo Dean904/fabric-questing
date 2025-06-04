@@ -1,6 +1,5 @@
-package bor.samsara.questing.events.concrete;
+package bor.samsara.questing.events.subject;
 
-import bor.samsara.questing.events.QuestEventSubject;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -31,29 +30,29 @@ public class TalkToNpcSubject extends QuestEventSubject {
 
         List<ActionSubscription> actionSubscriptions = playerSubsriptionMap.get(playerUuid);
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
-            ActionSubscription listener = ite.next();
-            if (StringUtils.equalsAnyIgnoreCase(listener.getObjective().getTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
+            ActionSubscription subscription = ite.next();
+            if (StringUtils.equalsAnyIgnoreCase(subscription.getObjective().getTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
                 boolean isComplete = false;
 
-                MongoPlayer.QuestProgress questProgressForNpc = playerState.getNpcQuestProgressMap().get(listener.getQuestNpcUuid());
-                int objectiveCount = questProgressForNpc.getObjectiveCount() + 1;
-                questProgressForNpc.setObjectiveCount(objectiveCount);
+                MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
+                int objectiveCount = questProgress.getObjectiveCount() + 1;
+                questProgress.setObjectiveCount(objectiveCount);
 
-                MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgressForNpc.getQuestUuid());
+                MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
 
-                log.debug("Incrementing quest objective count of '{}#{}' for player {}", mongoNpc.getName(), questProgressForNpc.getSequence(), playerState.getName());
+                log.debug("Incrementing quest objective count of '{}#{}' for player {}", mongoNpc.getName(), questProgress.getSequence(), playerState.getName());
 
                 if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-                    questProgressForNpc.setComplete(true);
+                    questProgress.setComplete(true);
                     PlayerMongoClient.updatePlayer(playerState);
-                    log.debug("Marking '{}#{}' quest complete for player {}", mongoNpc.getName(), questProgressForNpc.getSequence(), playerState.getName());
+                    log.debug("Marking '{}#{}' quest complete for player {}", mongoNpc.getName(), questProgress.getSequence(), playerState.getName());
                     isComplete = true;
                 }
 
                 PlayerMongoClient.updatePlayer(playerState);
 
                 if (isComplete)
-                    detach(listener, ite);
+                    detach(subscription, ite);
             }
         }
     }
