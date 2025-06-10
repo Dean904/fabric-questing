@@ -1,12 +1,16 @@
 package bor.samsara.questing.mongo;
 
 import bor.samsara.questing.mongo.models.MongoQuest;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Indexes;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CompletableFuture;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
@@ -56,5 +60,14 @@ public class QuestMongoClient {
             return new MongoQuest(doc.getString("uuid")).fromDocument(doc);
         }
         throw new IllegalStateException("The MongoQuest titled '%s' was not found".formatted(questTitle));
+    }
+
+    public static CompletableFuture<Suggestions> getAllQuestUuid(SuggestionsBuilder builder) {
+        return CompletableFuture.supplyAsync(() -> {
+            collection.find().forEach(doc -> {
+                builder.suggest(doc.getString("uuid"));
+            });
+            return builder.buildFuture().join();
+        });
     }
 }

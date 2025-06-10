@@ -44,6 +44,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
 
         UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
 

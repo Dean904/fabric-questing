@@ -17,6 +17,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     private List<String> dialogue = new ArrayList<>();
     private MongoQuest.Objective objective;
     private MongoQuest.Reward reward;
+    private MongoQuest.Trigger trigger;
 
     public MongoQuest() {
         this.uuid = UUID.randomUUID().toString();
@@ -92,6 +93,14 @@ public class MongoQuest implements MongoDao<MongoQuest> {
 
     public void setReward(MongoQuest.Reward reward) {
         this.reward = reward;
+    }
+
+    public Trigger getTrigger() {
+        return trigger;
+    }
+
+    public void setTrigger(Trigger trigger) {
+        this.trigger = trigger;
     }
 
     public static class Objective {
@@ -225,6 +234,45 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         }
     }
 
+    public static class Trigger {
+        Event event; // e.g., "onStart", "onComplete"
+        String command; // e.g., "/give @p minecraft:diamond 1"
+
+        public enum Event {
+            ON_START,
+            ON_COMPLETE;
+        }
+
+        public Event getEvent() {
+            return event;
+        }
+
+        public void setEvent(Event event) {
+            this.event = event;
+        }
+
+        public String getCommand() {
+            return command;
+        }
+
+        public void setCommand(String command) {
+            this.command = command;
+        }
+
+        public Document toDocument() {
+            return new Document()
+                    .append("event", event.name())
+                    .append("command", command);
+        }
+
+        public static MongoQuest.Trigger fromDocument(Document document) {
+            MongoQuest.Trigger t = new MongoQuest.Trigger();
+            t.setEvent(Event.valueOf(document.getString("event")));
+            t.setCommand(document.getString("command"));
+            return t;
+        }
+    }
+
     public Document toDocument() {
         return new Document()
                 .append("uuid", uuid)
@@ -235,7 +283,8 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 .append("dialogue", dialogue)
                 .append("order", sequence)
                 .append("objective", objective == null ? null : objective.toDocument())
-                .append("reward", reward == null ? null : reward.toDocument());
+                .append("reward", reward == null ? null : reward.toDocument())
+                .append("trigger", trigger == null ? null : trigger.toDocument());
     }
 
     @SuppressWarnings("unchecked")
@@ -249,18 +298,23 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         q.setDescription(document.getString("description"));
         q.setObjective(MongoQuest.Objective.fromDocument(document.get("objective", Document.class)));
         q.setReward(MongoQuest.Reward.fromDocument(document.get("reward", Document.class)));
+        q.setTrigger(null == document.get("trigger", Document.class) ? null : MongoQuest.Trigger.fromDocument(document.get("trigger", Document.class)));
         return q;
     }
 
     @Override
     public String toString() {
         return "MongoQuest{" +
-                "id=" + uuid +
+                "uuid='" + uuid + '\'' +
                 ", title='" + title + '\'' +
                 ", sequence=" + sequence +
+                ", summary='" + summary + '\'' +
+                ", description='" + description + '\'' +
+                ", providesQuestBook=" + providesQuestBook +
                 ", dialogue=" + dialogue +
                 ", objective=" + objective +
                 ", reward=" + reward +
+                ", trigger=" + trigger +
                 '}';
     }
 }

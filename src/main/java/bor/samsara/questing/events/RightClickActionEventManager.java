@@ -17,6 +17,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -32,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
@@ -60,6 +63,15 @@ public class RightClickActionEventManager {
                     if (!completed) return ActionResult.SUCCESS; // if requirements not met, do not continue
                     rewardPlayer(player, world, quest);
                     player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.4f, 1.5f);
+
+                    if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
+                        // TODO and has not triggered for player already
+                        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommand());
+                        CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
+                        ServerCommandSource commandSource = player.getServer().getCommandSource();
+                        commandManager.executeWithPrefix(commandSource, quest.getTrigger().getCommand());
+                    }
+
                     int nextQuestSequence = quest.getSequence() + 1;
                     if (nextQuestSequence < npc.getQuestIds().size()) {
                         String nextQuestId = npc.getQuestIds().get(nextQuestSequence);

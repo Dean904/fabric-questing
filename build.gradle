@@ -26,8 +26,6 @@ dependencies {
     compileOnly "net.luckperms:api:5.4"
     include(modImplementation('me.lucko:fabric-permissions-api:0.3.3'))
 
-    implementation 'net.dv8tion:JDA:5.1.0'
-    implementation 'org.jfree:jfreechart:1.5.3'
     implementation 'org.mongodb:mongodb-driver-sync:5.1.3'
     implementation 'org.mongodb:bson:5.1.3'
     implementation 'org.mongodb:mongodb-driver-core:5.1.3'
@@ -49,9 +47,9 @@ processResources {
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
-    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
-        it.options.release = targetJavaVersion
-    }
+    sourceCompatibility = targetJavaVersion.toString()
+    targetCompatibility = targetJavaVersion.toString()
+    options.release.set(targetJavaVersion)
 }
 
 java {
@@ -67,10 +65,8 @@ jar {
     // Only include specific parts of the dependencies to avoid exceeding the entry limit
     from {
         configurations.runtimeClasspath.filter {
-            it.name.endsWith('bson-5.1.3.jar') ||
-                    it.name.endsWith('mongodb-driver-sync-5.1.3.jar') ||
-                    it.name.endsWith('mongodb-driver-core-5.1.3.jar') ||
-                    it.name.contains('jfreechart')
+            it.name.endsWith('mongodb-driver-sync-5.1.3.jar') ||
+                    it.name.endsWith('mongodb-driver-core-5.1.3.jar')
         }.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

@@ -127,4 +127,31 @@ public class QuestCreationEventRegisters {
         );
     }
 
+    public static @NotNull CommandRegistrationCallback setQuestTrigger() {
+        return (dispatcher, registryAccess, environment) -> dispatcher.register(
+                literal("quest")
+                        .requires(Permissions.require("samsara.quest.admin", 2))
+                        .then(literal("config")
+                                .then(literal("trigger")
+                                        .then(argument("questUuid", StringArgumentType.string())
+                                                .suggests((context, builder) -> QuestMongoClient.getAllQuestUuid(builder))
+                                                .then(argument("eventTrigger", StringArgumentType.string())
+                                                        .suggests((context, builder) -> {
+                                                            builder.suggest("on_complete");
+                                                            builder.suggest("on_start");
+                                                            return builder.buildFuture();
+                                                        })
+                                                        .then(argument("command", StringArgumentType.greedyString())
+                                                                .executes(context -> {
+                                                                    MongoQuest.Trigger trigger = new MongoQuest.Trigger();
+                                                                    trigger.setEvent(MongoQuest.Trigger.Event.valueOf(getString(context, "eventTrigger").toUpperCase()));
+                                                                    trigger.setCommand(getString(context, "command"));
+                                                                    MongoQuest quest = QuestMongoClient.getQuestByUuid(getString(context, "questUuid"));
+                                                                    quest.setTrigger(trigger);
+                                                                    QuestMongoClient.updateQuest(quest);
+                                                                    return 0;
+                                                                })
+                                                        ))))));
+    }
+
 }
