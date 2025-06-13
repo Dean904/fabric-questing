@@ -52,7 +52,10 @@ public class RightClickActionEventManager {
                 MongoNpc npc = NpcMongoClient.getNpc(entity.getUuid().toString());
 
                 if (!playerState.hasPlayerProgressedNpc(npc.getUuid()) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
-                    initializeFirstNpcQuestForPlayer(player, npc, playerState);
+                    MongoQuest firstQuest = initializeFirstNpcQuestForPlayer(player, npc, playerState);
+                    if (null != firstQuest.getTrigger() && MongoQuest.Trigger.Event.ON_START == firstQuest.getTrigger().getEvent()) {
+                        executeTriggerCommand(player, playerState, firstQuest);
+                    }
                 }
 
                 MongoPlayer.QuestProgress questProgress = playerState.getProgressForNpc(npc.getUuid());
@@ -63,13 +66,8 @@ public class RightClickActionEventManager {
                     if (!completed) return ActionResult.SUCCESS; // if requirements not met, do not continue
                     rewardPlayer(player, world, quest);
                     player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.4f, 1.5f);
-
                     if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
-                        // TODO and has not triggered for player already
-                        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommand());
-                        CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
-                        ServerCommandSource commandSource = player.getServer().getCommandSource();
-                        commandManager.executeWithPrefix(commandSource, quest.getTrigger().getCommand());
+                        executeTriggerCommand(player, playerState, quest);
                     }
 
                     int nextQuestSequence = quest.getSequence() + 1;
@@ -80,6 +78,9 @@ public class RightClickActionEventManager {
                         playerState.setActiveQuest(npc.getUuid(), nextQuestId, questProgress);
                         PlayerMongoClient.updatePlayer(playerState);
                         SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
+                        if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_START == quest.getTrigger().getEvent()) {
+                            executeTriggerCommand(player, playerState, quest);
+                        }
                         log.debug("Progressing {} to next quest sequence, {}, for {}", playerState.getName(), nextQuestSequence, npc.getName());
                     }
                 }
@@ -105,6 +106,25 @@ public class RightClickActionEventManager {
         };
     }
 
+    private static MongoQuest initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
+        String firstQuestId = npc.getQuestIds().getFirst();
+        MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
+        playerState.setActiveQuest(npc.getUuid(), firstQuestId, new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
+        PlayerMongoClient.updatePlayer(playerState);
+
+        log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
+        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
+        SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
+        return firstQuest;
+    }
+
+    private static void executeTriggerCommand(PlayerEntity player, MongoPlayer playerState, MongoQuest quest) {
+        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommand());
+        CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
+        ServerCommandSource commandSource = player.getServer().getCommandSource();
+        commandManager.executeWithPrefix(commandSource, quest.getTrigger().getCommand());
+    }
+
     private static boolean completesRequirements(PlayerEntity player, Hand hand, MongoQuest quest) {
         if (MongoQuest.Objective.Type.COLLECT == quest.getObjective().getType()) {
             // consume from selected slot or send message to gimme
@@ -118,17 +138,6 @@ public class RightClickActionEventManager {
             }
         }
         return true;
-    }
-
-    private static void initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
-        String firstQuestId = npc.getQuestIds().getFirst();
-        MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
-        playerState.setActiveQuest(npc.getUuid(), firstQuestId, new MongoPlayer.QuestProgress(firstQuestId, firstQuest.getTitle(), 0));
-        PlayerMongoClient.updatePlayer(playerState);
-
-        log.debug("Registering {} to quest for {}", playerState.getName(), npc.getName());
-        SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
-        SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
     }
 
     private static void rewardPlayer(PlayerEntity player, World world, MongoQuest quest) {
@@ -166,6 +175,5 @@ public class RightClickActionEventManager {
         }
         return itemDefinition;
     }
-
 
 }
