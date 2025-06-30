@@ -28,8 +28,8 @@ public class WrittenBookPageBuilder {
                 newLineCount = remaining.length() / 20;
             }
 
-            if (currentLineCount + newLineCount >= 14) {
-                int charsLeftOnPage = 280 - (currentLineCount * 20);
+            if (currentLineCount + newLineCount >= 13) {
+                int charsLeftOnPage = 260 - (currentLineCount * 20);
                 int take = Math.min(charsLeftOnPage, remaining.length()); // TODO is this necessary?
                 pageText.append(text.asTruncatedString(take)); // Truncate the text to fit on the current page
                 bookPages.add(new RawFilteredPair<>(pageText, Optional.of(pageText)));
@@ -53,6 +53,13 @@ public class WrittenBookPageBuilder {
     public WrittenBookPageBuilder newLine() {
         pageText.append("\n");
         currentLineCount++;
+
+        if (currentLineCount >= 13) {
+            bookPages.add(new RawFilteredPair<>(pageText, Optional.of(pageText)));
+            pageText = Text.empty();
+            currentLineCount = 0;
+        }
+
         return this;
     }
 
