@@ -1,6 +1,7 @@
 package bor.samsara.questing;
 
 import bor.samsara.questing.events.QuestCreationEventRegisters;
+import bor.samsara.questing.hearth.HearthStoneEventRegisters;
 import bor.samsara.questing.settings.AppConfiguration;
 import bor.samsara.questing.entity.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
@@ -18,8 +19,12 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
-import org.bson.Document;
+import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +48,10 @@ public class SamsaraFabricQuesting implements ModInitializer {
         // ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         // scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
 
+        UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
+        CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
+
+
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
@@ -61,7 +70,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
             ModEntities.despawnTravelingWelcomer(handler.getPlayer());
         });
     }
-
 
     private static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
         try {

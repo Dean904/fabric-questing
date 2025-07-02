@@ -13,7 +13,8 @@ import java.util.function.BiConsumer;
 public class SamsaraNoteBlockTunes {
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(
+            runnable -> new Thread(runnable, "SamsaraNoteBlockTunes-Thread"));
 
     public static void playZeldaGetQuestTune(PlayerEntity player) {
         executor.submit(() -> {
