@@ -21,12 +21,16 @@ import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -80,6 +84,9 @@ public class SamsaraFabricQuesting implements ModInitializer {
             log.debug(e.getMessage());
             String playerName = serverPlayer.getName().getLiteralString();
             log.info("{} joining for first time.", playerName);
+            CommandManager commandManager = serverPlayer.getServer().getCommandManager();
+            ServerCommandSource commandSource = serverPlayer.getServer().getCommandSource();
+            commandManager.executeWithPrefix(commandSource, "/time set 23300");
             MongoPlayer p = new MongoPlayer(serverPlayer.getUuidAsString(), playerName);
             PlayerMongoClient.createPlayer(p);
             return p;

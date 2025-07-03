@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
@@ -16,7 +17,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.particle.ParticleUtil;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -25,8 +30,10 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
@@ -34,6 +41,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -121,10 +129,14 @@ public class HearthStoneEventRegisters {
         return (player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
             if (stack.isOf(Items.CARROT_ON_A_STICK) && stack.getName().getString().equals("Hearthstone")) {
-                if (!isTeleporting(player.getUuidAsString())) {
-                    player.sendMessage(Text.of("💫 Whoosh!"), true);
-                    Future<?> task = executor.submit(createCastTask(player, world, stack));
-                    playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getPos()));
+                if (player.getMovement().equals(Vec3d.ZERO)) {
+                    if (!isTeleporting(player.getUuidAsString())) {
+                        player.sendMessage(Text.of("💫 Whoosh!"), true);
+                        Future<?> task = executor.submit(createCastTask(player, world, stack));
+                        playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getPos()));
+                    }
+                } else {
+                    player.sendMessage(Text.literal("You cant do that right now!").styled(style -> style.withColor(Formatting.RED)), true);
                 }
                 return ActionResult.PASS;
             }
@@ -140,14 +152,41 @@ public class HearthStoneEventRegisters {
                 play.accept(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.0f); // C5
                 Thread.sleep(150);
 
+                CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
+                ServerCommandSource commandSource = player.getServer().getCommandSource();
+
                 for (int i = 10; i > 0; i--) {
                     play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.0f + (i / 10f));
                     player.sendMessage(Text.of("💫 Teleporting in " + i + " seconds. Dont move!"), true);
-                    Thread.sleep(1000);
+                    Thread.sleep(200);
+
+                    double swirlHeight = 1.8;
+                    double radius = 3.5;
+                    double angle = i * 0.3;
+                    double x = player.getX() + radius * Math.cos(angle);
+                    double z = player.getZ() + radius * Math.sin(angle);
+                    double y = player.getY() + swirlHeight * (i / (double) 10);
+
+                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(x, y, z));
+                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul_fire_flame%f %f %f".formatted(x, y, z));
+                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul %f %f %f".formatted(x, y, z));
+
+//                    serverWorld.getServer().execute(() -> {
+//                        serverWorld.addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
+//                        serverWorld.getServer().getWorld(World.OVERWORLD).addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
+//                    });
+//
+//                    serverWorld.addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
+//                    serverWorld.getServer().getWorld(World.OVERWORLD).addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
+
+                    // 	public static void spawnParticle(World world, BlockPos pos, Direction direction, ParticleEffect effect, Vec3d velocity, double offsetMultiplier) {
+//                    ParticleUtil.spawnParticle(world, player.getBlockPos(), Direction.UP, ParticleTypes.SOUL, new Vec3d(x, y, z), 0.5);
+                    //world.getServer().getWorld(World.OVERWORLD).addParticleClient(, x, y, z, 0.0, 1.0, 0.0);
+                    //world.addParticleClient(ParticleTypes.SOUL, x, y, z, 0.0, 1.0, 0.0);
                 }
 
-                BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getLong(WARP_LOCATION).get());
                 ServerWorld serverWorld = world.getServer().getWorld(World.OVERWORLD);
+                BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getLong(WARP_LOCATION).get());
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.ROT, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
