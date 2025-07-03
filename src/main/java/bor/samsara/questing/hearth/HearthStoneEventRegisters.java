@@ -153,36 +153,25 @@ public class HearthStoneEventRegisters {
                 Thread.sleep(150);
 
                 CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
-                ServerCommandSource commandSource = player.getServer().getCommandSource();
+                ServerCommandSource commandSource = player.getServer().getCommandSource().withSilent();
 
-                for (int i = 10; i > 0; i--) {
-                    play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.0f + (i / 10f));
-                    player.sendMessage(Text.of("💫 Teleporting in " + i + " seconds. Dont move!"), true);
-                    Thread.sleep(200);
+                int numSteps = 180;
+                for (int i = 0; i < numSteps; i++) {
 
-                    double swirlHeight = 1.8;
-                    double radius = 3.5;
-                    double angle = i * 0.3;
-                    double x = player.getX() + radius * Math.cos(angle);
-                    double z = player.getZ() + radius * Math.sin(angle);
-                    double y = player.getY() + swirlHeight * (i / (double) 10);
+                    Thread.sleep(10_000 / numSteps); // 10 seconds total, 180 steps = 55ms per step
 
-                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(x, y, z));
-                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul_fire_flame%f %f %f".formatted(x, y, z));
-                    commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul %f %f %f".formatted(x, y, z));
+                    double radius = 3.5 * ((double) (numSteps - i) / numSteps);
+                    double angle = i * (Math.PI * 2 / numSteps); // 360 / 180 = 2 degrees per step, but in radians it is 2 * Math.PI / 180
 
-//                    serverWorld.getServer().execute(() -> {
-//                        serverWorld.addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
-//                        serverWorld.getServer().getWorld(World.OVERWORLD).addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
-//                    });
-//
-//                    serverWorld.addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
-//                    serverWorld.getServer().getWorld(World.OVERWORLD).addParticleClient(ParticleTypes.HEART, x, y + 2, z, 0.0, 1.0, 0.0);
+                    summonParticles(player, radius, angle, i, numSteps, commandManager, commandSource);
+                    summonParticles(player, radius, angle + (Math.PI * 2 / 3), i, numSteps, commandManager, commandSource);
+                    summonParticles(player, radius, angle + (Math.PI * 4 / 3), i, numSteps, commandManager, commandSource);
 
-                    // 	public static void spawnParticle(World world, BlockPos pos, Direction direction, ParticleEffect effect, Vec3d velocity, double offsetMultiplier) {
-//                    ParticleUtil.spawnParticle(world, player.getBlockPos(), Direction.UP, ParticleTypes.SOUL, new Vec3d(x, y, z), 0.5);
-                    //world.getServer().getWorld(World.OVERWORLD).addParticleClient(, x, y, z, 0.0, 1.0, 0.0);
-                    //world.addParticleClient(ParticleTypes.SOUL, x, y, z, 0.0, 1.0, 0.0);
+                    if (i % (numSteps / 10) == 0) {
+                        int secondsLeft = 10 - (i / (numSteps / 10));
+                        play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.0f + (secondsLeft / 10f));
+                        player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
+                    }
                 }
 
                 ServerWorld serverWorld = world.getServer().getWorld(World.OVERWORLD);
@@ -190,7 +179,7 @@ public class HearthStoneEventRegisters {
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.ROT, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 playerTeleportTasks.remove(player.getUuidAsString());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -198,6 +187,19 @@ public class HearthStoneEventRegisters {
         };
     }
 
+    private static void summonParticles(PlayerEntity player, double radius, double angle, int i, int numSteps, CommandManager commandManager, ServerCommandSource commandSource) {
+        double swirlHeight = 1.8;
+        double x = player.getX() + radius * Math.cos(angle);
+        double z = player.getZ() + radius * Math.sin(angle);
+        double y = player.getY() + swirlHeight * (i / numSteps);
+        commandManager.executeWithPrefix(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+        commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul_fire_flame %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+        commandManager.executeWithPrefix(commandSource, "/particle minecraft:trial_spawner_detection_ominous %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+    }
+
+    private static double jitter(double d) {
+        return d + ((Math.random() - 0.5) * 0.5); // Small jitter to simulate randomness
+    }
 
     private static void addEnchantment(ItemStack item) {
         Object2IntOpenHashMap<RegistryKey<Enchantment>> map = new Object2IntOpenHashMap<>();
