@@ -4,7 +4,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
-import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
@@ -17,23 +16,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.particle.ParticleUtil;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
@@ -46,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
@@ -149,6 +142,7 @@ public class HearthStoneEventRegisters {
             try {
                 player.playSoundToPlayer(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 Thread.sleep(150);
+                //player.playSoundToPlayer(SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.7f, 1.0f);
 
                 CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
                 ServerCommandSource commandSource = player.getServer().getCommandSource().withSilent();
@@ -158,7 +152,7 @@ public class HearthStoneEventRegisters {
 
                     Thread.sleep(10_000 / numSteps); // 10 seconds total, 180 steps = 55ms per step
 
-                    double radius = 3.5 * ((double) (numSteps - i) / numSteps);
+                    double radius = 3.5 * ((double) (numSteps - i) / numSteps) + 0.2; // radius decreases from 3.5 to 0.2 over the steps
                     double angle = i * (Math.PI * 2 / numSteps); // 360 / 180 = 2 degrees per step, but in radians it is 2 * Math.PI / 180
 
                     summonParticles(player, radius, angle, i, numSteps, commandManager, commandSource);
@@ -167,7 +161,7 @@ public class HearthStoneEventRegisters {
 
                     if (i % (numSteps / 10) == 0) {
                         int secondsLeft = 10 - (i / (numSteps / 10));
-                        player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), SoundCategory.PLAYERS, 1.0f, 1.0f + (secondsLeft / 10f));
+                        player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f + (secondsLeft / 10f));
                         player.playSoundToPlayer(SoundEvents.AMBIENT_CAVE.value(), SoundCategory.PLAYERS, 0.3f, 1.0f + (secondsLeft / 10f));
                         player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
                     }
@@ -191,10 +185,10 @@ public class HearthStoneEventRegisters {
     }
 
     private static void summonParticles(PlayerEntity player, double radius, double angle, int i, int numSteps, CommandManager commandManager, ServerCommandSource commandSource) {
-        double swirlHeight = 1.8;
+        double swirlHeight = 1.2;
         double x = player.getX() + radius * Math.cos(angle);
         double z = player.getZ() + radius * Math.sin(angle);
-        double y = player.getY() + swirlHeight * (i / numSteps);
+        double y = player.getY() + swirlHeight * ((double) i / numSteps);
         commandManager.executeWithPrefix(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
         commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul_fire_flame %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
         commandManager.executeWithPrefix(commandSource, "/particle minecraft:trial_spawner_detection_ominous %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
