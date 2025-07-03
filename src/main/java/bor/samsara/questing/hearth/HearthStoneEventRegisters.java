@@ -147,9 +147,7 @@ public class HearthStoneEventRegisters {
     private static @NotNull Runnable createCastTask(PlayerEntity player, World world, ItemStack stack) {
         return () -> {
             try {
-                BiConsumer<SoundEvent, Float> play = (s, p) ->
-                        player.playSoundToPlayer(s, SoundCategory.PLAYERS, 1.0f, p);
-                play.accept(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, 1.0f); // C5
+                player.playSoundToPlayer(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 Thread.sleep(150);
 
                 CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
@@ -169,8 +167,12 @@ public class HearthStoneEventRegisters {
 
                     if (i % (numSteps / 10) == 0) {
                         int secondsLeft = 10 - (i / (numSteps / 10));
-                        play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.0f + (secondsLeft / 10f));
+                        player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), SoundCategory.PLAYERS, 1.0f, 1.0f + (secondsLeft / 10f));
+                        player.playSoundToPlayer(SoundEvents.AMBIENT_CAVE.value(), SoundCategory.PLAYERS, 0.3f, 1.0f + (secondsLeft / 10f));
                         player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
+                    }
+                    if (i == 160) {
+                        player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                     }
                 }
 
@@ -179,6 +181,7 @@ public class HearthStoneEventRegisters {
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.ROT, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
+                player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 playerTeleportTasks.remove(player.getUuidAsString());
             } catch (InterruptedException e) {
