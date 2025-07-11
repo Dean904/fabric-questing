@@ -3,7 +3,7 @@ package bor.samsara.questing;
 import bor.samsara.questing.events.QuestCreationEventRegisters;
 import bor.samsara.questing.hearth.HearthStoneEventRegisters;
 import bor.samsara.questing.settings.AppConfiguration;
-import bor.samsara.questing.entity.ModEntities;
+import bor.samsara.questing.events.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.events.RightClickActionEventManager;
 import bor.samsara.questing.events.subject.CollectItemSubject;
@@ -24,7 +24,6 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

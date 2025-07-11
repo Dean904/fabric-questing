@@ -1,8 +1,7 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
-import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.entity.QuestProgressBook;
+import bor.samsara.questing.book.QuestProgressBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;

@@ -1,4 +1,4 @@
-package bor.samsara.questing.entity;
+package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.mongo.NpcMongoClient;

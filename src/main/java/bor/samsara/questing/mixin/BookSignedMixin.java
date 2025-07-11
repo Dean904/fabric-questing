@@ -1,6 +1,6 @@
 package bor.samsara.questing.mixin;
 
-import bor.samsara.questing.entity.QuestConfigBook;
+import bor.samsara.questing.book.QuestConfigBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
