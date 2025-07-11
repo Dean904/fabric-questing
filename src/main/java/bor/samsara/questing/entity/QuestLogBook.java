@@ -101,7 +101,7 @@ public class QuestLogBook {
         }
 
         if (questProgress.isComplete()) {
-            bookBuilder.append(Text.literal("\n[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));
+            bookBuilder.newLine().append(Text.literal("[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));
         }
 
         // Update the book content

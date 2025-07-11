@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
+import static bor.samsara.questing.events.SamsaraNoteBlockTunes.playZeldaPuzzleSolved;
 
 public class RightClickActionEventManager {
 
@@ -95,6 +96,7 @@ public class RightClickActionEventManager {
                 if (!questProgress.hasReceivedQuestBook() && quest.doesProvideQuestBook() && dialogueOffset + 1 == quest.getDialogue().size()) {
                     QuestLogBook.open(player, quest, playerState);
                     questProgress.setReceivedQuestBook(true);
+                    playZeldaPuzzleSolved(player);
                     PlayerMongoClient.updatePlayer(playerState);
                 }
 

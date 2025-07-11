@@ -12,6 +12,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.server.command.ServerCommandSource;
@@ -58,8 +60,8 @@ public class ModEntities {
         World world = player.getWorld();
         try {
             MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
-            if (playerState.getQuestPlayerProgressMap().containsKey(welcomingQuestUuids.getLast()) &&
-                    playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.getLast()).isComplete()) {
+            if (playerState.getQuestPlayerProgressMap().containsKey(welcomingQuestUuids.get(1)) &&
+                    playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.get(1)).isComplete()) {
                 log.debug("{} has completed welcoming quest line.", player.getName().getString());
                 return;
             }
@@ -99,17 +101,15 @@ public class ModEntities {
     private static List<String> getWelcomingQuestUuids() {
         String travelerStartQuestTitle = "Traveler Greeting";
         String travelerEndQuestTitle = "Traveler Call To Action";
+        String travelerFinishQuestTitle = "Traveler Farewell";
 
         try {
             MongoQuest qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
             MongoQuest qEnd = QuestMongoClient.getQuestByTitle(travelerEndQuestTitle);
-            return List.of(qStart.getUuid(), qEnd.getUuid());
+            MongoQuest qFinish = QuestMongoClient.getQuestByTitle(travelerFinishQuestTitle);
+            return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
         } catch (IllegalStateException e) {
             log.info("Creating Welcoming Traveler quests for the first time.");
-            List<String> dialogue = List.of("What are you doing here?!?",
-                    "This must mean the cycle has started again.",
-                    "Quick, go talk to the old man in the village, Bondred.",
-                    "Go!", "Now fool!", "...", "Is this some sort of game to you?", "This is SERIOUS!");
 
             MongoQuest qStart = new MongoQuest();
             qStart.setTitle(travelerStartQuestTitle);
@@ -117,7 +117,10 @@ public class ModEntities {
             qStart.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4));
             qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
             qStart.setProvidesQuestBook(false);
-            qStart.setDialogue(dialogue);
+            qStart.setDialogue(List.of("What are you doing here?!?",
+                    "This must mean the cycle has started again.",
+                    "Quick, go talk to the old man in the village, Bondred.",
+                    "It's dangerous to go alone! Take this.", "Go!"));
             QuestMongoClient.createQuest(qStart);
 
             MongoQuest qEnd = new MongoQuest();
@@ -125,10 +128,23 @@ public class ModEntities {
             qEnd.setSequence(1);
             qEnd.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1));
             qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
-            qEnd.setDialogue(dialogue);
+            qEnd.setDialogue(List.of("What are you doing here?!?",
+                    "This must mean the cycle has started again.",
+                    "Quick, go talk to the old man in the village, Bondred."));
             QuestMongoClient.createQuest(qEnd);
 
-            return List.of(qStart.getUuid(), qEnd.getUuid());
+            MongoQuest qFinish = new MongoQuest();
+            qFinish.setTitle(travelerFinishQuestTitle);
+            qFinish.setSequence(2);
+            qFinish.setProvidesQuestBook(false);
+            qFinish.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1));
+            qFinish.setReward(new MongoQuest.Reward("none", 0, 0));
+            qFinish.setDialogue(List.of("These are troubling times indeed.",
+                    "I wonder, are you here because of the cataclysm, or are you the harbinger?",
+                    "Don't you have something you should be doing?", "Is this some sort of game to you?"));
+            QuestMongoClient.createQuest(qFinish);
+
+            return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
         }
     }
 
@@ -181,6 +197,8 @@ public class ModEntities {
         try {
             MongoNpc mongoNpc = NpcMongoClient.getNpc(uuid);
             VillagerEntity villager = makeVillagerEntity(world, UUID.fromString(mongoNpc.getUuid()), player, mongoNpc.getName());
+            villager.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, Integer.MAX_VALUE, 5, false, false));
+            villager.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, Integer.MAX_VALUE, 99, false, false));
             villager.addCommandTag(QUEST_NPC);
             if (mongoNpc.isStartNode()) {
                 villager.addCommandTag(QUEST_START_NODE);
