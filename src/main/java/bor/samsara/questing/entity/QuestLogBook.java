@@ -42,7 +42,7 @@ public class QuestLogBook {
                 log.debug("Giving {} quest book for {}", player.getName().getString(), quest.getTitle());
             } else {
                 // If inventory is full, drop it on the ground
-                player.sendMessage(Text.literal("You dropped your quest book! You should pick that up."), true);
+                player.sendMessage(Text.literal("You dropped your quest book! You should pick that up."), false);
                 player.dropItem(book, true);
             }
         } catch (Exception e) {

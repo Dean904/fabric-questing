@@ -5,7 +5,8 @@
   "mixins": [
     "BookSignedMixin",
     "PlayerInventoryMixin",
-    "VillagerEntityMixin"
+    "VillagerEntityMixin",
+    "PlayerTravelMixin"
   ],
   "injectors": {
     "defaultRequire": 1
