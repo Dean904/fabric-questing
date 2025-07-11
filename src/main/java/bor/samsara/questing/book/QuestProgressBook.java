@@ -1,4 +1,4 @@
-package bor.samsara.questing.entity;
+package bor.samsara.questing.book;
 
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;

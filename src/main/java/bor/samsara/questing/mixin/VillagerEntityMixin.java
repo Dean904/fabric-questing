@@ -1,6 +1,6 @@
 package bor.samsara.questing.mixin;
 
-import bor.samsara.questing.entity.ModEntities;
+import bor.samsara.questing.events.ModEntities;
 import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.world.ServerWorld;

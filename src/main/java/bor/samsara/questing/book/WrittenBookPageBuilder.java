@@ -1,4 +1,4 @@
-package bor.samsara.questing.entity;
+package bor.samsara.questing.book;
 
 import net.minecraft.text.MutableText;
 import net.minecraft.text.RawFilteredPair;

@@ -1,8 +1,7 @@
 package bor.samsara.questing.events;
 
-import bor.samsara.questing.entity.QuestConfigBook;
-import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.entity.QuestProgressBook;
+import bor.samsara.questing.book.QuestConfigBook;
+import bor.samsara.questing.book.QuestProgressBook;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -23,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
-import static bor.samsara.questing.entity.QuestProgressBook.getWrittenBookContentComponent;
+import static bor.samsara.questing.book.QuestProgressBook.getWrittenBookContentComponent;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static net.minecraft.server.command.CommandManager.argument;
