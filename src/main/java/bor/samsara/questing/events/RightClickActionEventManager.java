@@ -2,7 +2,7 @@ package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.entity.QuestLogBook;
+import bor.samsara.questing.entity.QuestProgressBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -94,7 +94,7 @@ public class RightClickActionEventManager {
                     player.playSoundToPlayer(SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 }
                 if (!questProgress.hasReceivedQuestBook() && quest.doesProvideQuestBook() && dialogueOffset + 1 == quest.getDialogue().size()) {
-                    QuestLogBook.open(player, quest, playerState);
+                    QuestProgressBook.open(player, quest, playerState);
                     questProgress.setReceivedQuestBook(true);
                     playZeldaPuzzleSolved(player);
                     PlayerMongoClient.updatePlayer(playerState);

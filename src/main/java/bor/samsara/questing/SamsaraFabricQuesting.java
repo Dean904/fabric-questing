@@ -24,6 +24,7 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openQuestLogForPlayer());
+
 
         UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
 
@@ -73,6 +76,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
             ModEntities.despawnTravelingWelcomer(handler.getPlayer());
         });
     }
+
+
 
     private void giveHearthStone(ServerPlayerEntity player) {
         BlockPos spawnHengeAltarPos = new BlockPos(-717, 126, 543);

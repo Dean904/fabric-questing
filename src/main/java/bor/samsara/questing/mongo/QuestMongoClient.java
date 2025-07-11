@@ -64,9 +64,7 @@ public class QuestMongoClient {
 
     public static CompletableFuture<Suggestions> getAllQuestUuid(SuggestionsBuilder builder) {
         return CompletableFuture.supplyAsync(() -> {
-            collection.find().forEach(doc -> {
-                builder.suggest(doc.getString("uuid"));
-            });
+            collection.find().forEach(doc -> builder.suggest(doc.getString("uuid")));
             return builder.buildFuture().join();
         });
     }
