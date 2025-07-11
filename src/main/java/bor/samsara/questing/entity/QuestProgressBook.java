@@ -9,9 +9,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.RawFilteredPair;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.apache.commons.lang3.StringUtils;
@@ -19,15 +16,12 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
-public class QuestLogBook {
+public class QuestProgressBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
     public static final String DIV = ";;";
@@ -37,7 +31,7 @@ public class QuestLogBook {
 
     public static int open(PlayerEntity player, MongoQuest quest, MongoPlayer mongoPlayer) {
         try {
-            ItemStack book = QuestLogBook.createTrackingBook(quest, mongoPlayer);
+            ItemStack book = QuestProgressBook.createTrackingBook(quest, mongoPlayer);
             if (player.getInventory().insertStack(book)) {
                 log.debug("Giving {} quest book for {}", player.getName().getString(), quest.getTitle());
             } else {

@@ -1,6 +1,5 @@
 package bor.samsara.questing.hearth;
 
-import bor.samsara.questing.entity.QuestLogBook;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;

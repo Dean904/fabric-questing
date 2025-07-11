@@ -2,7 +2,7 @@ package bor.samsara.questing.events;
 
 import bor.samsara.questing.entity.QuestConfigBook;
 import bor.samsara.questing.entity.ModEntities;
-import bor.samsara.questing.entity.QuestLogBook;
+import bor.samsara.questing.entity.QuestProgressBook;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -21,7 +21,9 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.ActionResult;
 import org.jetbrains.annotations.NotNull;
 
-import static bor.samsara.questing.entity.QuestLogBook.getWrittenBookContentComponent;
+import java.util.Arrays;
+
+import static bor.samsara.questing.entity.QuestProgressBook.getWrittenBookContentComponent;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static net.minecraft.server.command.CommandManager.argument;
@@ -36,9 +38,9 @@ public class QuestCreationEventRegisters {
             ItemStack itemStack = player.getStackInHand(hand);
             if (itemStack.getItem() == Items.WRITTEN_BOOK && hasTrackingNbtTags(itemStack)) {
                 NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
-                String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
-                String questUuid = customData.getNbt().get(QuestLogBook.QUEST_UUID).asString().orElseThrow();
-                int playerProgress = customData.getNbt().getInt(QuestLogBook.PLAYER_PROGRESS).orElseThrow();
+                String playerUuid = customData.getNbt().get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
+                String questUuid = customData.getNbt().get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
+                int playerProgress = customData.getNbt().getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
 
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                 if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount() != playerProgress) {
@@ -56,9 +58,9 @@ public class QuestCreationEventRegisters {
 
     private static NbtCompound updateQuestTags(String questUuid, String playerUuid, MongoPlayer playerState) {
         NbtCompound nbtCompound = new NbtCompound();
-        nbtCompound.putString(QuestLogBook.QUEST_UUID, questUuid);
-        nbtCompound.putString(QuestLogBook.PLAYER_UUID, playerUuid);
-        nbtCompound.putInt(QuestLogBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount());
+        nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
+        nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
+        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount());
         return nbtCompound;
     }
 
@@ -66,7 +68,7 @@ public class QuestCreationEventRegisters {
         NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
         if (customData != null) {
             NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestLogBook.QUEST_UUID) && nbt.contains(QuestLogBook.PLAYER_UUID);
+            return nbt != null && nbt.contains(QuestProgressBook.QUEST_UUID) && nbt.contains(QuestProgressBook.PLAYER_UUID);
         }
         return false;
     }
@@ -152,6 +154,28 @@ public class QuestCreationEventRegisters {
                                                                     return 0;
                                                                 })
                                                         ))))));
+    }
+
+    public static @NotNull CommandRegistrationCallback openQuestLogForPlayer() {
+        return (dispatcher, registryAccess, environment) -> {
+            literal("quest")
+                    .requires(Permissions.require("samsara.quest.admin", 2))
+                    .then(literal("openLog")
+                            .then(literal("player")
+                                    .then(argument("name", StringArgumentType.string())
+                                            .suggests((context, builder) -> {
+                                                builder.suggest(Arrays.toString(context.getSource().getServer().getPlayerNames()));
+                                                return builder.buildFuture();
+                                            })
+                                            .executes(context -> {
+                                                        String playerName = getString(context, "name");
+                                                        return QuestConfigBook.open(context.getSource(), playerName);
+                                                    }
+                                            )
+                                    )
+                            )
+                    );
+        };
     }
 
 }
