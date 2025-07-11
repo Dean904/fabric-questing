@@ -20,17 +20,12 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -55,7 +50,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
         UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
         CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
 
-
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openCommandBookForNpc());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
@@ -66,13 +60,24 @@ public class SamsaraFabricQuesting implements ModInitializer {
         ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            getOrMakePlayerOnJoin(handler.getPlayer());
+            MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
+            if (!player.hasReceivedSpawnHengeHearthStone()) {
+                giveHearthStone(handler.getPlayer());
+                player.setHasReceivedSpawnHengeHearthStone(true);
+                PlayerMongoClient.updatePlayer(player);
+            }
             ModEntities.spawnWelcomingTraveler(handler.getPlayer());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             savePlayerStatsOnExit(handler.getPlayer());
             ModEntities.despawnTravelingWelcomer(handler.getPlayer());
         });
+    }
+
+    private void giveHearthStone(ServerPlayerEntity player) {
+        BlockPos spawnHengeAltarPos = new BlockPos(-717, 126, 543);
+        ItemStack hearthstone = HearthStoneEventRegisters.createHearthstoneItem("SpawnHenge", spawnHengeAltarPos);
+        player.getInventory().insertStack(hearthstone);
     }
 
     private static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {

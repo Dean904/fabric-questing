@@ -1,5 +1,6 @@
 package bor.samsara.questing.hearth;
 
+import bor.samsara.questing.entity.QuestLogBook;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -9,8 +10,10 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.component.type.UseCooldownComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -26,6 +29,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -36,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,6 +57,7 @@ public class HearthStoneEventRegisters {
 
     private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(
             runnable -> new Thread(runnable, "HearthStoneEvent-Thread"));
+    public static final Identifier HEARTHSTONE = Identifier.of("hearthstone");
 
     public record TeleportTask(Future<?> task, Vec3d startPos) {}
 
@@ -73,6 +79,9 @@ public class HearthStoneEventRegisters {
         TeleportTask teleTask = playerTeleportTasks.remove(player.getUuidAsString());
         if (teleTask != null) {
             teleTask.task().cancel(true);
+            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 1.0f);
+            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 0.6f);
+            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 0.1f);
             player.sendMessage(Text.of("Teleport cancelled!"), true);
         }
     }
@@ -86,20 +95,7 @@ public class HearthStoneEventRegisters {
                                         .then(argument("name", greedyString())
                                                 .executes(context -> {
                                                             String name = getString(context, "name");
-
-                                                            ItemStack hearthstone = new ItemStack(Items.CARROT_ON_A_STICK);
-                                                            hearthstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Hearthstone"));
-                                                            hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to teleport to " + name))));
-                                                            hearthstone.set(DataComponentTypes.RARITY, Rarity.RARE);
-                                                            hearthstone.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-                                                            hearthstone.set(DataComponentTypes.MAX_STACK_SIZE, 1);
-                                                            // addEnchantment(hearthstone);
-
-                                                            BlockPos pos = BlockPosArgumentType.getBlockPos(context, "pos");
-                                                            NbtCompound nbtCompound = new NbtCompound();
-                                                            nbtCompound.putLong(WARP_LOCATION, pos.asLong());
-                                                            hearthstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
-
+                                                            ItemStack hearthstone = createHearthstoneItem(name, BlockPosArgumentType.getBlockPos(context, "pos"));
                                                             ServerCommandSource source = context.getSource();
                                                             ServerPlayerEntity player = source.getPlayerOrThrow();
                                                             if (player.getInventory().insertStack(hearthstone)) {
@@ -118,18 +114,36 @@ public class HearthStoneEventRegisters {
         );
     }
 
+    public static @NotNull ItemStack createHearthstoneItem(String name, BlockPos pos) {
+        ItemStack hearthstone = new ItemStack(Items.CARROT_ON_A_STICK);
+        hearthstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Hearthstone"));
+        hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to teleport to " + name))));
+        hearthstone.set(DataComponentTypes.RARITY, Rarity.RARE);
+        hearthstone.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        hearthstone.set(DataComponentTypes.MAX_STACK_SIZE, 1);
+        hearthstone.set(DataComponentTypes.USE_COOLDOWN, new UseCooldownComponent(30, Optional.of(HEARTHSTONE)));
+        // addEnchantment(hearthstone);
+
+        NbtCompound nbtCompound = new NbtCompound();
+        nbtCompound.putLong(WARP_LOCATION, pos.asLong());
+        hearthstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
+        return hearthstone;
+    }
+
     public static @NotNull UseItemCallback useHearthstone() {
         return (player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
-            if (stack.isOf(Items.CARROT_ON_A_STICK) && stack.getName().getString().equals("Hearthstone")) {
+            if (stack.isOf(Items.CARROT_ON_A_STICK) && stack.getName().getString().equals("Hearthstone") && hasHearthstoneNbt(stack)) {
                 if (player.getMovement().equals(Vec3d.ZERO)) {
-                    if (!isTeleporting(player.getUuidAsString())) {
+                    ItemCooldownManager itemCooldownManager = player.getItemCooldownManager();
+                    if (!isTeleporting(player.getUuidAsString()) && !itemCooldownManager.isCoolingDown(stack)) {
                         player.sendMessage(Text.of("💫 Whoosh!"), true);
+                        itemCooldownManager.set(HEARTHSTONE, 30 * 20); // 30 * 20 ticks per second = 30 seconds cooldown
                         Future<?> task = executor.submit(createCastTask(player, world, stack));
                         playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getPos()));
                     }
                 } else {
-                    player.sendMessage(Text.literal("You cant do that right now!").styled(style -> style.withColor(Formatting.RED)), true);
+                    player.sendMessage(Text.literal("You cant do that while moving!").styled(style -> style.withColor(Formatting.RED)), true);
                 }
                 return ActionResult.PASS;
             }
@@ -137,10 +151,19 @@ public class HearthStoneEventRegisters {
         };
     }
 
+    private static boolean hasHearthstoneNbt(ItemStack stack) {
+        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (customData != null) {
+            NbtCompound nbt = customData.getNbt();
+            return nbt != null && nbt.contains(WARP_LOCATION);
+        }
+        return false;
+    }
+
     private static @NotNull Runnable createCastTask(PlayerEntity player, World world, ItemStack stack) {
         return () -> {
             try {
-                player.playSoundToPlayer(SoundEvents.ENTITY_EVOKER_PREPARE_SUMMON, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                player.playSoundToPlayer(SoundEvents.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1.0f, 1.0f);
                 Thread.sleep(150);
                 //player.playSoundToPlayer(SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.7f, 1.0f);
 
@@ -172,7 +195,7 @@ public class HearthStoneEventRegisters {
 
                 ServerWorld serverWorld = world.getServer().getWorld(World.OVERWORLD);
                 BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getLong(WARP_LOCATION).get());
-                player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.ROT, TeleportTarget.NO_OP));
+                player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
                 player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.0f, 1.0f);

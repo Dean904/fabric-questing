@@ -10,6 +10,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
+    private boolean hasReceivedSpawnHengeHearthStone = false;
 
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
     private Map<String, QuestProgress> questPlayerProgressMap = new HashMap<>();
@@ -33,6 +34,14 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public boolean hasReceivedSpawnHengeHearthStone() {
+        return hasReceivedSpawnHengeHearthStone;
+    }
+
+    public void setHasReceivedSpawnHengeHearthStone(boolean hasReceivedSpawnHengeHearthStone) {
+        this.hasReceivedSpawnHengeHearthStone = hasReceivedSpawnHengeHearthStone;
     }
 
     public boolean hasPlayerProgressedNpc(String npcUuid) {
@@ -78,6 +87,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
         return new Document("uuid", uuid)
                 .append("name", name)
+                .append("hasReceivedSpawnHengeHearthStone", hasReceivedSpawnHengeHearthStone)
                 .append("questPlayerProgress", activeQuestDocs)
                 .append("npcActiveQuest", npcActiveQuestMap);
     }
@@ -85,6 +95,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
+        player.setHasReceivedSpawnHengeHearthStone(document.getBoolean("hasReceivedSpawnHengeHearthStone", false));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
         Map<String, Document> questPlayerProgressDocs = document.get("questPlayerProgress", Map.class);
         Map<String, QuestProgress> activeQuestMap = new HashMap<>();
