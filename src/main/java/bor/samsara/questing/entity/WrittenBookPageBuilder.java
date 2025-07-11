@@ -13,6 +13,7 @@ import java.util.Optional;
 public class WrittenBookPageBuilder {
 
     public static final int PAGE_LINE_COUNT = 14;
+    public static final int CHARS_PER_LINE = 19;
     private final List<RawFilteredPair<Text>> bookPages = new ArrayList<>();
     private MutableText pageText = Text.empty();
     private int currentLineCount = 1;
@@ -25,13 +26,15 @@ public class WrittenBookPageBuilder {
             String tempLine = remaining;
 
             int newLineCount = 0;
-            if (tempLine.length() > 20) {
-                newLineCount = remaining.length() / 20;
+            if (tempLine.length() > CHARS_PER_LINE) {
+                newLineCount = remaining.length() / CHARS_PER_LINE;
             }
 
             if (currentLineCount + newLineCount >= PAGE_LINE_COUNT) {
-                int charsLeftOnPage = (PAGE_LINE_COUNT * 20) - (currentLineCount * 20);
-                int take = Math.min(charsLeftOnPage, remaining.length()); // TODO is this necessary?
+                int charsLeftOnPage = (PAGE_LINE_COUNT * CHARS_PER_LINE) - (currentLineCount * CHARS_PER_LINE);
+                int endIndex = Math.min(charsLeftOnPage, remaining.length());
+                int wordEnd = text.getString().indexOf(' ', endIndex);
+                int take = wordEnd != -1 ? wordEnd : endIndex;
                 pageText.append(text.asTruncatedString(take)); // Truncate the text to fit on the current page
                 bookPages.add(new RawFilteredPair<>(pageText, Optional.of(pageText)));
 
