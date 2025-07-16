@@ -1,5 +1,6 @@
 package bor.samsara.questing.book;
 
+import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.component.DataComponentTypes;
@@ -9,6 +10,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.apache.commons.lang3.StringUtils;
@@ -20,14 +23,16 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
+import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 
 public class QuestProgressBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
-    public static final String DIV = ";;";
+    // TODO breaking change.. fix nbt var names
     public static final String QUEST_UUID = "npcName";
     public static final String PLAYER_UUID = "questIds";
     public static final String PLAYER_PROGRESS = "playerProgress";
+
 
     public static int open(PlayerEntity player, MongoQuest quest, MongoPlayer mongoPlayer) {
         try {
@@ -45,7 +50,7 @@ public class QuestProgressBook {
         return 1;
     }
 
-    private static ItemStack createTrackingBook(MongoQuest quest, MongoPlayer player) {
+    public static ItemStack createTrackingBook(MongoQuest quest, MongoPlayer player) {
         ItemStack bookStack = new ItemStack(Items.WRITTEN_BOOK);
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QUEST_UUID, quest.getUuid());

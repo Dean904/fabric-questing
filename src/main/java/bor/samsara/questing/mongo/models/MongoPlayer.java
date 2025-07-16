@@ -4,6 +4,7 @@ import org.bson.Document;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class MongoPlayer implements MongoDao<MongoPlayer> {
@@ -166,6 +167,18 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
         public void setComplete(boolean complete) {
             isComplete = complete;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            QuestProgress that = (QuestProgress) o;
+            return sequence == that.sequence && dialogueOffset == that.dialogueOffset && objectiveCount == that.objectiveCount && receivedQuestBook == that.receivedQuestBook && isComplete == that.isComplete && Objects.equals(questUuid, that.questUuid) && Objects.equals(questTitle, that.questTitle);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(questUuid, questTitle, sequence, dialogueOffset, objectiveCount, receivedQuestBook, isComplete);
         }
 
         public Document toDocument() {

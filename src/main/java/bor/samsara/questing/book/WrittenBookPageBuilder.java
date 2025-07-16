@@ -18,6 +18,12 @@ public class WrittenBookPageBuilder {
     private MutableText pageText = Text.empty();
     private int currentLineCount = 1;
 
+    public WrittenBookPageBuilder() {}
+
+    public WrittenBookPageBuilder(List<RawFilteredPair<Text>> initialPages) {
+        this.bookPages.addAll(initialPages);
+    }
+
     public WrittenBookPageBuilder append(Text text) {
         String remaining = text.getString();
         Style style = text.getStyle();
@@ -54,11 +60,16 @@ public class WrittenBookPageBuilder {
         return this;
     }
 
+    public WrittenBookPageBuilder simpleAppend(Text text) {
+        pageText.append(text);
+        return this;
+    }
+
     public WrittenBookPageBuilder newLine() {
         pageText.append("\n");
         currentLineCount++;
 
-        if (currentLineCount >= PAGE_LINE_COUNT) {
+        if (currentLineCount > PAGE_LINE_COUNT) {
             bookPages.add(new RawFilteredPair<>(pageText, Optional.of(pageText)));
             pageText = Text.empty();
             currentLineCount = 0;
