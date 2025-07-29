@@ -57,8 +57,7 @@ public class QuestLogBook {
         nbtCompound.putInt(PLAYER_STATE, player.getQuestPlayerProgressMap().hashCode());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
-        WrittenBookContentComponent bookContent = bookStack.getOrDefault(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT);
-        bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, bookContent.withPages(getWrittenBookContentComponent(serverPlayerEntity, player, bookStack)));
+        bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(getWrittenBookContentComponent(serverPlayerEntity, player, bookStack)));
         bookStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(player.getName() + "'s Quest Log")
                 .styled(style -> style.withColor(Formatting.GOLD).withBold(true)));
 
@@ -66,7 +65,7 @@ public class QuestLogBook {
     }
 
     public static @NotNull List<RawFilteredPair<Text>> getWrittenBookContentComponent(ServerPlayerEntity serverPlayerEntity, MongoPlayer player, ItemStack bookStack) {
-        WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder(buildIntroPages());
+        WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder(INTRO_PAGES);
         bookBuilder.append(Text.literal(" ፠ Active Quests ፠").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         bookBuilder.append(Text.literal("〰〰〰〰〰〰〰〰〰〰〰〰").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         //bookBuilder.append(Text.literal("Active Quests").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true))).newLine();

@@ -188,7 +188,6 @@ public class QuestCreationEventRegisters {
                                                         ItemStack progressBook = QuestProgressBook.createTrackingBook(quest, mongoPlayer);
                                                         ItemStack questLog = player.getMainHandStack();
                                                         player.setStackInHand(player.getActiveHand(), progressBook);
-                                                        player.sendMessage(Text.literal("Opening quest progress book for " + targetPlayerName + " on quest: " + quest.getTitle()).formatted(Formatting.GREEN), true);
                                                         SamsaraFabricQuesting.questRunnables.add(() -> {
                                                             player.networkHandler.sendPacket(new OpenWrittenBookS2CPacket(player.getActiveHand()));
                                                             player.setStackInHand(player.getActiveHand(), questLog);
@@ -202,36 +201,15 @@ public class QuestCreationEventRegisters {
                         .then(literal("view")
                                 .requires(Permissions.require("samsara.quest.admin", 2))
                                 .then(argument("name", StringArgumentType.string())
-                                                .suggests((context, builder) -> {
-                                                    List.of(context.getSource().getServer().getPlayerNames()).forEach(builder::suggest);
-                                                    return builder.buildFuture();
-                                                })
-                                                .executes(context -> {
-                                                            String targetPlayerName = getString(context, "name");
-                                                            return QuestLogBook.open(context.getSource(), targetPlayerName);
-                                                        }
-                                                )
-//                                        .then(argument("questTitle", StringArgumentType.greedyString())
-//                                                .suggests((context, builder) -> {
-//                                                    String targetPlayerName = getString(context, "name");
-//                                                    MongoPlayer playerState = PlayerMongoClient.getPlayerByName(targetPlayerName);
-//                                                    playerState.getQuestPlayerProgressMap().values().forEach(questProgress -> builder.suggest(questProgress.getQuestTitle()));
-//                                                    return builder.buildFuture();
-//                                                })
-//                                                .executes(context -> {
-//                                                    try {
-//                                                        String targetPlayerName = getString(context, "name");
-//                                                        String questTitle = getString(context, "questTitle");
-//                                                        ServerPlayerEntity player = context.getSource().getPlayerOrThrow();
-//                                                        MongoPlayer mongoPlayer = PlayerMongoClient.getPlayerByName(targetPlayerName);
-//                                                        MongoQuest quest = QuestMongoClient.getQuestByTitle(questTitle);
-//                                                        QuestProgressBook.open(player, quest, mongoPlayer);
-//                                                    } catch (Exception e) {
-//                                                        log.warn("Failed to create quest book: {}", e.getMessage());
-//                                                    }
-//                                                    return 1;
-//                                                })
-//                                        ))
+                                        .suggests((context, builder) -> {
+                                            List.of(context.getSource().getServer().getPlayerNames()).forEach(builder::suggest);
+                                            return builder.buildFuture();
+                                        })
+                                        .executes(context -> {
+                                                    String targetPlayerName = getString(context, "name");
+                                                    return QuestLogBook.open(context.getSource(), targetPlayerName);
+                                                }
+                                        )
                                 )));
     }
 
