@@ -18,8 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
@@ -90,43 +88,53 @@ public class QuestLogBook {
 
     private static List<RawFilteredPair<Text>> buildIntroPages() {
         WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder();
+        List<Style> rainbowStyles = List.of(
+                Style.EMPTY.withColor(0xCDB608),
+                Style.EMPTY.withColor(0x9CCE0F),
+                Style.EMPTY.withColor(0x6AE717),
+                Style.EMPTY.withColor(0x50E159),
+                Style.EMPTY.withColor(0x37DA9B),
+                Style.EMPTY.withColor(0x1DD4DD),
+                Style.EMPTY.withColor(0x4A99D6),
+                Style.EMPTY.withColor(0x775DCF),
+                Style.EMPTY.withColor(0xA422C8),
+                Style.EMPTY.withColor(0xBB2493)
+        );
 
-        UnaryOperator<Style> borderStyle = style -> style.withColor(Formatting.BLACK);
+        UnaryOperator<Style> borderStyle = style -> style.withColor(Formatting.GOLD).withObfuscated(false);
         bookBuilder.simpleAppend(Text.literal("╔══════════╗").styled(borderStyle)).newLine();
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal(" ₪₪₪₪₪₪₪₪₪₪  ").styled(style -> style.withColor(Formatting.GOLD).withBold(false)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
+        bookBuilder.simpleAppend(Text.literal("      /questLog").styled(style -> style.withColor(Formatting.GRAY)));
+        bookBuilder.newLine();
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal("  ☯ Samsara ☯    ").styled(style -> style.withColor(Formatting.GOLD).withShadowColor(14073961).withBold(false)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
+        appendStyledText(bookBuilder, "   ₪₪₪₪₪₪₪₪₪₪  ", rainbowStyles, false);
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal(" ₪₪₪₪₪₪₪₪₪₪  ").styled(style -> style.withColor(Formatting.GOLD).withBold(false)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
+        bookBuilder.simpleAppend(Text.literal("    ☯ ").styled(s -> s.withColor(0xd700fd))); // Red for first glyph
+        bookBuilder.simpleAppend(Text.literal("S").styled(s -> s.withColor(0x5bdb80).withBold(false)))
+                .simpleAppend(Text.literal("a").styled(s -> s.withColor(0x6fb695).withBold(false)))
+                .simpleAppend(Text.literal("m").styled(s -> s.withColor(0x8492aa).withBold(false)))
+                .simpleAppend(Text.literal("s").styled(s -> s.withColor(0x996dbe).withBold(false)))
+                .simpleAppend(Text.literal("a").styled(s -> s.withColor(0xae49d3).withBold(false)))
+                .simpleAppend(Text.literal("r").styled(s -> s.withColor(0xc224e8).withBold(false)))
+                .simpleAppend(Text.literal("a").styled(s -> s.withColor(0xd700fd).withBold(false)));
+        bookBuilder.simpleAppend(Text.literal(" ☯").styled(s -> s.withColor(0x5bdb80)));
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║                       ║").styled(borderStyle)).newLine();
+        appendStyledText(bookBuilder, "   ₪₪₪₪₪₪₪₪₪₪  ", rainbowStyles.reversed(), false);
+        bookBuilder.newLine();
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal("   MC like you've   ").styled(style -> style.withColor(Formatting.DARK_AQUA).withItalic(true)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
+        bookBuilder.simpleAppend(Text.literal("     MC like you've   ").styled(style -> style.withColor(Formatting.GOLD).withItalic(true)));
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal("    never seen     ").styled(style -> style.withColor(Formatting.DARK_AQUA).withItalic(true)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
+        bookBuilder.simpleAppend(Text.literal("      never seen     ").styled(style -> style.withColor(Formatting.GOLD).withItalic(true)));
+        bookBuilder.newLine();
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║                       ║").styled(borderStyle)).newLine();
-        bookBuilder.simpleAppend(Text.literal("║                       ║").styled(borderStyle)).newLine();
-
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal("`/questLog` if lost").styled(style -> style.withColor(Formatting.GRAY)));
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle)).newLine();
-
-        bookBuilder.simpleAppend(Text.literal("║                       ║").styled(borderStyle)).newLine();
-
-        bookBuilder.simpleAppend(Text.literal("║").styled(borderStyle));
-        bookBuilder.simpleAppend(Text.literal(" ☁ ").styled(style -> style.withColor(Formatting.GOLD)));
+        bookBuilder.simpleAppend(Text.literal("  ☁ ").styled(style -> style.withColor(Formatting.GOLD)));
         bookBuilder.simpleAppend(Text.literal("Web").styled(style -> style.withColor(3368652).withItalic(true).withUnderline(true)
                 .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://www.samsara.gg")))));
         bookBuilder.simpleAppend(Text.literal(" ✌ ").styled(style -> style.withColor(Formatting.GOLD)));
@@ -135,13 +143,20 @@ public class QuestLogBook {
         bookBuilder.simpleAppend(Text.literal(" ⚅ ").styled(style -> style.withColor(Formatting.GOLD)));
         bookBuilder.simpleAppend(Text.literal("YT").styled(style -> style.withColor(3368652).withItalic(true).withUnderline(true)
                 .withClickEvent(new ClickEvent.OpenUrl(URI.create("https://www.youtube.com/@boroxify")))));
-        bookBuilder.simpleAppend(Text.literal(" ║").styled(borderStyle)).newLine();
+        bookBuilder.newLine();
+        bookBuilder.newLine();
 
-        bookBuilder.simpleAppend(Text.literal("║                       ║").styled(borderStyle)).newLine();
         bookBuilder.simpleAppend(Text.literal("╚══════════╝").styled(borderStyle)).newLine();
 
-
         return bookBuilder.build();
+    }
+
+    private static void appendStyledText(WrittenBookPageBuilder bookBuilder, String text, List<Style> rainbowStyles, boolean obfuscated) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            Style style = rainbowStyles.get(i % rainbowStyles.size()); // loop if text is longer
+            bookBuilder.simpleAppend(Text.literal(String.valueOf(c)).styled(s -> style.withObfuscated(obfuscated)));
+        }
     }
 
     /*
