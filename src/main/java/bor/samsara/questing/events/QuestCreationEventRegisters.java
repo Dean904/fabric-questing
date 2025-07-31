@@ -21,9 +21,9 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.OpenWrittenBookS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
-import static bor.samsara.questing.book.QuestProgressBook.getWrittenBookContentComponent;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static net.minecraft.server.command.CommandManager.argument;
@@ -46,39 +45,75 @@ public class QuestCreationEventRegisters {
     public static @NotNull UseItemCallback updateQuestLogWhenOpened() {
         return (player, world, hand) -> {
             ItemStack itemStack = player.getStackInHand(hand);
-            if (itemStack.getItem() == Items.WRITTEN_BOOK && hasTrackingNbtTags(itemStack)) {
-                NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
-                String playerUuid = customData.getNbt().get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
-                String questUuid = customData.getNbt().get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
-                int playerProgress = customData.getNbt().getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
+            NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
+            if (itemStack.getItem() == Items.WRITTEN_BOOK && hasPlayerUuidTag(customData)) {
+                if (hasSpecifcQuestUuidTag(customData)) {
+                    String playerUuid = customData.getNbt().get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
+                    String questUuid = customData.getNbt().get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
+                    int playerProgress = customData.getNbt().getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
 
-                MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount() != playerProgress) {
-                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
-                    WrittenBookContentComponent t = getWrittenBookContentComponent(quest, playerState, itemStack);
-                    itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
-                    itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestTags(questUuid, playerUuid, playerState)));
+                    MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
+                    if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount() != playerProgress) {
+                        MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
+                        WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, playerState, itemStack);
+                        itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
+                        itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestProgressTags(questUuid, playerUuid, playerState)));
+                    }
+                    return ActionResult.PASS;
+                } else if (hasPlayerStateTag(customData)) {
+                    String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
+                    Integer playerStateHash = customData.getNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
+
+                    MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
+                    if (playerState.getQuestPlayerProgressMap().hashCode() != playerStateHash) {
+                        List<RawFilteredPair<Text>> content = QuestLogBook.getWrittenBookContentComponent(playerState);
+                        itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(content));
+                        itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestLogTags(playerUuid, playerState)));
+                    }
+
+                    return ActionResult.PASS;
                 }
-                return ActionResult.PASS;
             }
 
             return ActionResult.PASS;
         };
     }
 
-    private static NbtCompound updateQuestTags(String questUuid, String playerUuid, MongoPlayer playerState) {
+    private static NbtCompound updateQuestProgressTags(String questUuid, String playerUuid, MongoPlayer playerState) {
         NbtCompound nbtCompound = new NbtCompound();
-        nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
         nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
+        nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
         nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount());
         return nbtCompound;
     }
 
-    private static boolean hasTrackingNbtTags(ItemStack itemStack) {
-        NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
+    private static NbtCompound updateQuestLogTags(String playerUuid, MongoPlayer playerState) {
+        NbtCompound nbtCompound = new NbtCompound();
+        nbtCompound.putString(QuestLogBook.PLAYER_UUID, playerUuid);
+        nbtCompound.putInt(QuestLogBook.PLAYER_STATE, playerState.getQuestPlayerProgressMap().hashCode());
+        return nbtCompound;
+    }
+
+    private static boolean hasPlayerUuidTag(NbtComponent customData) {
         if (customData != null) {
             NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestProgressBook.QUEST_UUID) && nbt.contains(QuestProgressBook.PLAYER_UUID);
+            return nbt != null &&( nbt.contains(QuestProgressBook.PLAYER_UUID) || nbt.contains(QuestLogBook.PLAYER_UUID)); // TODO should be standardized to a single tag
+        }
+        return false;
+    }
+
+    private static boolean hasSpecifcQuestUuidTag(NbtComponent customData) {
+        if (customData != null) {
+            NbtCompound nbt = customData.getNbt();
+            return nbt != null && nbt.contains(QuestProgressBook.QUEST_UUID);
+        }
+        return false;
+    }
+
+    private static boolean hasPlayerStateTag(NbtComponent customData) {
+        if (customData != null) {
+            NbtCompound nbt = customData.getNbt();
+            return nbt != null && nbt.contains(QuestLogBook.PLAYER_STATE);
         }
         return false;
     }

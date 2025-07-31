@@ -1,6 +1,5 @@
 package bor.samsara.questing.book;
 
-import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.component.DataComponentTypes;
@@ -10,8 +9,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.apache.commons.lang3.StringUtils;
@@ -23,7 +20,6 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
-import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 
 public class QuestProgressBook {
 

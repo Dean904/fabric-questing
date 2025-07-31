@@ -35,7 +35,7 @@ public class QuestLogBook {
         try {
             MongoPlayer mongoPlayer = PlayerMongoClient.getPlayerByName(targetPlayerName);
             ServerPlayerEntity player = source.getPlayerOrThrow();
-            ItemStack book = createLogBook(player, mongoPlayer);
+            ItemStack book = createLogBook(mongoPlayer);
 
             if (player.getInventory().insertStack(book)) {
                 log.debug("Giving {} quest log book.", player.getName().getString());
@@ -50,21 +50,21 @@ public class QuestLogBook {
         return 1;
     }
 
-    private static ItemStack createLogBook(ServerPlayerEntity serverPlayerEntity, MongoPlayer player) {
+    private static ItemStack createLogBook(MongoPlayer player) {
         ItemStack bookStack = new ItemStack(Items.WRITTEN_BOOK);
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
         nbtCompound.putInt(PLAYER_STATE, player.getQuestPlayerProgressMap().hashCode());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
-        bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(getWrittenBookContentComponent(serverPlayerEntity, player, bookStack)));
+        bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(getWrittenBookContentComponent(player)));
         bookStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(player.getName() + "'s Quest Log")
                 .styled(style -> style.withColor(Formatting.GOLD).withBold(true)));
 
         return bookStack;
     }
 
-    public static @NotNull List<RawFilteredPair<Text>> getWrittenBookContentComponent(ServerPlayerEntity serverPlayerEntity, MongoPlayer player, ItemStack bookStack) {
+    public static @NotNull List<RawFilteredPair<Text>> getWrittenBookContentComponent(MongoPlayer player) {
         WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder(INTRO_PAGES);
         bookBuilder.append(Text.literal(" ፠ Active Quests ፠").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         bookBuilder.append(Text.literal("〰〰〰〰〰〰〰〰〰〰〰〰").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
