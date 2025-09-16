@@ -1,22 +1,23 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.events.QuestCreationEventRegisters;
-import bor.samsara.questing.hearth.HearthStoneEventRegisters;
-import bor.samsara.questing.settings.AppConfiguration;
-import bor.samsara.questing.events.ModEntities;
 import bor.samsara.questing.events.ActionSubscription;
+import bor.samsara.questing.events.ModEntities;
+import bor.samsara.questing.events.QuestCreationEventRegisters;
 import bor.samsara.questing.events.RightClickActionEventManager;
 import bor.samsara.questing.events.subject.CollectItemSubject;
 import bor.samsara.questing.events.subject.KillSubject;
 import bor.samsara.questing.events.subject.TalkToNpcSubject;
+import bor.samsara.questing.hearth.HearthStoneEventRegisters;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
+import bor.samsara.questing.settings.AppConfiguration;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -72,9 +73,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
         CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openQuestLogForPlayer());
 
-
         UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
-
+        UseBlockCallback.EVENT.register(RightClickActionEventManager.evaporateBucketInNether());
         UseEntityCallback.EVENT.register(RightClickActionEventManager.rightClickQuestNpc());
         ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
 
@@ -92,7 +92,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
             ModEntities.despawnTravelingWelcomer(handler.getPlayer());
         });
     }
-
 
     private void giveHearthStone(ServerPlayerEntity player) {
         BlockPos spawnHengeAltarPos = new BlockPos(-717, 126, 543);
@@ -153,4 +152,3 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
 }
-
