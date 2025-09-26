@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
 @Mixin(ServerPlayNetworkHandler.class)
+@Deprecated
 public class BookSignedMixin {
 
     private static final Logger log = LoggerFactory.getLogger(MOD_ID);
@@ -126,7 +127,7 @@ public class BookSignedMixin {
                 q.setSequence(questSequence);
                 q.setTitle(questTitle);
                 q.setReward(parseReward(allQuestData.pollLast()));
-                q.setObjective(parseObjective(allQuestData.pollLast()));
+                //q.setObjective(parseObjective(allQuestData.pollLast()));
                 q.setDialogue(allQuestData);
                 return q;
             }).collect(Collectors.toList());

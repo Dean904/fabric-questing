@@ -6,12 +6,12 @@ public class ActionSubscription {
 
     private final String playerUuid;
     private final String questUuid;
-    private final MongoQuest.Objective objective; // TODO Do we still need objective or is a quuest lookup required everywhere?
+    private final String objectiveTarget;
 
-    public ActionSubscription(String playerUuid, String questUuid, MongoQuest.Objective objective) {
+    public ActionSubscription(String playerUuid, String questUuid, String objectiveTarget) {
         this.playerUuid = playerUuid;
         this.questUuid = questUuid;
-        this.objective = objective;
+        this.objectiveTarget = objectiveTarget;
     }
 
     public String getPlayerUuid() {
@@ -22,8 +22,8 @@ public class ActionSubscription {
         return questUuid;
     }
 
-    public MongoQuest.Objective getObjective() {
-        return objective;
+    public String getObjectiveTarget() {
+        return objectiveTarget;
     }
 
     @Override
@@ -31,7 +31,7 @@ public class ActionSubscription {
         return "QuestListener{" +
                 "playerUuid='" + playerUuid + '\'' +
                 ", questUuid='" + questUuid + '\'' +
-                ", objective=" + objective +
+                ", objectiveTarget=" + objectiveTarget +
                 '}';
     }
 }

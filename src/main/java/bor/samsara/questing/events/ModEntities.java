@@ -61,16 +61,16 @@ public class ModEntities {
         try {
             MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
             if (playerState.getQuestPlayerProgressMap().containsKey(welcomingQuestUuids.get(1)) &&
-                    playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.get(1)).isComplete()) {
+                    playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.get(1)).areAllObjectivesComplete()) {
                 log.debug("{} has completed welcoming quest line.", player.getName().getString());
                 return;
             }
 
             MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(player);
             for (String questId : mongoNpc.getQuestIds()) {
-                if (!playerState.getQuestPlayerProgressMap().containsKey(questId) || !playerState.getQuestPlayerProgressMap().get(questId).isComplete()) {
+                if (!playerState.getQuestPlayerProgressMap().containsKey(questId) || !playerState.getQuestPlayerProgressMap().get(questId).areAllObjectivesComplete()) {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
-                    playerState.setActiveQuest(mongoNpc.getUuid(), questId, new MongoPlayer.QuestProgress(questId, quest.getTitle(), quest.getSequence()));
+                    playerState.setActiveQuest(mongoNpc.getUuid(), questId, new MongoPlayer.QuestProgress(questId, quest.getTitle(), quest.getSequence(), quest.getObjectives()));
                     PlayerMongoClient.updatePlayer(playerState);
                     SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
                     break;
@@ -114,7 +114,7 @@ public class ModEntities {
             MongoQuest qStart = new MongoQuest();
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setSequence(0);
-            qStart.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4));
+            qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
             qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
             qStart.setProvidesQuestBook(false);
             qStart.setDialogue(List.of("What are you doing here?!?",
@@ -126,7 +126,7 @@ public class ModEntities {
             MongoQuest qEnd = new MongoQuest();
             qEnd.setTitle(travelerEndQuestTitle);
             qEnd.setSequence(1);
-            qEnd.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1));
+            qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
             qEnd.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",
@@ -137,7 +137,7 @@ public class ModEntities {
             qFinish.setTitle(travelerFinishQuestTitle);
             qFinish.setSequence(2);
             qFinish.setProvidesQuestBook(false);
-            qFinish.setObjective(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1));
+            qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));
             qFinish.setReward(new MongoQuest.Reward("none", 0, 0));
             qFinish.setDialogue(List.of("These are troubling times indeed.",
                     "I wonder, are you here because of the cataclysm, or are you the harbinger?",

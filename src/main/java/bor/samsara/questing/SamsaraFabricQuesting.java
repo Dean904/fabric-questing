@@ -119,7 +119,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
         for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getQuestPlayerProgressMap().values()) {
-            if (!questProgress.isComplete()) {
+            if (!questProgress.areAllObjectivesComplete()) {
                 try {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
                     attachQuestListenerToPertinentSubject(mongoPlayer, quest);
@@ -131,14 +131,16 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     public static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoQuest quest) {
-        ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), quest.getUuid(), quest.getObjective());
-        MongoQuest.Objective.Type objectiveType = quest.getObjective().getType();
-        switch (objectiveType) {
-            case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);
-            case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
-            case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
-            case FIN -> {}
-            default -> log.warn("Unknown Objective Type '{}' when registering Quest {} for Player {}", objectiveType, quest.getTitle(), playerState.getName());
+        for (MongoQuest.Objective objective : quest.getObjectives()) {
+            ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), quest.getUuid(), objective.getTarget());
+            MongoQuest.Objective.Type objectiveType = objective.getType();
+            switch (objectiveType) {
+                case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);
+                case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
+                case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
+                case FIN -> {}
+                default -> log.warn("Unknown Objective Type '{}' when registering Quest {} for Player {}", objectiveType, quest.getTitle(), playerState.getName());
+            }
         }
     }
 
