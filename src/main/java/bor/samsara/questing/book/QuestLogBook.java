@@ -70,7 +70,8 @@ public class QuestLogBook {
         bookBuilder.append(Text.literal("〰〰〰〰〰〰〰〰〰〰〰〰").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         //bookBuilder.append(Text.literal("Active Quests").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true))).newLine();
 
-        for (MongoPlayer.QuestProgress activeQuest : player.getQuestPlayerProgressMap().values().stream().filter(q -> !q.areAllObjectivesComplete()).toList()) {
+        for (MongoPlayer.QuestProgress activeQuest : player.getQuestPlayerProgressMap().values().stream()
+                .filter(q -> !q.areAllObjectivesComplete() && q.getObjectiveProgressions().).toList()) {
             bookBuilder
                     .append(Text.literal(" ⋙ ").styled(style -> style.withColor(Formatting.BLACK).withBold(true)))
                     .append(Text.literal(activeQuest.getQuestTitle())
