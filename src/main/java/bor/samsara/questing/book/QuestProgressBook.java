@@ -24,10 +24,11 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class QuestProgressBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
-    public static final String DIV = ";;";
+    // TODO breaking change.. fix nbt var names
     public static final String QUEST_UUID = "npcName";
     public static final String PLAYER_UUID = "questIds";
     public static final String PLAYER_PROGRESS = "playerProgress";
+
 
     public static int open(PlayerEntity player, MongoQuest quest, MongoPlayer mongoPlayer) {
         try {
@@ -45,7 +46,7 @@ public class QuestProgressBook {
         return 1;
     }
 
-    private static ItemStack createTrackingBook(MongoQuest quest, MongoPlayer player) {
+    public static ItemStack createTrackingBook(MongoQuest quest, MongoPlayer player) {
         ItemStack bookStack = new ItemStack(Items.WRITTEN_BOOK);
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QUEST_UUID, quest.getUuid());

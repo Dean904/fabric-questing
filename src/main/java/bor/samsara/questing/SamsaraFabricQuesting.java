@@ -16,6 +16,7 @@ import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -27,6 +28,9 @@ import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class SamsaraFabricQuesting implements ModInitializer {
 
     public static final String MOD_ID = "samsara";
@@ -35,6 +39,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final KillSubject killSubject = new KillSubject();
     public static final CollectItemSubject collectItemSubject = new CollectItemSubject();
     public static final TalkToNpcSubject talkToNpcSubject = new TalkToNpcSubject();
+
+    public static final Queue<Runnable> questRunnables = new LinkedList<>();
 
     // TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
     // TODO close mongo connection on close
@@ -46,6 +52,17 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         // ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         // scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
+
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            while (!questRunnables.isEmpty()) {
+                Runnable runnable = questRunnables.poll();
+                try {
+                    runnable.run();
+                } catch (Exception e) {
+                    log.error("Error executing quest runnable: {}", e.getMessage(), e);
+                }
+            }
+        });
 
         UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
         CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
@@ -75,7 +92,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
             ModEntities.despawnTravelingWelcomer(handler.getPlayer());
         });
     }
-
 
 
     private void giveHearthStone(ServerPlayerEntity player) {

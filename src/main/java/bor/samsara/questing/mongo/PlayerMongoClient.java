@@ -47,4 +47,14 @@ public class PlayerMongoClient {
         playerCache.remove(uuid);
     }
 
+    public static MongoPlayer getPlayerByName(String targetPlayerName) {
+        MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
+        Document query = new Document("name", targetPlayerName);
+        Document doc = collection.find(query).first();
+
+        if (doc != null) {
+            return new MongoPlayer().fromDocument(doc);
+        }
+        throw new IllegalStateException("The player '%s' was not found".formatted(targetPlayerName));
+    }
 }
