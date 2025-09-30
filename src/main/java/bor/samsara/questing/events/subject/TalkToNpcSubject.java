@@ -2,16 +2,13 @@ package bor.samsara.questing.events.subject;
 
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
-import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +34,7 @@ public class TalkToNpcSubject extends QuestEventSubject {
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
             ActionSubscription subscription = ite.next();
             if (StringUtils.equalsAnyIgnoreCase(subscription.getObjectiveTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
-                MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
+                MongoPlayer.QuestProgress questProgress = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
                 MongoPlayer.QuestProgress.ObjectiveProgress progress = getObjectiveProgressForNpc(mongoNpc, questProgress);
                 int objectiveCount = progress.getCurrentCount() + 1;
                 progress.setCurrentCount(objectiveCount);

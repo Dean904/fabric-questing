@@ -60,15 +60,15 @@ public class ModEntities {
         World world = player.getWorld();
         try {
             MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuidAsString());
-            if (playerState.getQuestPlayerProgressMap().containsKey(welcomingQuestUuids.get(1)) &&
-                    playerState.getQuestPlayerProgressMap().get(welcomingQuestUuids.get(1)).areAllObjectivesComplete()) {
+            if (playerState.getActiveQuestProgressionMap().containsKey(welcomingQuestUuids.get(1)) &&
+                    playerState.getActiveQuestProgressionMap().get(welcomingQuestUuids.get(1)).areAllObjectivesComplete()) {
                 log.debug("{} has completed welcoming quest line.", player.getName().getString());
                 return;
             }
 
             MongoNpc mongoNpc = getOrMakeWelcomeTravelerForPlayer(player);
             for (String questId : mongoNpc.getQuestIds()) {
-                if (!playerState.getQuestPlayerProgressMap().containsKey(questId) || !playerState.getQuestPlayerProgressMap().get(questId).areAllObjectivesComplete()) {
+                if (!playerState.getActiveQuestProgressionMap().containsKey(questId) || !playerState.getActiveQuestProgressionMap().get(questId).areAllObjectivesComplete()) {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
                     playerState.setActiveQuest(mongoNpc.getUuid(), questId, new MongoPlayer.QuestProgress(questId, quest.getTitle(), quest.getSequence(), quest.getObjectives()));
                     PlayerMongoClient.updatePlayer(playerState);
@@ -113,6 +113,7 @@ public class ModEntities {
 
             MongoQuest qStart = new MongoQuest();
             qStart.setTitle(travelerStartQuestTitle);
+            qStart.setCategory(MongoQuest.Category.WELCOME);
             qStart.setSequence(0);
             qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
             qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
@@ -125,6 +126,7 @@ public class ModEntities {
 
             MongoQuest qEnd = new MongoQuest();
             qEnd.setTitle(travelerEndQuestTitle);
+            qEnd.setCategory(MongoQuest.Category.WELCOME);
             qEnd.setSequence(1);
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
@@ -135,6 +137,7 @@ public class ModEntities {
 
             MongoQuest qFinish = new MongoQuest();
             qFinish.setTitle(travelerFinishQuestTitle);
+            qFinish.setCategory(MongoQuest.Category.WELCOME);
             qFinish.setSequence(2);
             qFinish.setProvidesQuestBook(false);
             qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));

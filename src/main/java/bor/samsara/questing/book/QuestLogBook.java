@@ -54,7 +54,7 @@ public class QuestLogBook {
         ItemStack bookStack = new ItemStack(Items.WRITTEN_BOOK);
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
-        nbtCompound.putInt(PLAYER_STATE, player.getQuestPlayerProgressMap().hashCode());
+        nbtCompound.putInt(PLAYER_STATE, player.getActiveQuestProgressionMap().hashCode());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(getWrittenBookContentComponent(player)));
@@ -70,8 +70,8 @@ public class QuestLogBook {
         bookBuilder.append(Text.literal("〰〰〰〰〰〰〰〰〰〰〰〰").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         //bookBuilder.append(Text.literal("Active Quests").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true))).newLine();
 
-        for (MongoPlayer.QuestProgress activeQuest : player.getQuestPlayerProgressMap().values().stream()
-                .filter(q -> !q.areAllObjectivesComplete() && q.getObjectiveProgressions().).toList()) {
+        for (MongoPlayer.QuestProgress activeQuest : player.getActiveQuestProgressionMap().values().stream()
+                .filter(progress -> progress.getObjectiveProgressions().stream().noneMatch(objective -> objective.getRequiredCount() == -1)).toList()) {
             bookBuilder
                     .append(Text.literal(" ⋙ ").styled(style -> style.withColor(Formatting.BLACK).withBold(true)))
                     .append(Text.literal(activeQuest.getQuestTitle())

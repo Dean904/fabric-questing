@@ -25,9 +25,8 @@ import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 public class QuestProgressBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
-    // TODO breaking change.. fix nbt var names
-    public static final String QUEST_UUID = "npcName";
-    public static final String PLAYER_UUID = "questIds";
+    public static final String QUEST_UUID = "questUuid";
+    public static final String PLAYER_UUID = "playerUuid";
     public static final String PLAYER_PROGRESS = "playerProgress";
 
 
@@ -52,7 +51,7 @@ public class QuestProgressBook {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QUEST_UUID, quest.getUuid());
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
-        nbtCompound.putInt(PLAYER_PROGRESS, player.getQuestPlayerProgressMap().get(quest.getUuid())
+        nbtCompound.putInt(PLAYER_PROGRESS, player.getActiveQuestProgressionMap().get(quest.getUuid())
                 .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
@@ -71,7 +70,7 @@ public class QuestProgressBook {
         if (StringUtils.isNotBlank(quest.getSummary()))
             bookBuilder.append(Text.literal(quest.getSummary())).newLine().newLine();
 
-        MongoPlayer.QuestProgress questProgress = player.getQuestPlayerProgressMap().get(quest.getUuid());
+        MongoPlayer.QuestProgress questProgress = player.getActiveQuestProgressionMap().get(quest.getUuid());
         for (MongoQuest.Objective objective : quest.getObjectives()) {
             Optional<MongoPlayer.QuestProgress.ObjectiveProgress> progress = questProgress.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
             int current = progress.isPresent() ? progress.get().getCurrentCount() : -1;

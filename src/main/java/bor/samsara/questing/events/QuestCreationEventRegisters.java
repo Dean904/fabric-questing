@@ -54,7 +54,7 @@ public class QuestCreationEventRegisters {
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                     // TODO move this currentCount aggregation into a method in MongoPlayer.. also use it in the QuestProgressBook .createTrackingBook function
-                    if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid)
+                    if (playerState.getActiveQuestProgressionMap().containsKey(questUuid) && playerState.getActiveQuestProgressionMap().get(questUuid)
                             .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum() != playerProgress) {
                         MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
                         WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, playerState, itemStack);
@@ -67,7 +67,7 @@ public class QuestCreationEventRegisters {
                     Integer playerStateHash = customData.getNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                    if (playerState.getQuestPlayerProgressMap().hashCode() != playerStateHash) {
+                    if (playerState.getActiveQuestProgressionMap().hashCode() != playerStateHash) {
                         List<RawFilteredPair<Text>> content = QuestLogBook.getWrittenBookContentComponent(playerState);
                         itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(content));
                         itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestLogTags(playerUuid, playerState)));
@@ -85,7 +85,7 @@ public class QuestCreationEventRegisters {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
         nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
-        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid)
+        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getActiveQuestProgressionMap().get(questUuid)
                 .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
         return nbtCompound;
     }
@@ -93,7 +93,7 @@ public class QuestCreationEventRegisters {
     private static NbtCompound updateQuestLogTags(String playerUuid, MongoPlayer playerState) {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QuestLogBook.PLAYER_UUID, playerUuid);
-        nbtCompound.putInt(QuestLogBook.PLAYER_STATE, playerState.getQuestPlayerProgressMap().hashCode());
+        nbtCompound.putInt(QuestLogBook.PLAYER_STATE, playerState.getActiveQuestProgressionMap().hashCode());
         return nbtCompound;
     }
 

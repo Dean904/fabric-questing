@@ -18,6 +18,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     private List<Objective> objectives = new ArrayList<>();
     private MongoQuest.Reward reward;
     private MongoQuest.Trigger trigger;
+    private MongoQuest.Category category;
 
     public MongoQuest() {
         this.uuid = UUID.randomUUID().toString();
@@ -101,6 +102,22 @@ public class MongoQuest implements MongoDao<MongoQuest> {
 
     public void setTrigger(Trigger trigger) {
         this.trigger = trigger;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public enum Category {
+        MAIN,
+        SIDE,
+        TUTORIAL,
+        EVENT,
+        WELCOME
     }
 
     public static class Objective {
@@ -290,7 +307,8 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 .append("order", sequence)
                 .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
-                .append("trigger", trigger == null ? null : trigger.toDocument());
+                .append("trigger", trigger == null ? null : trigger.toDocument())
+                .append("category", category == null ? Category.MAIN : category.name());
     }
 
     @SuppressWarnings("unchecked")
@@ -312,6 +330,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         q.setObjectives(objectives);
         q.setReward(Reward.fromDocument(document.get("reward", Document.class)));
         q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
+        q.setCategory(null == document.getString("category") ? Category.MAIN : Category.valueOf(document.getString("category")));
         return q;
     }
 
@@ -328,6 +347,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 ", objectives=" + objectives +
                 ", reward=" + reward +
                 ", trigger=" + trigger +
+                ", category=" + category +
                 '}';
     }
 }

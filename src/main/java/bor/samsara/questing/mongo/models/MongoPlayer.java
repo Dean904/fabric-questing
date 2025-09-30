@@ -8,10 +8,10 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private boolean hasReceivedSpawnHengeHearthStone = false;
 
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
-    private Map<String, QuestProgress> questPlayerProgressMap = new HashMap<>();
+    private Map<String, QuestProgress> activeQuestProgressionMap = new HashMap<>();
+    private List<String> completedQuestIds = new ArrayList<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -34,26 +34,21 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public boolean hasReceivedSpawnHengeHearthStone() {
-        return hasReceivedSpawnHengeHearthStone;
-    }
-
-    public void setHasReceivedSpawnHengeHearthStone(boolean hasReceivedSpawnHengeHearthStone) {
-        this.hasReceivedSpawnHengeHearthStone = hasReceivedSpawnHengeHearthStone;
-    }
-
     public boolean hasPlayerProgressedNpc(String npcUuid) {
         return npcActiveQuestMap.containsKey(npcUuid);
     }
 
-    public QuestProgress getProgressForNpc(String npcUuid) {
-        String questUuid = npcActiveQuestMap.get(npcUuid);
-        return questPlayerProgressMap.get(questUuid);
+    public String getCurrentQuestForNpc(String npcUuid) {
+        return npcActiveQuestMap.get(npcUuid);
+    }
+
+    public QuestProgress getProgressForQuest(String questUuid) {
+        return activeQuestProgressionMap.get(questUuid);
     }
 
     public void setActiveQuest(String npcUuid, String questUuid, QuestProgress progress) {
         npcActiveQuestMap.put(npcUuid, questUuid);
-        questPlayerProgressMap.put(questUuid, progress);
+        activeQuestProgressionMap.put(questUuid, progress);
     }
 
     protected Map<String, String> getNpcActiveQuestUuidMap() {
@@ -69,40 +64,54 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
      *
      * @return QuestProgress
      */
-    public Map<String, QuestProgress> getQuestPlayerProgressMap() {
-        return questPlayerProgressMap;
+    public Map<String, QuestProgress> getActiveQuestProgressionMap() {
+        return activeQuestProgressionMap;
     }
 
-    public void setQuestPlayerProgressMap(Map<String, QuestProgress> questPlayerProgressMap) {
-        this.questPlayerProgressMap = questPlayerProgressMap;
+    private void setActiveQuestProgressionMap(Map<String, QuestProgress> questPlayerProgressMap) {
+        this.activeQuestProgressionMap = questPlayerProgressMap;
     }
+
+    private void setCompletedQuestIds(List<String> completedQuestIds) {
+        this.completedQuestIds = completedQuestIds;
+    }
+
+    public void markQuestComplete(String questUuid) {
+        completedQuestIds.add(questUuid);
+        activeQuestProgressionMap.remove(questUuid);
+    }
+
+    public boolean isQuestComplete(String questUuid) {
+        return completedQuestIds.contains(questUuid);
+    }
+
 
     public Document toDocument() {
-        Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, QuestProgress> entry : questPlayerProgressMap.entrySet()) {
-            activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
+        Map<String, Document> questProgressionDocs = new HashMap<>();
+        for (Map.Entry<String, QuestProgress> entry : activeQuestProgressionMap.entrySet()) {
+            questProgressionDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
         return new Document("uuid", uuid)
                 .append("name", name)
-                .append("hasReceivedSpawnHengeHearthStone", hasReceivedSpawnHengeHearthStone)
-                .append("questPlayerProgress", activeQuestDocs)
+                .append("playerQuestProgressions", questProgressionDocs)
+                .append("completedQuestIds", completedQuestIds)
                 .append("npcActiveQuest", npcActiveQuestMap);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
-        player.setHasReceivedSpawnHengeHearthStone(document.getBoolean("hasReceivedSpawnHengeHearthStone", false));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
-        Map<String, Document> questPlayerProgressDocs = document.get("questPlayerProgress", Map.class);
-        Map<String, QuestProgress> activeQuestMap = new HashMap<>();
-        for (Map.Entry<String, Document> entry : questPlayerProgressDocs.entrySet()) {
-            activeQuestMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
-        }
-        player.setQuestPlayerProgressMap(activeQuestMap);
-        return player;
+        player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
 
+        Map<String, QuestProgress> questProgressMap = new HashMap<>();
+        Map<String, Document> questProgressionMap = document.get("playerQuestProgressions", Map.class);
+        for (Map.Entry<String, Document> entry : questProgressionMap.entrySet()) {
+            questProgressMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
+        }
+        player.setActiveQuestProgressionMap(questProgressMap);
+        return player;
     }
 
     public static class QuestProgress {

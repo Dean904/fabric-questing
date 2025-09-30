@@ -2,9 +2,7 @@ package bor.samsara.questing.events.subject;
 
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
-import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -30,7 +28,7 @@ public class KillSubject extends QuestEventSubject {
                 ActionSubscription subscription = ite.next();
                 if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjectiveTarget())) {
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                    MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
+                    MongoPlayer.QuestProgress questProgress = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
                     MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
                             .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), entityTypeName)).findFirst().orElseThrow();
 

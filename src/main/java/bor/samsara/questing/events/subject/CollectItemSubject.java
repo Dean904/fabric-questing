@@ -43,7 +43,7 @@ public class CollectItemSubject extends QuestEventSubject {
             ActionSubscription subscription = ite.next();
             if (StringUtils.equalsIgnoreCase(itemName, subscription.getObjectiveTarget())) {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
+                MongoPlayer.QuestProgress questProgress = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
                 MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
                         .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), itemName)).findFirst().orElseThrow();
 

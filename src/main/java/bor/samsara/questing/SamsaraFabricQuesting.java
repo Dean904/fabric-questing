@@ -80,11 +80,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
-            if (!player.hasReceivedSpawnHengeHearthStone()) {
-                giveHearthStone(handler.getPlayer());
-                player.setHasReceivedSpawnHengeHearthStone(true);
-                PlayerMongoClient.updatePlayer(player);
-            }
             ModEntities.spawnWelcomingTraveler(handler.getPlayer());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -118,7 +113,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
-        for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getQuestPlayerProgressMap().values()) {
+        for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getActiveQuestProgressionMap().values()) {
             if (!questProgress.areAllObjectivesComplete()) {
                 try {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
