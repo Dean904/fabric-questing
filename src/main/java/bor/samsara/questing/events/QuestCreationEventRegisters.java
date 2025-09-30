@@ -53,7 +53,9 @@ public class QuestCreationEventRegisters {
                     int playerProgress = customData.getNbt().getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                    if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount() != playerProgress) {
+                    // TODO move this currentCount aggregation into a method in MongoPlayer.. also use it in the QuestProgressBook .createTrackingBook function
+                    if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid)
+                            .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum() != playerProgress) {
                         MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
                         WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, playerState, itemStack);
                         itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
@@ -83,7 +85,8 @@ public class QuestCreationEventRegisters {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
         nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
-        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid).getObjectiveCount());
+        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid)
+                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
         return nbtCompound;
     }
 
@@ -97,7 +100,7 @@ public class QuestCreationEventRegisters {
     private static boolean hasPlayerUuidTag(NbtComponent customData) {
         if (customData != null) {
             NbtCompound nbt = customData.getNbt();
-            return nbt != null &&( nbt.contains(QuestProgressBook.PLAYER_UUID) || nbt.contains(QuestLogBook.PLAYER_UUID)); // TODO should be standardized to a single tag
+            return nbt != null && (nbt.contains(QuestProgressBook.PLAYER_UUID) || nbt.contains(QuestLogBook.PLAYER_UUID)); // TODO should be standardized to a single tag
         }
         return false;
     }

@@ -7,13 +7,18 @@ import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class TalkToNpcSubject extends QuestEventSubject {
 
@@ -31,30 +36,48 @@ public class TalkToNpcSubject extends QuestEventSubject {
         List<ActionSubscription> actionSubscriptions = playerSubsriptionMap.get(playerUuid);
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
             ActionSubscription subscription = ite.next();
-            if (StringUtils.equalsAnyIgnoreCase(subscription.getObjective().getTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
-                boolean isComplete = false;
-
+            if (StringUtils.equalsAnyIgnoreCase(subscription.getObjectiveTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
                 MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
-                int objectiveCount = questProgress.getObjectiveCount() + 1;
-                questProgress.setObjectiveCount(objectiveCount);
+                MongoPlayer.QuestProgress.ObjectiveProgress progress = getObjectiveProgressForNpc(mongoNpc, questProgress);
+                int objectiveCount = progress.getCurrentCount() + 1;
+                progress.setCurrentCount(objectiveCount);
+                log.debug("Incrementing quest '{}' objective TALK {} for player {}: {}/{}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
 
-                MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
-
-                log.debug("Incrementing quest objective count of '{}#{}' for player {}", mongoNpc.getName(), questProgress.getSequence(), playerState.getName());
-
-                if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-                    questProgress.setComplete(true);
-                    PlayerMongoClient.updatePlayer(playerState);
-                    log.debug("Marking '{}#{}' quest complete for player {}", mongoNpc.getName(), questProgress.getSequence(), playerState.getName());
-                    isComplete = true;
+                boolean isAllComplete = false;
+                if (progress.getRequiredCount() <= objectiveCount) {
+                    progress.setComplete(true);
+                    log.debug("Marking quest '{}', objective TALK {}, complete for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
+                    isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
+                    questProgress.setAreAllObjectivesComplete(isAllComplete);
+                    detach(subscription, ite);
                 }
 
                 PlayerMongoClient.updatePlayer(playerState);
 
-                if (isComplete)
-                    detach(subscription, ite);
+                if (isAllComplete) {
+                    player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                } else if (progress.isComplete()) {
+                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                } else {
+                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.9f);
+                }
             }
         }
+    }
+
+    private static MongoPlayer.QuestProgress.@NotNull ObjectiveProgress getObjectiveProgressForNpc(MongoNpc mongoNpc, MongoPlayer.QuestProgress questProgress) {
+        Optional<MongoPlayer.QuestProgress.ObjectiveProgress> first = questProgress.getObjectiveProgressions().stream()
+                .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getName()))
+                .findFirst();
+
+        if (first.isEmpty()) {
+            return questProgress.getObjectiveProgressions().stream()
+                    .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getDialogueType()))
+                    .findFirst().orElseThrow();
+        }
+
+        return first.orElseThrow();
     }
 
 }

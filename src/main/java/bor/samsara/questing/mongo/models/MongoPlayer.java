@@ -2,10 +2,7 @@ package bor.samsara.questing.mongo.models;
 
 import org.bson.Document;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class MongoPlayer implements MongoDao<MongoPlayer> {
 
@@ -109,19 +106,27 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     }
 
     public static class QuestProgress {
+        // TODO rename to QuestState or PlauyerQuestState or QuestCompletion
         private final String questUuid;
         private final String questTitle;
         @Deprecated
         private final int sequence;
         private int dialogueOffset = 0;
-        private int objectiveCount = 0;
+        private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
+        private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
-        private boolean isComplete = false;
 
         public QuestProgress(String questUuid, String questTitle, int sequence) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
             this.sequence = sequence;
+        }
+
+        public QuestProgress(String questUuid, String questTitle, int sequence, List<MongoQuest.Objective> objectives) {
+            this.questUuid = questUuid;
+            this.questTitle = questTitle;
+            this.sequence = sequence;
+            objectiveProgressions.addAll(objectives.stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
         }
 
         public String getQuestUuid() {
@@ -145,14 +150,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             this.dialogueOffset = dialogueOffset;
         }
 
-        public int getObjectiveCount() {
-            return objectiveCount;
-        }
-
-        public void setObjectiveCount(int objectiveCount) {
-            this.objectiveCount = objectiveCount;
-        }
-
         public boolean hasReceivedQuestBook() {
             return receivedQuestBook;
         }
@@ -161,43 +158,140 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             this.receivedQuestBook = receivedQuestBook;
         }
 
-        public boolean isComplete() {
-            return isComplete;
+        public List<ObjectiveProgress> getObjectiveProgressions() {
+            return objectiveProgressions;
         }
 
-        public void setComplete(boolean complete) {
-            isComplete = complete;
+        public void setObjectiveProgressions(List<ObjectiveProgress> objectiveProgressions) {
+            this.objectiveProgressions = objectiveProgressions;
+        }
+
+        public boolean areAllObjectivesComplete() {
+            return areAllObjectivesComplete;
+        }
+
+        public void setAreAllObjectivesComplete(boolean areAllObjectivesComplete) {
+            this.areAllObjectivesComplete = areAllObjectivesComplete;
         }
 
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
             QuestProgress that = (QuestProgress) o;
-            return sequence == that.sequence && dialogueOffset == that.dialogueOffset && objectiveCount == that.objectiveCount && receivedQuestBook == that.receivedQuestBook && isComplete == that.isComplete && Objects.equals(questUuid, that.questUuid) && Objects.equals(questTitle, that.questTitle);
+            return sequence == that.sequence && dialogueOffset == that.dialogueOffset && areAllObjectivesComplete == that.areAllObjectivesComplete && receivedQuestBook == that.receivedQuestBook && Objects.equals(questUuid, that.questUuid) && Objects.equals(questTitle, that.questTitle) && Objects.equals(objectiveProgressions, that.objectiveProgressions);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(questUuid, questTitle, sequence, dialogueOffset, objectiveCount, receivedQuestBook, isComplete);
+            return Objects.hash(questUuid, questTitle, sequence, dialogueOffset, objectiveProgressions, areAllObjectivesComplete, receivedQuestBook);
         }
 
         public Document toDocument() {
+
+            List<Document> objectiveProgressDocs = new ArrayList<>();
+            for (ObjectiveProgress entry : objectiveProgressions) {
+                objectiveProgressDocs.add(entry.toDocument());
+            }
+
             return new Document("questUuid", questUuid)
                     .append("questTitle", questTitle)
                     .append("sequence", sequence)
                     .append("dialogueOffset", dialogueOffset)
-                    .append("objectiveCount", objectiveCount)
+                    .append("objectiveProgressions", objectiveProgressDocs)
                     .append("receivedQuestBook", receivedQuestBook)
-                    .append("isComplete", isComplete);
+                    .append("areAllObjectivesComplete", areAllObjectivesComplete);
         }
 
         public static QuestProgress fromDocument(Document document) {
             QuestProgress q = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
             q.setDialogueOffset(document.getInteger("dialogueOffset"));
-            q.setObjectiveCount(document.getInteger("objectiveCount", 0));
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
-            q.setComplete(document.getBoolean("isComplete", false));
+            q.setAreAllObjectivesComplete(document.getBoolean("areAllObjectivesComplete", false));
+            List<ObjectiveProgress> progressions = new ArrayList<>();
+            for (Document objDoc : document.getList("objectiveProgressions", Document.class)) {
+                progressions.add(ObjectiveProgress.fromDocument(objDoc));
+            }
+            q.setObjectiveProgressions(progressions);
+
             return q;
+        }
+
+        public static class ObjectiveProgress {
+
+            private int currentCount = 0;
+            private boolean isComplete = false;
+
+            private final int requiredCount;
+            private final String target;
+
+            public ObjectiveProgress(int requiredCount, String target) {
+                this.requiredCount = requiredCount;
+                this.target = target;
+            }
+
+            public int getCurrentCount() {
+                return currentCount;
+            }
+
+            public void setCurrentCount(int currentCount) {
+                this.currentCount = currentCount;
+            }
+
+            public boolean isComplete() {
+                return isComplete;
+            }
+
+            public void setComplete(boolean complete) {
+                isComplete = complete;
+            }
+
+            public int getRequiredCount() {
+                return requiredCount;
+            }
+
+            public String getTarget() {
+                return target;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (o == null || getClass() != o.getClass()) return false;
+                ObjectiveProgress that = (ObjectiveProgress) o;
+                return currentCount == that.currentCount && isComplete == that.isComplete && requiredCount == that.requiredCount && Objects.equals(target, that.target);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(currentCount, isComplete, requiredCount, target);
+            }
+
+            @Override
+            public String toString() {
+                return "ObjectiveProgress{" +
+                        "currentCount=" + currentCount +
+                        ", isComplete=" + isComplete +
+                        ", requiredCount=" + requiredCount +
+                        ", target='" + target + '\'' +
+                        '}';
+            }
+
+            public Document toDocument() {
+                return new Document("currentCount", currentCount)
+                        .append("requiredCount", requiredCount)
+                        .append("target", target)
+                        .append("isComplete", isComplete);
+            }
+
+            public static ObjectiveProgress fromDocument(Document document) {
+                ObjectiveProgress op = new ObjectiveProgress(
+                        document.getInteger("requiredCount", 0),
+                        document.getString("target")
+                );
+                op.setCurrentCount(document.getInteger("currentCount", 0));
+                op.setComplete(document.getBoolean("isComplete", false));
+                return op;
+            }
+
         }
     }
 }

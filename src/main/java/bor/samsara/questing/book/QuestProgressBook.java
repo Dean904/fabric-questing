@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
@@ -51,7 +52,8 @@ public class QuestProgressBook {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QUEST_UUID, quest.getUuid());
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
-        nbtCompound.putInt(PLAYER_PROGRESS, player.getQuestPlayerProgressMap().get(quest.getUuid()).getObjectiveCount());
+        nbtCompound.putInt(PLAYER_PROGRESS, player.getQuestPlayerProgressMap().get(quest.getUuid())
+                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         WrittenBookContentComponent t = getWrittenBookContentComponent(quest, player, bookStack);
@@ -69,18 +71,19 @@ public class QuestProgressBook {
         if (StringUtils.isNotBlank(quest.getSummary()))
             bookBuilder.append(Text.literal(quest.getSummary())).newLine().newLine();
 
-        MongoQuest.Objective objective = quest.getObjective();
         MongoPlayer.QuestProgress questProgress = player.getQuestPlayerProgressMap().get(quest.getUuid());
-        int current = questProgress.getObjectiveCount();
-        int required = objective.getRequiredCount();
+        for (MongoQuest.Objective objective : quest.getObjectives()) {
+            Optional<MongoPlayer.QuestProgress.ObjectiveProgress> progress = questProgress.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
+            int current = progress.isPresent() ? progress.get().getCurrentCount() : -1;
+            int required = objective.getRequiredCount();
 
-        Formatting progressColor = (current >= required) ? Formatting.GREEN
-                : (current == 0) ? Formatting.RED
-                : Formatting.DARK_AQUA;
-
-        bookBuilder.append(Text.literal(current + "/" + required + " ").styled(style -> style.withColor(progressColor).withBold(true)))
-                .append(Text.literal(objective.getType().name()).formatted(Formatting.GRAY)).newLine()
-                .append(Text.literal(formatMinecraftString(objective.getTarget())).formatted(Formatting.DARK_GRAY)).newLine();
+            Formatting progressColor = (current >= required) ? Formatting.GREEN
+                    : (current < 1) ? Formatting.RED
+                    : Formatting.DARK_AQUA;
+            bookBuilder.append(Text.literal(current + "/" + required + " ").styled(style -> style.withColor(progressColor).withBold(true)))
+                    .append(Text.literal(objective.getType().name()).formatted(Formatting.GRAY)).newLine()
+                    .append(Text.literal(formatMinecraftString(objective.getTarget())).formatted(Formatting.DARK_GRAY)).newLine();
+        }
         bookBuilder.append(Text.literal("___________________").formatted(Formatting.DARK_GRAY)).newLine();
 
         // Description
@@ -95,7 +98,7 @@ public class QuestProgressBook {
                     .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
         }
 
-        if (questProgress.isComplete()) {
+        if (questProgress.areAllObjectivesComplete()) {
             bookBuilder.newLine().append(Text.literal("[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));
         }
 

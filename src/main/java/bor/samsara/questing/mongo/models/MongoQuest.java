@@ -15,7 +15,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     private String description;
     private boolean providesQuestBook = true;
     private List<String> dialogue = new ArrayList<>();
-    private MongoQuest.Objective objective;
+    private List<Objective> objectives = new ArrayList<>();
     private MongoQuest.Reward reward;
     private MongoQuest.Trigger trigger;
 
@@ -79,12 +79,12 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         this.dialogue = dialogue;
     }
 
-    public MongoQuest.Objective getObjective() {
-        return objective;
+    public List<Objective> getObjectives() {
+        return objectives;
     }
 
-    public void setObjective(MongoQuest.Objective objective) {
-        this.objective = objective;
+    public void setObjectives(List<Objective> objectives) {
+        this.objectives = objectives;
     }
 
     public MongoQuest.Reward getReward() {
@@ -274,6 +274,12 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     }
 
     public Document toDocument() {
+        List<Document> objectiveDocs = new ArrayList<>();
+        if (objectives != null) {
+            for (Objective obj : objectives) {
+                objectiveDocs.add(obj.toDocument());
+            }
+        }
         return new Document()
                 .append("uuid", uuid)
                 .append("title", title)
@@ -282,7 +288,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
                 .append("order", sequence)
-                .append("objective", objective == null ? null : objective.toDocument())
+                .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
                 .append("trigger", trigger == null ? null : trigger.toDocument());
     }
@@ -296,9 +302,16 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         q.setSummary(document.getString("summary"));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
-        q.setObjective(MongoQuest.Objective.fromDocument(document.get("objective", Document.class)));
-        q.setReward(MongoQuest.Reward.fromDocument(document.get("reward", Document.class)));
-        q.setTrigger(null == document.get("trigger", Document.class) ? null : MongoQuest.Trigger.fromDocument(document.get("trigger", Document.class)));
+        List<Objective> objectives = new ArrayList<>();
+        List<Document> objectiveDocuments = document.getList("objectives", Document.class);
+        if (null != objectiveDocuments) {
+            for (Document objDoc : objectiveDocuments) {
+                objectives.add(Objective.fromDocument(objDoc));
+            }
+        }
+        q.setObjectives(objectives);
+        q.setReward(Reward.fromDocument(document.get("reward", Document.class)));
+        q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
         return q;
     }
 
@@ -312,10 +325,9 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 ", description='" + description + '\'' +
                 ", providesQuestBook=" + providesQuestBook +
                 ", dialogue=" + dialogue +
-                ", objective=" + objective +
+                ", objectives=" + objectives +
                 ", reward=" + reward +
                 ", trigger=" + trigger +
                 '}';
     }
 }
-

@@ -22,6 +22,7 @@ import java.util.*;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
+@Deprecated
 public class QuestConfigBook {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
@@ -69,10 +70,11 @@ public class QuestConfigBook {
                 pageText.append(line).append(DIV);
             }
 
-            MongoQuest.Objective objective = quest.getObjective();
-            pageText.append(objective.getType().name().toLowerCase()).append("=")
-                    .append(objective.getTarget()).append("=")
-                    .append(objective.getRequiredCount()).append(DIV);
+            for (MongoQuest.Objective objective : quest.getObjectives()) {
+                pageText.append(objective.getType().name().toLowerCase()).append("=")
+                        .append(objective.getTarget()).append("=")
+                        .append(objective.getRequiredCount()).append(DIV);
+            }
 
             MongoQuest.Reward reward = quest.getReward();
             pageText.append(reward.getItemName().toLowerCase()).append("=")

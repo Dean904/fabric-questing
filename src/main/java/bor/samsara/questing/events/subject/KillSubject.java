@@ -28,28 +28,38 @@ public class KillSubject extends QuestEventSubject {
             log.debug("Tracking {}, killed a {}", killer.getName().getString(), entityTypeName);
             for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
                 ActionSubscription subscription = ite.next();
-                if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjective().getTarget())) {
+                if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjectiveTarget())) {
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
                     MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
-                    int objectiveCount = questProgress.getObjectiveCount() + 1;
-                    questProgress.setObjectiveCount(objectiveCount);
+                    MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
+                            .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), entityTypeName)).findFirst().orElseThrow();
 
-                    MongoQuest staticQuest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
-                    log.debug("Incrementing quest {} objective count {} for player {}", staticQuest.getTitle(), staticQuest.getObjective().getType().name(), playerState.getName());
+                    int objectiveCount = progress.getCurrentCount() + 1;
+                    progress.setCurrentCount(objectiveCount);
+                    log.debug("Incrementing quest '{}' objective KILL {} for player {}: {}/{}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
 
-                    boolean isComplete = false;
-                    if (null != staticQuest && staticQuest.getObjective().getRequiredCount() <= objectiveCount) {
-                        questProgress.setComplete(true);
-                        PlayerMongoClient.updatePlayer(playerState);
-                        log.debug("Marking quest {} {} complete for player {}", staticQuest.getObjective().getType().name(), staticQuest.getTitle(), playerState.getName());
-
-                        isComplete = true;
+                    boolean isAllComplete = false;
+                    if (progress.getRequiredCount() <= objectiveCount) {
+                        progress.setComplete(true);
+                        log.debug("Marking quest '{}', objective KILL {}, complete for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
+                        isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
+                        questProgress.setAreAllObjectivesComplete(isAllComplete);
+                        detach(subscription, ite);
                     }
 
+                    // TODO refactor sound playing into its own method for reuse
                     PlayerMongoClient.updatePlayer(playerState);
                     Vec3d pos = killer.getPos();
-
-                    if (isComplete) {
+                    if (isAllComplete) {
+                        world.playSound(
+                                null, // `null` means only the player hears it; use `player` to make it audible to others too
+                                pos.x, pos.y, pos.z,
+                                SoundEvents.UI_TOAST_CHALLENGE_COMPLETE,
+                                SoundCategory.PLAYERS,
+                                0.6f, // volume
+                                1.0f  // pitch
+                        );
+                    } else if (progress.isComplete()) {
                         world.playSound(
                                 null, // `null` means only the player hears it; use `player` to make it audible to others too
                                 pos.x, pos.y, pos.z,
@@ -58,7 +68,6 @@ public class KillSubject extends QuestEventSubject {
                                 0.6f, // volume
                                 1.0f  // pitch
                         );
-                        detach(subscription, ite);
                     } else {
                         world.playSound(
                                 null, // `null` means only the player hears it; use `player` to make it audible to others too
