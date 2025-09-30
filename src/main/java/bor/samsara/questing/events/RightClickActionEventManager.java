@@ -9,12 +9,15 @@ import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -175,6 +178,18 @@ public class RightClickActionEventManager {
             return itemDefinition.substring(0, itemDefinition.indexOf('{'));
         }
         return itemDefinition;
+    }
+
+    public static UseBlockCallback evaporateBucketInNether() {
+        return (player, world, hand, hitResult) -> {
+            ItemStack itemStack = player.getStackInHand(hand);
+            if (itemStack.getItem() == Items.WATER_BUCKET && world.getBiome(hitResult.getBlockPos()).isIn(net.minecraft.registry.tag.BiomeTags.IS_NETHER)) {
+                world.playSound(null, hitResult.getBlockPos(), SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 1.0f, 2.6f);
+                player.setStackInHand(hand, new ItemStack(Items.BUCKET));
+                return ActionResult.CONSUME;
+            }
+            return ActionResult.PASS;
+        };
     }
 
 }
