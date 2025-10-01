@@ -77,10 +77,11 @@ public class QuestConfigBook {
             }
 
             MongoQuest.Reward reward = quest.getReward();
-            pageText.append(reward.getItemName().toLowerCase()).append("=")
-                    .append(reward.getCount()).append("=")
-                    .append(reward.getXpValue()).append(";;");
-
+            if (reward != null) {
+                pageText.append(reward.getItemName().toLowerCase()).append("=")
+                        .append(reward.getCount()).append("=")
+                        .append(reward.getXpValue()).append(";;");
+            }
             pages.add(new RawFilteredPair<>(pageText.toString(), Optional.of(pageText.toString())));
         }
 

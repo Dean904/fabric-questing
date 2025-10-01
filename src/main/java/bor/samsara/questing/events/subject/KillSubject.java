@@ -28,20 +28,20 @@ public class KillSubject extends QuestEventSubject {
                 ActionSubscription subscription = ite.next();
                 if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjectiveTarget())) {
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                    MongoPlayer.QuestProgress questProgress = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
-                    MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
+                    MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
+                    MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
                             .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), entityTypeName)).findFirst().orElseThrow();
 
                     int objectiveCount = progress.getCurrentCount() + 1;
                     progress.setCurrentCount(objectiveCount);
-                    log.debug("Incrementing quest '{}' objective KILL {} for player {}: {}/{}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
+                    log.debug("Incrementing quest '{}' objective KILL {} for player {}: {}/{}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
 
                     boolean isAllComplete = false;
                     if (progress.getRequiredCount() <= objectiveCount) {
                         progress.setComplete(true);
-                        log.debug("Marking quest '{}', objective KILL {}, complete for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
-                        isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
-                        questProgress.setAreAllObjectivesComplete(isAllComplete);
+                        log.debug("Marking quest '{}', objective KILL {}, complete for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                        isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
+                        activeQuestState.setAreAllObjectivesComplete(isAllComplete);
                         detach(subscription, ite);
                     }
 

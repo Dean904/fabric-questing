@@ -113,13 +113,13 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
-        for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getActiveQuestProgressionMap().values()) {
-            if (!questProgress.areAllObjectivesComplete()) {
+        for (MongoPlayer.ActiveQuestState activeQuestState : mongoPlayer.getActiveQuestProgressionMap().values()) {
+            if (!activeQuestState.areAllObjectivesComplete()) {
                 try {
-                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
+                    MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestState.getQuestUuid());
                     attachQuestListenerToPertinentSubject(mongoPlayer, quest);
                 } catch (Exception e) {
-                    log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), questProgress, e.getMessage(), e);
+                    log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), activeQuestState, e.getMessage(), e);
                 }
             }
         }
@@ -141,8 +141,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     private static void savePlayerStatsOnExit(ServerPlayerEntity serverPlayer) {
         String playerUuid = serverPlayer.getUuidAsString();
-        PlayerMongoClient.updatePlayer(PlayerMongoClient.getPlayerByUuid(playerUuid));
-        PlayerMongoClient.unloadPlayer(playerUuid);
+        //PlayerMongoClient.updatePlayer(PlayerMongoClient.getPlayerByUuid(playerUuid));
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.collectItemSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.talkToNpcSubject.detachPlayer(playerUuid);

@@ -70,7 +70,8 @@ public class ModEntities {
             for (String questId : mongoNpc.getQuestIds()) {
                 if (!playerState.getActiveQuestProgressionMap().containsKey(questId) || !playerState.getActiveQuestProgressionMap().get(questId).areAllObjectivesComplete()) {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
-                    playerState.setActiveQuest(mongoNpc.getUuid(), questId, new MongoPlayer.QuestProgress(questId, quest.getTitle(), quest.getSequence(), quest.getObjectives()));
+                    playerState.setActiveQuestForNpc(mongoNpc.getUuid(), questId);
+                    playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
                     PlayerMongoClient.updatePlayer(playerState);
                     SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
                     break;
@@ -129,7 +130,8 @@ public class ModEntities {
             qEnd.setCategory(MongoQuest.Category.WELCOME);
             qEnd.setSequence(1);
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
-            qEnd.setReward(new MongoQuest.Reward("none", 0, 0));
+            qEnd.setReward(null);
+            qStart.setProvidesQuestBook(true);
             qEnd.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",
                     "Quick, go talk to the old man in the village, Bondred."));
@@ -141,7 +143,7 @@ public class ModEntities {
             qFinish.setSequence(2);
             qFinish.setProvidesQuestBook(false);
             qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));
-            qFinish.setReward(new MongoQuest.Reward("none", 0, 0));
+            qFinish.setReward(null);
             qFinish.setDialogue(List.of("These are troubling times indeed.",
                     "I wonder, are you here because of the cataclysm, or are you the harbinger?",
                     "Don't you have something you should be doing?", "Is this some sort of game to you?"));

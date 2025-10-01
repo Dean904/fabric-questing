@@ -55,7 +55,7 @@ public class QuestCreationEventRegisters {
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                     // TODO move this currentCount aggregation into a method in MongoPlayer.. also use it in the QuestProgressBook .createTrackingBook function
                     if (playerState.getActiveQuestProgressionMap().containsKey(questUuid) && playerState.getActiveQuestProgressionMap().get(questUuid)
-                            .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum() != playerProgress) {
+                            .getObjectiveProgressions().stream().mapToInt(MongoPlayer.ActiveQuestState.ObjectiveProgress::getCurrentCount).sum() != playerProgress) {
                         MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
                         WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, playerState, itemStack);
                         itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
@@ -86,7 +86,7 @@ public class QuestCreationEventRegisters {
         nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
         nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
         nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getActiveQuestProgressionMap().get(questUuid)
-                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
+                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.ActiveQuestState.ObjectiveProgress::getCurrentCount).sum());
         return nbtCompound;
     }
 

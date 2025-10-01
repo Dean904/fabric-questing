@@ -117,7 +117,8 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         SIDE,
         TUTORIAL,
         EVENT,
-        WELCOME
+        WELCOME,
+        END
     }
 
     public static class Objective {
@@ -161,7 +162,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
             KILL,
             TALK,
             COLLECT,
-            FIN
+            FIN // TODO remove fin - repalced with END quest category
         }
 
         public Document toDocument() {
@@ -328,7 +329,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
             }
         }
         q.setObjectives(objectives);
-        q.setReward(Reward.fromDocument(document.get("reward", Document.class)));
+        q.setReward(null == document.get("reward", Document.class) ? null : Reward.fromDocument(document.get("reward", Document.class)));
         q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
         q.setCategory(null == document.getString("category") ? Category.MAIN : Category.valueOf(document.getString("category")));
         return q;

@@ -52,7 +52,7 @@ public class QuestProgressBook {
         nbtCompound.putString(QUEST_UUID, quest.getUuid());
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
         nbtCompound.putInt(PLAYER_PROGRESS, player.getActiveQuestProgressionMap().get(quest.getUuid())
-                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
+                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.ActiveQuestState.ObjectiveProgress::getCurrentCount).sum());
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         WrittenBookContentComponent t = getWrittenBookContentComponent(quest, player, bookStack);
@@ -70,9 +70,9 @@ public class QuestProgressBook {
         if (StringUtils.isNotBlank(quest.getSummary()))
             bookBuilder.append(Text.literal(quest.getSummary())).newLine().newLine();
 
-        MongoPlayer.QuestProgress questProgress = player.getActiveQuestProgressionMap().get(quest.getUuid());
+        MongoPlayer.ActiveQuestState activeQuestState = player.getActiveQuestProgressionMap().get(quest.getUuid());
         for (MongoQuest.Objective objective : quest.getObjectives()) {
-            Optional<MongoPlayer.QuestProgress.ObjectiveProgress> progress = questProgress.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
+            Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> progress = activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
             int current = progress.isPresent() ? progress.get().getCurrentCount() : -1;
             int required = objective.getRequiredCount();
 
@@ -97,7 +97,7 @@ public class QuestProgressBook {
                     .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
         }
 
-        if (questProgress.areAllObjectivesComplete()) {
+        if (activeQuestState.areAllObjectivesComplete()) {
             bookBuilder.newLine().append(Text.literal("[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));
         }
 

@@ -34,18 +34,18 @@ public class TalkToNpcSubject extends QuestEventSubject {
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
             ActionSubscription subscription = ite.next();
             if (StringUtils.equalsAnyIgnoreCase(subscription.getObjectiveTarget(), mongoNpc.getName(), mongoNpc.getDialogueType())) {
-                MongoPlayer.QuestProgress questProgress = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
-                MongoPlayer.QuestProgress.ObjectiveProgress progress = getObjectiveProgressForNpc(mongoNpc, questProgress);
+                MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
+                MongoPlayer.ActiveQuestState.ObjectiveProgress progress = getObjectiveProgressForNpc(mongoNpc, activeQuestState);
                 int objectiveCount = progress.getCurrentCount() + 1;
                 progress.setCurrentCount(objectiveCount);
-                log.debug("Incrementing quest '{}' objective TALK {} for player {}: {}/{}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
+                log.debug("Incrementing quest '{}' objective TALK {} for player {}: {}/{}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
 
                 boolean isAllComplete = false;
                 if (progress.getRequiredCount() <= objectiveCount) {
                     progress.setComplete(true);
-                    log.debug("Marking quest '{}', objective TALK {}, complete for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
-                    isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
-                    questProgress.setAreAllObjectivesComplete(isAllComplete);
+                    log.debug("Marking quest '{}', objective TALK {}, complete for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                    isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
+                    activeQuestState.setAreAllObjectivesComplete(isAllComplete);
                     detach(subscription, ite);
                 }
 
@@ -63,13 +63,13 @@ public class TalkToNpcSubject extends QuestEventSubject {
         }
     }
 
-    private static MongoPlayer.QuestProgress.@NotNull ObjectiveProgress getObjectiveProgressForNpc(MongoNpc mongoNpc, MongoPlayer.QuestProgress questProgress) {
-        Optional<MongoPlayer.QuestProgress.ObjectiveProgress> first = questProgress.getObjectiveProgressions().stream()
+    private static MongoPlayer.ActiveQuestState.@NotNull ObjectiveProgress getObjectiveProgressForNpc(MongoNpc mongoNpc, MongoPlayer.ActiveQuestState activeQuestState) {
+        Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> first = activeQuestState.getObjectiveProgressions().stream()
                 .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getName()))
                 .findFirst();
 
         if (first.isEmpty()) {
-            return questProgress.getObjectiveProgressions().stream()
+            return activeQuestState.getObjectiveProgressions().stream()
                     .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getDialogueType()))
                     .findFirst().orElseThrow();
         }
