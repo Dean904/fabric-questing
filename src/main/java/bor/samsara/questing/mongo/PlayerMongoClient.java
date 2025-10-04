@@ -12,7 +12,6 @@ public class PlayerMongoClient {
 
     private static final String PLAYER_COLLECTION = "playerCharacters";
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
-    private static final Map<String, MongoPlayer> playerCache = new HashMap<>(); // Player stats between onJoin and onLeave? Good mem
 
     public static void createPlayer(MongoPlayer player) {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
@@ -21,17 +20,12 @@ public class PlayerMongoClient {
     }
 
     public static MongoPlayer getPlayerByUuid(String uuid) throws IllegalStateException {
-        if (playerCache.containsKey(uuid))
-            return playerCache.get(uuid);
-
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
         Document query = new Document("uuid", uuid);
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            MongoPlayer mongoPlayer = new MongoPlayer().fromDocument(doc);
-            playerCache.put(uuid, mongoPlayer);
-            return mongoPlayer;
+            return new MongoPlayer().fromDocument(doc);
         }
         throw new IllegalStateException("The player '%s' was not found".formatted(uuid));
     }
@@ -41,10 +35,6 @@ public class PlayerMongoClient {
         Document query = new Document("uuid", player.getUuid());
         Document update = new Document("$set", player.toDocument());
         collection.updateOne(query, update);
-    }
-
-    public static void unloadPlayer(String uuid) {
-        playerCache.remove(uuid);
     }
 
     public static MongoPlayer getPlayerByName(String targetPlayerName) {

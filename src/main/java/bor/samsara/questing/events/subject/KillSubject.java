@@ -2,9 +2,7 @@ package bor.samsara.questing.events.subject;
 
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
-import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -30,20 +28,20 @@ public class KillSubject extends QuestEventSubject {
                 ActionSubscription subscription = ite.next();
                 if (StringUtils.equalsIgnoreCase(entityTypeName, subscription.getObjectiveTarget())) {
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                    MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
-                    MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
+                    MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
+                    MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
                             .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), entityTypeName)).findFirst().orElseThrow();
 
                     int objectiveCount = progress.getCurrentCount() + 1;
                     progress.setCurrentCount(objectiveCount);
-                    log.debug("Incrementing quest '{}' objective KILL {} for player {}: {}/{}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
+                    log.debug("Incrementing quest '{}' objective KILL {} for player {}: {}/{}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
 
                     boolean isAllComplete = false;
                     if (progress.getRequiredCount() <= objectiveCount) {
                         progress.setComplete(true);
-                        log.debug("Marking quest '{}', objective KILL {}, complete for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
-                        isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
-                        questProgress.setAreAllObjectivesComplete(isAllComplete);
+                        log.debug("Marking quest '{}', objective KILL {}, complete for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                        isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
+                        activeQuestState.setAreAllObjectivesComplete(isAllComplete);
                         detach(subscription, ite);
                     }
 

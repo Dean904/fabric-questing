@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -42,6 +44,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final TalkToNpcSubject talkToNpcSubject = new TalkToNpcSubject();
 
     public static final Queue<Runnable> questRunnables = new LinkedList<>();
+    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     // TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
     // TODO close mongo connection on close
@@ -80,11 +83,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
-            if (!player.hasReceivedSpawnHengeHearthStone()) {
-                giveHearthStone(handler.getPlayer());
-                player.setHasReceivedSpawnHengeHearthStone(true);
-                PlayerMongoClient.updatePlayer(player);
-            }
             ModEntities.spawnWelcomingTraveler(handler.getPlayer());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -118,14 +116,12 @@ public class SamsaraFabricQuesting implements ModInitializer {
     }
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
-        for (MongoPlayer.QuestProgress questProgress : mongoPlayer.getQuestPlayerProgressMap().values()) {
-            if (!questProgress.areAllObjectivesComplete()) {
-                try {
-                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questProgress.getQuestUuid());
-                    attachQuestListenerToPertinentSubject(mongoPlayer, quest);
-                } catch (Exception e) {
-                    log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), questProgress, e.getMessage(), e);
-                }
+        for (MongoPlayer.ActiveQuestState activeQuestState : mongoPlayer.getActiveQuestProgressionMap().values()) {
+            try {
+                MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestState.getQuestUuid());
+                attachQuestListenerToPertinentSubject(mongoPlayer, quest);
+            } catch (Exception e) {
+                log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), activeQuestState, e.getMessage(), e);
             }
         }
     }
@@ -146,8 +142,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     private static void savePlayerStatsOnExit(ServerPlayerEntity serverPlayer) {
         String playerUuid = serverPlayer.getUuidAsString();
-        PlayerMongoClient.updatePlayer(PlayerMongoClient.getPlayerByUuid(playerUuid));
-        PlayerMongoClient.unloadPlayer(playerUuid);
+        //PlayerMongoClient.updatePlayer(PlayerMongoClient.getPlayerByUuid(playerUuid));
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.collectItemSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.talkToNpcSubject.detachPlayer(playerUuid);

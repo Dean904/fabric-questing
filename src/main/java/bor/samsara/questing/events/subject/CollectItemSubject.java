@@ -43,8 +43,8 @@ public class CollectItemSubject extends QuestEventSubject {
             ActionSubscription subscription = ite.next();
             if (StringUtils.equalsIgnoreCase(itemName, subscription.getObjectiveTarget())) {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
-                MongoPlayer.QuestProgress questProgress = playerState.getQuestPlayerProgressMap().get(subscription.getQuestUuid());
-                MongoPlayer.QuestProgress.ObjectiveProgress progress = questProgress.getObjectiveProgressions().stream()
+                MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
+                MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
                         .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), itemName)).findFirst().orElseThrow();
 
                 int totalStackSize = player.getInventory().getStack(slot).getCount();
@@ -54,7 +54,7 @@ public class CollectItemSubject extends QuestEventSubject {
                 if (totalStackSize >= progress.getRequiredCount()) {
                     //progress.setComplete(true);
                     // needs to submit to quest giver for ccompletion
-                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", questProgress.getQuestTitle(), progress.getTarget(), playerState.getName());
+                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
                     //isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
                     player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
                     player.sendMessage(Text.literal("Return to the quest giver with " + progress.getRequiredCount() + " [" + itemName + "]!"), false);

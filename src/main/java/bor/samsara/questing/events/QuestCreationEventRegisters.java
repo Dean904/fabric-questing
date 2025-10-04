@@ -24,6 +24,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,27 +48,34 @@ public class QuestCreationEventRegisters {
             ItemStack itemStack = player.getStackInHand(hand);
             NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
             if (itemStack.getItem() == Items.WRITTEN_BOOK && hasPlayerUuidTag(customData)) {
-                if (hasSpecifcQuestUuidTag(customData)) {
-                    String playerUuid = customData.getNbt().get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
-                    String questUuid = customData.getNbt().get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
-                    int playerProgress = customData.getNbt().getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
+                if (hasSpecifcQuestUuidTag(customData)) { // progress book refresh
+                    NbtCompound nbt = customData.getNbt();
+                    String playerUuid = nbt.get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
+                    String questUuid = nbt.get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
+                    int playerProgress = nbt.getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
+                    boolean isComplete = nbt.getBoolean(QuestProgressBook.IS_COMPLETE).orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                    // TODO move this currentCount aggregation into a method in MongoPlayer.. also use it in the QuestProgressBook .createTrackingBook function
-                    if (playerState.getQuestPlayerProgressMap().containsKey(questUuid) && playerState.getQuestPlayerProgressMap().get(questUuid)
-                            .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum() != playerProgress) {
+                    MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(questUuid);
+                    if (activeQuestState != null && activeQuestState.getObjectiveProgressions().hashCode() != playerProgress) {
                         MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
-                        WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, playerState, itemStack);
+                        WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, itemStack, activeQuestState);
                         itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
-                        itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestProgressTags(questUuid, playerUuid, playerState)));
+                        itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestProgressTags(questUuid, playerUuid, activeQuestState)));
+                    } else if (!isComplete && activeQuestState == null && playerState.isQuestComplete(questUuid)) {
+                        MongoQuest quest = QuestMongoClient.getQuestByUuid(questUuid);
+                        WrittenBookContentComponent t = QuestProgressBook.getWrittenBookContentComponent(quest, itemStack, null);
+                        itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
+                        itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestProgressTags(questUuid, playerUuid, null)));
+                        itemStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(quest.getTitle()).append(Text.literal(" ✔").styled(style -> style.withColor(Formatting.DARK_GREEN).withBold(true))));
                     }
                     return ActionResult.PASS;
-                } else if (hasPlayerStateTag(customData)) {
+                } else if (hasPlayerStateTag(customData)) { // quest log refresh
                     String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
                     Integer playerStateHash = customData.getNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
-                    if (playerState.getQuestPlayerProgressMap().hashCode() != playerStateHash) {
+                    if (playerState.getActiveQuestProgressionMap().hashCode() != playerStateHash) {
                         List<RawFilteredPair<Text>> content = QuestLogBook.getWrittenBookContentComponent(playerState);
                         itemStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, WrittenBookContentComponent.DEFAULT.withPages(content));
                         itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(updateQuestLogTags(playerUuid, playerState)));
@@ -81,26 +89,26 @@ public class QuestCreationEventRegisters {
         };
     }
 
-    private static NbtCompound updateQuestProgressTags(String questUuid, String playerUuid, MongoPlayer playerState) {
+    private static NbtCompound updateQuestProgressTags(String questUuid, String playerUuid, MongoPlayer.ActiveQuestState activeQuestState) {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QuestProgressBook.PLAYER_UUID, playerUuid);
         nbtCompound.putString(QuestProgressBook.QUEST_UUID, questUuid);
-        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, playerState.getQuestPlayerProgressMap().get(questUuid)
-                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.QuestProgress.ObjectiveProgress::getCurrentCount).sum());
+        nbtCompound.putInt(QuestProgressBook.PLAYER_PROGRESS, null == activeQuestState ? 0 : activeQuestState.getObjectiveProgressions().hashCode());
+        nbtCompound.putBoolean(QuestProgressBook.IS_COMPLETE, null == activeQuestState);
         return nbtCompound;
     }
 
     private static NbtCompound updateQuestLogTags(String playerUuid, MongoPlayer playerState) {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QuestLogBook.PLAYER_UUID, playerUuid);
-        nbtCompound.putInt(QuestLogBook.PLAYER_STATE, playerState.getQuestPlayerProgressMap().hashCode());
+        nbtCompound.putInt(QuestLogBook.PLAYER_STATE, playerState.getActiveQuestProgressionMap().hashCode());
         return nbtCompound;
     }
 
     private static boolean hasPlayerUuidTag(NbtComponent customData) {
         if (customData != null) {
             NbtCompound nbt = customData.getNbt();
-            return nbt != null && (nbt.contains(QuestProgressBook.PLAYER_UUID) || nbt.contains(QuestLogBook.PLAYER_UUID)); // TODO should be standardized to a single tag
+            return nbt != null && (nbt.contains(QuestProgressBook.PLAYER_UUID));
         }
         return false;
     }

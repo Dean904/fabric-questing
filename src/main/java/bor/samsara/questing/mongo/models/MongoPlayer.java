@@ -8,10 +8,10 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
     private final String uuid;
     private String name;
-    private boolean hasReceivedSpawnHengeHearthStone = false;
 
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
-    private Map<String, QuestProgress> questPlayerProgressMap = new HashMap<>();
+    private Map<String, ActiveQuestState> activeQuestProgressionMap = new HashMap<>();
+    private List<String> completedQuestIds = new ArrayList<>();
 
     public MongoPlayer() {
         this.uuid = UUID.randomUUID().toString();
@@ -34,26 +34,24 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         this.name = name;
     }
 
-    public boolean hasReceivedSpawnHengeHearthStone() {
-        return hasReceivedSpawnHengeHearthStone;
-    }
-
-    public void setHasReceivedSpawnHengeHearthStone(boolean hasReceivedSpawnHengeHearthStone) {
-        this.hasReceivedSpawnHengeHearthStone = hasReceivedSpawnHengeHearthStone;
-    }
-
     public boolean hasPlayerProgressedNpc(String npcUuid) {
         return npcActiveQuestMap.containsKey(npcUuid);
     }
 
-    public QuestProgress getProgressForNpc(String npcUuid) {
-        String questUuid = npcActiveQuestMap.get(npcUuid);
-        return questPlayerProgressMap.get(questUuid);
+    public String getCurrentQuestForNpc(String npcUuid) {
+        return npcActiveQuestMap.get(npcUuid);
     }
 
-    public void setActiveQuest(String npcUuid, String questUuid, QuestProgress progress) {
+    public ActiveQuestState getProgressForQuest(String questUuid) {
+        return activeQuestProgressionMap.get(questUuid);
+    }
+
+    public void setActiveQuestForNpc(String npcUuid, String questUuid) {
         npcActiveQuestMap.put(npcUuid, questUuid);
-        questPlayerProgressMap.put(questUuid, progress);
+    }
+
+    public void attachActiveQuestState(ActiveQuestState progress) {
+        activeQuestProgressionMap.put(progress.getQuestUuid(), progress);
     }
 
     protected Map<String, String> getNpcActiveQuestUuidMap() {
@@ -69,64 +67,75 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
      *
      * @return QuestProgress
      */
-    public Map<String, QuestProgress> getQuestPlayerProgressMap() {
-        return questPlayerProgressMap;
+    public Map<String, ActiveQuestState> getActiveQuestProgressionMap() {
+        return activeQuestProgressionMap;
     }
 
-    public void setQuestPlayerProgressMap(Map<String, QuestProgress> questPlayerProgressMap) {
-        this.questPlayerProgressMap = questPlayerProgressMap;
+    private void setActiveQuestProgressionMap(Map<String, ActiveQuestState> questPlayerProgressMap) {
+        this.activeQuestProgressionMap = questPlayerProgressMap;
     }
+
+    private void setCompletedQuestIds(List<String> completedQuestIds) {
+        this.completedQuestIds = completedQuestIds;
+    }
+
+    public void markQuestComplete(String questUuid) {
+        completedQuestIds.add(questUuid);
+        activeQuestProgressionMap.remove(questUuid);
+    }
+
+    public boolean isQuestComplete(String questUuid) {
+        return completedQuestIds.contains(questUuid);
+    }
+
 
     public Document toDocument() {
-        Map<String, Document> activeQuestDocs = new HashMap<>();
-        for (Map.Entry<String, QuestProgress> entry : questPlayerProgressMap.entrySet()) {
-            activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
+        Map<String, Document> questProgressionDocs = new HashMap<>();
+        for (Map.Entry<String, ActiveQuestState> entry : activeQuestProgressionMap.entrySet()) {
+            questProgressionDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
         return new Document("uuid", uuid)
                 .append("name", name)
-                .append("hasReceivedSpawnHengeHearthStone", hasReceivedSpawnHengeHearthStone)
-                .append("questPlayerProgress", activeQuestDocs)
+                .append("playerQuestProgressions", questProgressionDocs)
+                .append("completedQuestIds", completedQuestIds)
                 .append("npcActiveQuest", npcActiveQuestMap);
     }
 
     @SuppressWarnings("unchecked")
     public MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
-        player.setHasReceivedSpawnHengeHearthStone(document.getBoolean("hasReceivedSpawnHengeHearthStone", false));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
-        Map<String, Document> questPlayerProgressDocs = document.get("questPlayerProgress", Map.class);
-        Map<String, QuestProgress> activeQuestMap = new HashMap<>();
-        for (Map.Entry<String, Document> entry : questPlayerProgressDocs.entrySet()) {
-            activeQuestMap.put(entry.getKey(), QuestProgress.fromDocument(entry.getValue()));
-        }
-        player.setQuestPlayerProgressMap(activeQuestMap);
-        return player;
+        player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
 
+        Map<String, ActiveQuestState> questProgressMap = new HashMap<>();
+        Map<String, Document> questProgressionMap = document.get("playerQuestProgressions", Map.class);
+        for (Map.Entry<String, Document> entry : questProgressionMap.entrySet()) {
+            questProgressMap.put(entry.getKey(), ActiveQuestState.fromDocument(entry.getValue()));
+        }
+        player.setActiveQuestProgressionMap(questProgressMap);
+        return player;
     }
 
-    public static class QuestProgress {
-        // TODO rename to QuestState or PlauyerQuestState or QuestCompletion
+    public static class ActiveQuestState {
         private final String questUuid;
         private final String questTitle;
-        @Deprecated
-        private final int sequence;
-        private int dialogueOffset = 0;
+        private final boolean doRenderWhenCompleteInQuestLog;
         private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
         private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
 
-        public QuestProgress(String questUuid, String questTitle, int sequence) {
+        public ActiveQuestState(String questUuid, String questTitle, boolean doRenderWhenCompleteInQuestLog) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
-            this.sequence = sequence;
+            this.doRenderWhenCompleteInQuestLog = doRenderWhenCompleteInQuestLog;
         }
 
-        public QuestProgress(String questUuid, String questTitle, int sequence, List<MongoQuest.Objective> objectives) {
-            this.questUuid = questUuid;
-            this.questTitle = questTitle;
-            this.sequence = sequence;
-            objectiveProgressions.addAll(objectives.stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
+        public ActiveQuestState(MongoQuest quest) {
+            this.questUuid = quest.getUuid();
+            this.questTitle = quest.getTitle();
+            this.doRenderWhenCompleteInQuestLog = quest.getReward() != null || quest.getTrigger() != null;
+            this.objectiveProgressions.addAll(quest.getObjectives().stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
         }
 
         public String getQuestUuid() {
@@ -135,19 +144,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
         public String getQuestTitle() {
             return questTitle;
-        }
-
-        @Deprecated
-        public int getSequence() {
-            return sequence;
-        }
-
-        public int getDialogueOffset() {
-            return dialogueOffset;
-        }
-
-        public void setDialogueOffset(int dialogueOffset) {
-            this.dialogueOffset = dialogueOffset;
         }
 
         public boolean hasReceivedQuestBook() {
@@ -174,16 +170,20 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             this.areAllObjectivesComplete = areAllObjectivesComplete;
         }
 
+        public boolean doRenderWhenCompleteInQuestLog() {
+            return doRenderWhenCompleteInQuestLog;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == null || getClass() != o.getClass()) return false;
-            QuestProgress that = (QuestProgress) o;
-            return sequence == that.sequence && dialogueOffset == that.dialogueOffset && areAllObjectivesComplete == that.areAllObjectivesComplete && receivedQuestBook == that.receivedQuestBook && Objects.equals(questUuid, that.questUuid) && Objects.equals(questTitle, that.questTitle) && Objects.equals(objectiveProgressions, that.objectiveProgressions);
+            ActiveQuestState that = (ActiveQuestState) o;
+            return areAllObjectivesComplete == that.areAllObjectivesComplete && receivedQuestBook == that.receivedQuestBook && Objects.equals(questUuid, that.questUuid) && Objects.equals(questTitle, that.questTitle) && Objects.equals(objectiveProgressions, that.objectiveProgressions);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(questUuid, questTitle, sequence, dialogueOffset, objectiveProgressions, areAllObjectivesComplete, receivedQuestBook);
+            return Objects.hash(questUuid, questTitle, objectiveProgressions, areAllObjectivesComplete, receivedQuestBook);
         }
 
         public Document toDocument() {
@@ -195,16 +195,17 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
             return new Document("questUuid", questUuid)
                     .append("questTitle", questTitle)
-                    .append("sequence", sequence)
-                    .append("dialogueOffset", dialogueOffset)
                     .append("objectiveProgressions", objectiveProgressDocs)
                     .append("receivedQuestBook", receivedQuestBook)
+                    .append("doRenderInQuestLogWhenComplete", doRenderWhenCompleteInQuestLog)
                     .append("areAllObjectivesComplete", areAllObjectivesComplete);
         }
 
-        public static QuestProgress fromDocument(Document document) {
-            QuestProgress q = new QuestProgress(document.getString("questUuid"), document.getString("questTitle"), document.getInteger("sequence"));
-            q.setDialogueOffset(document.getInteger("dialogueOffset"));
+        public static ActiveQuestState fromDocument(Document document) {
+            ActiveQuestState q = new ActiveQuestState(
+                    document.getString("questUuid"),
+                    document.getString("questTitle"),
+                    document.getBoolean("doRenderInQuestLogWhenComplete"));
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
             q.setAreAllObjectivesComplete(document.getBoolean("areAllObjectivesComplete", false));
             List<ObjectiveProgress> progressions = new ArrayList<>();
@@ -212,7 +213,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
                 progressions.add(ObjectiveProgress.fromDocument(objDoc));
             }
             q.setObjectiveProgressions(progressions);
-
             return q;
         }
 
@@ -220,7 +220,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
             private int currentCount = 0;
             private boolean isComplete = false;
-
             private final int requiredCount;
             private final String target;
 
