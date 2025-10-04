@@ -8,8 +8,8 @@ import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.entity.Entity;
@@ -35,19 +35,39 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
-import static bor.samsara.questing.events.SamsaraNoteBlockTunes.*;
+import static bor.samsara.questing.events.SamsaraNoteBlockTunes.playOrchestra;
+import static bor.samsara.questing.events.SamsaraNoteBlockTunes.playZeldaPuzzleSolved;
 
 public class RightClickActionEventManager {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
-    private static final Map<String, Integer> playerDialogueOffsetMap = new WeakHashMap<>();
+    private static final Map<String, TemporalDialogueOffset> playerDialogueOffsetMap = new HashMap<>();
 
     private RightClickActionEventManager() {}
+
+    static {
+        SamsaraFabricQuesting.scheduler.scheduleAtFixedRate(() -> {
+            synchronized (playerDialogueOffsetMap) {
+                playerDialogueOffsetMap.entrySet().removeIf(entry -> entry.getValue().isExpired());
+            }
+        }, 0, 15, TimeUnit.SECONDS);
+    }
+
+    private record TemporalDialogueOffset(int dialogueOffset, Instant timestamp) {
+        boolean isExpired() {
+            return Instant.now().isAfter(timestamp.plusSeconds(60));
+        }
+    }
 
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
@@ -66,9 +86,9 @@ public class RightClickActionEventManager {
                 MongoQuest quest = QuestMongoClient.getQuestByUuid(currentActiveQuestId);
 
                 String playerNpcKey = playerState.getUuid() + npc.getUuid();
-                playerDialogueOffsetMap.putIfAbsent(playerNpcKey, 0);
-                int dialogueOffset = playerDialogueOffsetMap.get(playerNpcKey);
-                playerDialogueOffsetMap.put(playerNpcKey, (dialogueOffset + 1) % quest.getDialogue().size());
+                playerDialogueOffsetMap.putIfAbsent(playerNpcKey, new TemporalDialogueOffset(0, Instant.now()));
+                int dialogueOffset = playerDialogueOffsetMap.get(playerNpcKey).dialogueOffset;
+                playerDialogueOffsetMap.put(playerNpcKey, new TemporalDialogueOffset((dialogueOffset + 1) % quest.getDialogue().size(), Instant.now()));
 
                 String dialogue = quest.getDialogue().get(dialogueOffset);
                 if (StringUtils.isNotBlank(dialogue)) {
@@ -83,7 +103,8 @@ public class RightClickActionEventManager {
                     if (activeQuestState.areAllObjectivesComplete()) {
                         rewardPlayer(player, world, quest);
                         playerState.markQuestComplete(quest.getUuid());
-                        playerDialogueOffsetMap.put(playerNpcKey, 0);
+                        playerDialogueOffsetMap.put(playerNpcKey, new TemporalDialogueOffset(0, Instant.now()));
+                        dialogueOffset = 0;
                         playOrchestra(player); //playChaosEmerald(player);
                         if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
                             executeTriggerCommand(player, playerState, quest);

@@ -28,7 +28,7 @@ public class QuestProgressBook {
     public static final String QUEST_UUID = "questUuid";
     public static final String PLAYER_UUID = "playerUuid";
     public static final String PLAYER_PROGRESS = "playerProgress";
-
+    public static final String IS_COMPLETE = "isComplete";
 
     public static int open(PlayerEntity player, MongoQuest quest, MongoPlayer mongoPlayer) {
         try {
@@ -51,29 +51,31 @@ public class QuestProgressBook {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(QUEST_UUID, quest.getUuid());
         nbtCompound.putString(PLAYER_UUID, player.getUuid());
-        nbtCompound.putInt(PLAYER_PROGRESS, player.getActiveQuestProgressionMap().get(quest.getUuid())
-                .getObjectiveProgressions().stream().mapToInt(MongoPlayer.ActiveQuestState.ObjectiveProgress::getCurrentCount).sum());
+        nbtCompound.putInt(PLAYER_PROGRESS, player.getActiveQuestProgressionMap().get(quest.getUuid()).getObjectiveProgressions().hashCode());
+        nbtCompound.putBoolean(QuestProgressBook.IS_COMPLETE, false);
         bookStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
-        WrittenBookContentComponent t = getWrittenBookContentComponent(quest, player, bookStack);
+        WrittenBookContentComponent t = getWrittenBookContentComponent(quest, bookStack, player.getActiveQuestProgressionMap().get(quest.getUuid()));
         bookStack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, t);
         bookStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(quest.getTitle()));
 
         return bookStack;
     }
 
-    public static @NotNull WrittenBookContentComponent getWrittenBookContentComponent(MongoQuest quest, MongoPlayer player, ItemStack bookStack) {
-        log.debug("Creating quest book content for quest: {}, player: {}", quest.getTitle(), player.getName());
+    public static @NotNull WrittenBookContentComponent getWrittenBookContentComponent(MongoQuest quest, ItemStack bookStack, MongoPlayer.ActiveQuestState activeQuestState) {
+        log.debug("Creating quest book content for quest: {}", quest.getTitle());
         WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder();
         bookBuilder.append(Text.literal(quest.getTitle()).styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(true))).newLine();
 
         if (StringUtils.isNotBlank(quest.getSummary()))
             bookBuilder.append(Text.literal(quest.getSummary())).newLine().newLine();
 
-        MongoPlayer.ActiveQuestState activeQuestState = player.getActiveQuestProgressionMap().get(quest.getUuid());
         for (MongoQuest.Objective objective : quest.getObjectives()) {
-            Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> progress = activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
-            int current = progress.isPresent() ? progress.get().getCurrentCount() : -1;
+            int current = objective.getRequiredCount();
+            if (activeQuestState != null) {
+                Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> progress = activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst();
+                current = progress.isPresent() ? progress.get().getCurrentCount() : -1;
+            }
             int required = objective.getRequiredCount();
 
             Formatting progressColor = (current >= required) ? Formatting.GREEN
@@ -97,7 +99,9 @@ public class QuestProgressBook {
                     .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
         }
 
-        if (activeQuestState.areAllObjectivesComplete()) {
+        if (activeQuestState != null && activeQuestState.getObjectiveProgressions().stream().noneMatch(op -> op.getCurrentCount() < op.getRequiredCount())) {
+            bookBuilder.newLine().append(Text.literal("[Return to NPC]").formatted(Formatting.LIGHT_PURPLE, Formatting.ITALIC));
+        } else if (activeQuestState == null) {
             bookBuilder.newLine().append(Text.literal("[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));
         }
 

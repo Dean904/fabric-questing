@@ -139,7 +139,7 @@ public class ModEntities {
 
             MongoQuest qFinish = new MongoQuest();
             qFinish.setTitle(travelerFinishQuestTitle);
-            qFinish.setCategory(MongoQuest.Category.WELCOME);
+            qFinish.setCategory(MongoQuest.Category.END);
             qFinish.setSequence(2);
             qFinish.setProvidesQuestBook(false);
             qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));

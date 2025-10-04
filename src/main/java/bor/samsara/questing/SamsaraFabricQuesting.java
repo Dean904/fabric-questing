@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class SamsaraFabricQuesting implements ModInitializer {
 
@@ -42,6 +44,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final TalkToNpcSubject talkToNpcSubject = new TalkToNpcSubject();
 
     public static final Queue<Runnable> questRunnables = new LinkedList<>();
+    public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     // TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
     // TODO close mongo connection on close
@@ -114,13 +117,11 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     private static void registerPlayerQuests(MongoPlayer mongoPlayer) {
         for (MongoPlayer.ActiveQuestState activeQuestState : mongoPlayer.getActiveQuestProgressionMap().values()) {
-            if (!activeQuestState.areAllObjectivesComplete()) {
-                try {
-                    MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestState.getQuestUuid());
-                    attachQuestListenerToPertinentSubject(mongoPlayer, quest);
-                } catch (Exception e) {
-                    log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), activeQuestState, e.getMessage(), e);
-                }
+            try {
+                MongoQuest quest = QuestMongoClient.getQuestByUuid(activeQuestState.getQuestUuid());
+                attachQuestListenerToPertinentSubject(mongoPlayer, quest);
+            } catch (Exception e) {
+                log.error("Failed to attach questProgress listener for player {} on questProgress {}: {}", mongoPlayer.getName(), activeQuestState, e.getMessage(), e);
             }
         }
     }

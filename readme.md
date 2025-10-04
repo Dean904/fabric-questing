@@ -11,3 +11,5 @@
 https://wiki.fabricmc.net/tutorial:datagen_setup
 https://minecraft.fandom.com/wiki/Tutorials/Creating_a_resource_pack
 https://minecraft.wiki/w/Data_component_format#use_cooldown
+
+https://text.datapackhub.net/
