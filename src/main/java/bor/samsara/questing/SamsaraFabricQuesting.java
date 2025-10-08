@@ -1,9 +1,6 @@
 package bor.samsara.questing;
 
-import bor.samsara.questing.events.ActionSubscription;
-import bor.samsara.questing.events.ModEntities;
-import bor.samsara.questing.events.QuestCreationEventRegisters;
-import bor.samsara.questing.events.RightClickActionEventManager;
+import bor.samsara.questing.events.*;
 import bor.samsara.questing.events.subject.CollectItemSubject;
 import bor.samsara.questing.events.subject.KillSubject;
 import bor.samsara.questing.events.subject.TalkToNpcSubject;
@@ -83,11 +80,11 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
-            ModEntities.spawnWelcomingTraveler(handler.getPlayer());
+            WelcomingTraveler.spawn(handler.getPlayer(), player);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             savePlayerStatsOnExit(handler.getPlayer());
-            ModEntities.despawnTravelingWelcomer(handler.getPlayer());
+            WelcomingTraveler.despawn(handler.getPlayer());
         });
     }
 

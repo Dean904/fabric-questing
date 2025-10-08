@@ -1,5 +1,6 @@
 package bor.samsara.questing.settings;
 
+import bor.samsara.questing.events.WelcomingTraveler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +16,7 @@ public class AppConfiguration {
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
     public static final String MONGO_URI = "MONGO_URI";
-
+    public static final String REQUIRED_WELCOME_QUEST_TITLE = "REQUIRED_WELCOME_QUEST_TITLE";
 
     private static final File configFile = new File("./config/questing/fabric_quest.config");
     private static final Properties appProperties = new Properties();
@@ -32,6 +33,7 @@ public class AppConfiguration {
                 configFile.createNewFile();
                 log.info("Created configuration file at: {}", configFile.getAbsolutePath());
                 appProperties.put(MONGO_URI, "mongodb://localhost:27017");
+                appProperties.put(REQUIRED_WELCOME_QUEST_TITLE, WelcomingTraveler.TRAVELER_CALL_TO_ACTION_QUEST_TITLE);
                 try (FileWriter fileWriter = new FileWriter(configFile)) {
                     appProperties.store(fileWriter, "Samsara Fabric Questing Configuration");
                     appProperties.load(configFile.toURI().toURL().openStream());

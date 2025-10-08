@@ -12,12 +12,8 @@ import java.util.function.BiConsumer;
 
 public class SamsaraNoteBlockTunes {
 
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-    private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(
-            runnable -> new Thread(runnable, "SamsaraNoteBlockTunes-Thread"));
-
     public static void playZeldaGetQuestTune(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 BiConsumer<SoundEvent, Float> play = (s, p) ->
                         player.playSoundToPlayer(s, SoundCategory.PLAYERS, 1.0f, p);
@@ -26,15 +22,12 @@ public class SamsaraNoteBlockTunes {
                 Thread.sleep(150);
                 play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.12f); // D5
                 Thread.sleep(150);
-                play.accept(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), 1.26f); // E5
+                play.accept(SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), 1.26f); // E5
                 Thread.sleep(150);
                 play.accept(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 1.34f); // F5
                 Thread.sleep(150);
                 play.accept(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 1.5f); // G5
                 Thread.sleep(200);
-
-                // Optional sparkle
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -43,7 +36,7 @@ public class SamsaraNoteBlockTunes {
     }
 
     public static void playFinalFantasyVictoryFanfare(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 BiConsumer<SoundEvent, Float> play = (s, p) ->
                         player.playSoundToPlayer(s, SoundCategory.PLAYERS, 1.0f, p);
@@ -71,7 +64,7 @@ public class SamsaraNoteBlockTunes {
                 Thread.sleep(250);
 
                 // Optional: add celebration
-                player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                //player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -79,40 +72,9 @@ public class SamsaraNoteBlockTunes {
         });
     }
 
-    public static void playEchoesOfElwynn(PlayerEntity player) {
-        executor.submit(() -> {
-            try {
-                SoundEvent flute = SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value();
-                BiConsumer<Float, Integer> play = (pitch, sleep) -> {
-                    player.playSoundToPlayer(flute, SoundCategory.PLAYERS, 1.0f, pitch);
-                    try {
-                        Thread.sleep(sleep);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                };
-
-                play.accept(1.00f, 275); // C5
-                play.accept(1.26f, 275); // E5
-                play.accept(1.50f, 300); // G5
-                play.accept(1.68f, 400); // A5
-                play.accept(1.50f, 250); // G5
-                play.accept(1.26f, 275); // E5
-                play.accept(1.12f, 325); // D5
-                play.accept(1.00f, 500); // C5
-
-                // Optional: a gentle amethyst chime to let the moment hang
-                player.playSoundToPlayer(SoundEvents.UI_HUD_BUBBLE_POP, SoundCategory.PLAYERS, 1.0f, 1.2f);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-    }
-
+    //  nice but long
     public static void playUnderEchoesOfElwynn(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 // Notes for both voices
                 float[] melody = {1.00f, 1.26f, 1.50f, 1.68f, 1.50f, 1.26f, 1.12f, 1.00f}; // C5 to C5
@@ -138,36 +100,8 @@ public class SamsaraNoteBlockTunes {
         });
     }
 
-    public static void playMarioOneUpArpeggio(PlayerEntity player) {
-        executor.submit(() -> {
-            try {
-                // G5 – E5 – C5 – G5
-                float[] pitches = {1.50f, 1.26f, 1.00f, 1.50f};
-                SoundEvent[] instruments = {
-                        SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(),
-                        SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(),
-                        SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(),
-                        SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value()
-                };
-
-                long[] beatDurations = {150, 150, 150, 250};
-
-                for (int i = 0; i < pitches.length; i++) {
-                    player.playSoundToPlayer(instruments[i], SoundCategory.PLAYERS, 1.0f, pitches[i]);
-                    Thread.sleep(beatDurations[i]);
-                }
-
-                // Optional sparkle finale
-                player.playSoundToPlayer(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.PLAYERS, 1.4f, 1.5f);
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
-    }
-
     public static void playZeldaPuzzleSolved(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 float[] pitches = {1.00f, 1.12f, 1.34f, 1.50f, 2.00f};
                 SoundEvent[] instruments = {
@@ -191,7 +125,7 @@ public class SamsaraNoteBlockTunes {
     }
 
     public static void playChaosEmerald(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 float[] pitches = {1.26f, 1.50f, 2.00f, 1.34f, 1.68f, 1.26f}; // E5, G5, C6, F5, A5, E5
                 SoundEvent[] instruments = {
@@ -219,7 +153,7 @@ public class SamsaraNoteBlockTunes {
     }
 
     public static void playOrchestra(PlayerEntity player) {
-        executor.submit(() -> {
+        player.getServer().execute(() -> {
             try {
                 // Sounds
                 SoundEvent flute = SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value();
