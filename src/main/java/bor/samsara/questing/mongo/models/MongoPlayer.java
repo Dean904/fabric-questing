@@ -90,14 +90,14 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
 
     public Document toDocument() {
-        Map<String, Document> questProgressionDocs = new HashMap<>();
+        Map<String, Document> activeQuestDocs = new HashMap<>();
         for (Map.Entry<String, ActiveQuestState> entry : activeQuestProgressionMap.entrySet()) {
-            questProgressionDocs.put(entry.getKey(), entry.getValue().toDocument());
+            activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
         return new Document("uuid", uuid)
                 .append("name", name)
-                .append("playerQuestProgressions", questProgressionDocs)
+                .append("activeQuestStates", activeQuestDocs)
                 .append("completedQuestIds", completedQuestIds)
                 .append("npcActiveQuest", npcActiveQuestMap);
     }
@@ -109,7 +109,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
 
         Map<String, ActiveQuestState> questProgressMap = new HashMap<>();
-        Map<String, Document> questProgressionMap = document.get("playerQuestProgressions", Map.class);
+        Map<String, Document> questProgressionMap = document.get("activeQuestStates", Map.class);
         for (Map.Entry<String, Document> entry : questProgressionMap.entrySet()) {
             questProgressMap.put(entry.getKey(), ActiveQuestState.fromDocument(entry.getValue()));
         }
@@ -120,21 +120,24 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     public static class ActiveQuestState {
         private final String questUuid;
         private final String questTitle;
-        private final boolean doRenderWhenCompleteInQuestLog;
+        private final MongoQuest.Category category;
+        private final boolean isSubmissionExpected;
         private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
         private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
 
-        public ActiveQuestState(String questUuid, String questTitle, boolean doRenderWhenCompleteInQuestLog) {
+        public ActiveQuestState(String questUuid, String questTitle, MongoQuest.Category category, boolean isSubmissionExpected) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
-            this.doRenderWhenCompleteInQuestLog = doRenderWhenCompleteInQuestLog;
+            this.category = category;
+            this.isSubmissionExpected = isSubmissionExpected;
         }
 
         public ActiveQuestState(MongoQuest quest) {
             this.questUuid = quest.getUuid();
             this.questTitle = quest.getTitle();
-            this.doRenderWhenCompleteInQuestLog = quest.getReward() != null || quest.getTrigger() != null;
+            this.category = quest.getCategory();
+            this.isSubmissionExpected = quest.getReward() != null || quest.getTrigger() != null;
             this.objectiveProgressions.addAll(quest.getObjectives().stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
         }
 
@@ -170,8 +173,12 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             this.areAllObjectivesComplete = areAllObjectivesComplete;
         }
 
-        public boolean doRenderWhenCompleteInQuestLog() {
-            return doRenderWhenCompleteInQuestLog;
+        public MongoQuest.Category getCategory() {
+            return category;
+        }
+
+        public boolean isSubmissionExpected() {
+            return isSubmissionExpected;
         }
 
         @Override
@@ -195,9 +202,10 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
             return new Document("questUuid", questUuid)
                     .append("questTitle", questTitle)
+                    .append("category", category.name())
+                    .append("isSubmissionExpected", isSubmissionExpected)
                     .append("objectiveProgressions", objectiveProgressDocs)
                     .append("receivedQuestBook", receivedQuestBook)
-                    .append("doRenderInQuestLogWhenComplete", doRenderWhenCompleteInQuestLog)
                     .append("areAllObjectivesComplete", areAllObjectivesComplete);
         }
 
@@ -205,7 +213,9 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             ActiveQuestState q = new ActiveQuestState(
                     document.getString("questUuid"),
                     document.getString("questTitle"),
-                    document.getBoolean("doRenderInQuestLogWhenComplete"));
+                    MongoQuest.Category.valueOf(document.getString("category")),
+                    document.getBoolean("isSubmissionExpected")
+            );
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
             q.setAreAllObjectivesComplete(document.getBoolean("areAllObjectivesComplete", false));
             List<ObjectiveProgress> progressions = new ArrayList<>();
@@ -217,7 +227,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         }
 
         public static class ObjectiveProgress {
-
             private int currentCount = 0;
             private boolean isComplete = false;
             private final int requiredCount;

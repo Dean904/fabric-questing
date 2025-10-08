@@ -1,6 +1,7 @@
 package bor.samsara.questing.events.subject;
 
 import bor.samsara.questing.events.ActionSubscription;
+import bor.samsara.questing.events.SamsaraNoteBlockTunes;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
@@ -67,14 +68,15 @@ public class KillSubject extends QuestEventSubject {
                                 1.0f  // pitch
                         );
                     } else {
-                        world.playSound(
-                                null, // `null` means only the player hears it; use `player` to make it audible to others too
-                                pos.x, pos.y, pos.z,
-                                SoundEvents.BLOCK_ANVIL_USE,
-                                SoundCategory.PLAYERS,
-                                0.4f, // volume
-                                0.6f  // pitch
-                        );
+                        SamsaraNoteBlockTunes.playZeldaGetQuestTune(killedEntity.getAttackingPlayer());
+//                        world.playSound(
+//                                null, // `null` means only the player hears it; use `player` to make it audible to others too
+//                                pos.x, pos.y, pos.z,
+//                                SoundEvents.BLOCK_AMETHYST_BLOCK_HIT,
+//                                SoundCategory.PLAYERS,
+//                                0.4f, // volume
+//                                0.6f  // pitch
+//                        );
                     }
                 }
             }

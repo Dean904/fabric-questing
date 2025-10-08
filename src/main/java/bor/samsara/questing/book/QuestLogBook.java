@@ -71,7 +71,7 @@ public class QuestLogBook {
         //bookBuilder.append(Text.literal("Active Quests").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true))).newLine();
 
         List<MongoPlayer.ActiveQuestState> displayedQuests = player.getActiveQuestProgressionMap().values().stream()
-                .filter(q -> !q.areAllObjectivesComplete() || (q.areAllObjectivesComplete() && q.doRenderWhenCompleteInQuestLog())).toList();
+                .filter(q -> !q.areAllObjectivesComplete() || (q.areAllObjectivesComplete() && q.isSubmissionExpected())).toList();
         for (MongoPlayer.ActiveQuestState activeQuest : displayedQuests) {
             bookBuilder
                     .append(Text.literal(" ⋙ ").styled(style -> style.withColor(Formatting.BLACK).withBold(true)))
