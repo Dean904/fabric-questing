@@ -42,7 +42,7 @@ public class MongoPlayer {
         return activeQuestProgressionMap.get(questUuid);
     }
 
-    public void setActiveQuestForNpc(String npcUuid, String questUuid) {
+    public void setCurrentQuestForNpc(String npcUuid, String questUuid) {
         npcActiveQuestMap.put(npcUuid, questUuid);
     }
 

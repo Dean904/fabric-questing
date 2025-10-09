@@ -1,7 +1,6 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
-import bor.samsara.questing.book.QuestConfigBook;
 import bor.samsara.questing.book.QuestLogBook;
 import bor.samsara.questing.book.QuestProgressBook;
 import bor.samsara.questing.mongo.PlayerMongoClient;
@@ -164,24 +163,6 @@ public class QuestCreationEventRegisters {
                                                 })
                                         )
                                 ))
-        );
-    }
-
-    public static @NotNull CommandRegistrationCallback openCommandBookForNpc() {
-        return (dispatcher, registryAccess, environment) -> dispatcher.register(
-                literal("quest")
-                        .requires(Permissions.require("samsara.quest.admin", 2))
-                        .then(literal("config")
-                                .then(literal("npc")
-                                        .then(argument("name", greedyString())
-                                                .executes(context -> {
-                                                            String villagerName = getString(context, "name");
-                                                            return QuestConfigBook.open(context.getSource(), villagerName);
-                                                        }
-                                                )
-                                        )
-                                )
-                        )
         );
     }
 

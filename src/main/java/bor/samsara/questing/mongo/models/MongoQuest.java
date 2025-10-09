@@ -9,7 +9,6 @@ public class MongoQuest {
 
     private final String uuid;
     private String title;
-    private Integer sequence;
     private String summary;
     private String description;
     private boolean providesQuestBook = true;
@@ -33,14 +32,6 @@ public class MongoQuest {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public Integer getSequence() {
-        return sequence;
-    }
-
-    public void setSequence(Integer sequence) {
-        this.sequence = sequence;
     }
 
     public String getSummary() {
@@ -300,7 +291,6 @@ public class MongoQuest {
                 .append("description", description)
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
-                .append("order", sequence)
                 .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
                 .append("trigger", trigger == null ? null : trigger.toDocument())
@@ -312,7 +302,6 @@ public class MongoQuest {
         MongoQuest q = new MongoQuest(document.getString("uuid"));
         q.setTitle(document.getString("title"));
         q.setDialogue(document.getList("dialogue", String.class));
-        q.setSequence(document.getInteger("order"));
         q.setSummary(document.getString("summary"));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
@@ -335,7 +324,6 @@ public class MongoQuest {
         return "MongoQuest{" +
                 "uuid='" + uuid + '\'' +
                 ", title='" + title + '\'' +
-                ", sequence=" + sequence +
                 ", summary='" + summary + '\'' +
                 ", description='" + description + '\'' +
                 ", providesQuestBook=" + providesQuestBook +
