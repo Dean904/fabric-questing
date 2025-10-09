@@ -4,9 +4,8 @@ import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public class MongoQuest implements MongoDao<MongoQuest> {
+public class MongoQuest {
 
     private final String uuid;
     private String title;
@@ -18,11 +17,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
     private List<Objective> objectives = new ArrayList<>();
     private MongoQuest.Reward reward;
     private MongoQuest.Trigger trigger;
-    private MongoQuest.Category category;
-
-    public MongoQuest() {
-        this.uuid = UUID.randomUUID().toString();
-    }
+    private CategoryEnum category;
 
     public MongoQuest(String uuid) {
         this.uuid = uuid;
@@ -104,15 +99,15 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         this.trigger = trigger;
     }
 
-    public Category getCategory() {
+    public CategoryEnum getCategory() {
         return category;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setCategory(CategoryEnum categoryEnum) {
+        this.category = categoryEnum;
     }
 
-    public enum Category {
+    public enum CategoryEnum {
         MAIN,
         SIDE,
         TUTORIAL,
@@ -309,7 +304,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
                 .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
                 .append("trigger", trigger == null ? null : trigger.toDocument())
-                .append("category", category == null ? Category.MAIN : category.name());
+                .append("category", category == null ? CategoryEnum.MAIN : category.name());
     }
 
     @SuppressWarnings("unchecked")
@@ -331,7 +326,7 @@ public class MongoQuest implements MongoDao<MongoQuest> {
         q.setObjectives(objectives);
         q.setReward(null == document.get("reward", Document.class) ? null : Reward.fromDocument(document.get("reward", Document.class)));
         q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
-        q.setCategory(null == document.getString("category") ? Category.MAIN : Category.valueOf(document.getString("category")));
+        q.setCategory(null == document.getString("category") ? CategoryEnum.MAIN : CategoryEnum.valueOf(document.getString("category")));
         return q;
     }
 

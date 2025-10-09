@@ -44,15 +44,11 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     // TODO optionally render invisibile item frame wearing quest ! / ? for players based on quest status
-    // TODO close mongo connection on close
 
     @Override
     public void onInitialize() {
         log.info("Initializing SamsaraFabricQuesting !!!");
         AppConfiguration.loadConfiguration();
-
-        // ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-        // scheduler.scheduleAtFixedRate(new QuestRunnable(), 0, 1, TimeUnit.MINUTES);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             while (!questRunnables.isEmpty()) {
@@ -86,12 +82,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
             savePlayerStatsOnExit(handler.getPlayer());
             WelcomingTraveler.despawn(handler.getPlayer());
         });
-    }
-
-    private void giveHearthStone(ServerPlayerEntity player) {
-        BlockPos spawnHengeAltarPos = new BlockPos(-717, 126, 543);
-        ItemStack hearthstone = HearthStoneEventRegisters.createHearthstoneItem("SpawnHenge", spawnHengeAltarPos);
-        player.getInventory().insertStack(hearthstone);
     }
 
     private static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
@@ -139,7 +129,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     private static void savePlayerStatsOnExit(ServerPlayerEntity serverPlayer) {
         String playerUuid = serverPlayer.getUuidAsString();
-        //PlayerMongoClient.updatePlayer(PlayerMongoClient.getPlayerByUuid(playerUuid));
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.collectItemSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.talkToNpcSubject.detachPlayer(playerUuid);

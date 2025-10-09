@@ -1,6 +1,7 @@
 package bor.samsara.questing.events.subject;
 
 import bor.samsara.questing.events.ActionSubscription;
+import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -25,11 +26,12 @@ public class TalkToNpcSubject extends QuestEventSubject {
         return null;
     }
 
-    public void talkedToQuestNpc(PlayerEntity player, World world, Hand hand, EntityHitResult hitResult, MongoPlayer playerState, MongoNpc mongoNpc) {
+    public void talkedToQuestNpc(PlayerEntity player, World world, Hand hand, EntityHitResult hitResult, MongoPlayer playerState, String npcUuid) {
         String playerUuid = player.getUuidAsString();
         if (!playerSubsriptionMap.containsKey(playerUuid))
             return;
 
+        MongoNpc mongoNpc = NpcMongoClient.getNpc(npcUuid);
         List<ActionSubscription> actionSubscriptions = playerSubsriptionMap.get(playerUuid);
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
             ActionSubscription subscription = ite.next();

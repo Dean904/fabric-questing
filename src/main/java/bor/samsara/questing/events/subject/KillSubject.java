@@ -68,15 +68,7 @@ public class KillSubject extends QuestEventSubject {
                                 1.0f  // pitch
                         );
                     } else {
-                        SamsaraNoteBlockTunes.playZeldaGetQuestTune(killedEntity.getAttackingPlayer());
-//                        world.playSound(
-//                                null, // `null` means only the player hears it; use `player` to make it audible to others too
-//                                pos.x, pos.y, pos.z,
-//                                SoundEvents.BLOCK_AMETHYST_BLOCK_HIT,
-//                                SoundCategory.PLAYERS,
-//                                0.4f, // volume
-//                                0.6f  // pitch
-//                        );
+                        SamsaraNoteBlockTunes.playZeldaTune(killedEntity.getAttackingPlayer());
                     }
                 }
             }

@@ -5,14 +5,11 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 
 public class SamsaraNoteBlockTunes {
 
-    public static void playZeldaGetQuestTune(PlayerEntity player) {
+    public static void playZeldaTune(PlayerEntity player) {
         player.getServer().execute(() -> {
             try {
                 BiConsumer<SoundEvent, Float> play = (s, p) ->
@@ -62,9 +59,6 @@ public class SamsaraNoteBlockTunes {
                 Thread.sleep(200);
                 play.accept(pling, 1.0f);  // C5
                 Thread.sleep(250);
-
-                // Optional: add celebration
-                //player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1.0f, 1.0f);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

@@ -4,17 +4,13 @@ import org.bson.Document;
 
 import java.util.*;
 
-public class MongoNpc implements MongoDao<MongoNpc> {
+public class MongoNpc {
 
     private final String uuid;
-    private String name;
+    private final String name;
     private String dialogueType;
     private List<String> questIds = new ArrayList<>();
-    private boolean isStartNode;
-
-    public MongoNpc() {
-        this.uuid = UUID.randomUUID().toString();
-    }
+    private boolean isStartNode = false;
 
     public MongoNpc(String uuid, String name) {
         this.uuid = uuid;
@@ -27,10 +23,6 @@ public class MongoNpc implements MongoDao<MongoNpc> {
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDialogueType() {
@@ -66,7 +58,7 @@ public class MongoNpc implements MongoDao<MongoNpc> {
     }
 
     @SuppressWarnings("unchecked")
-    public MongoNpc fromDocument(Document document) {
+    public static MongoNpc fromDocument(Document document) {
         MongoNpc p = new MongoNpc(document.getString("uuid"), document.getString("name"));
         p.setDialogueType(document.getString("dialogueType"));
         p.setQuestIds(document.getList("questIds", String.class));

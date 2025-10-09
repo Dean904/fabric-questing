@@ -4,7 +4,7 @@ import org.bson.Document;
 
 import java.util.*;
 
-public class MongoPlayer implements MongoDao<MongoPlayer> {
+public class MongoPlayer {
 
     private final String uuid;
     private String name;
@@ -12,10 +12,6 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
     private Map<String, ActiveQuestState> activeQuestProgressionMap = new HashMap<>();
     private List<String> completedQuestIds = new ArrayList<>();
-
-    public MongoPlayer() {
-        this.uuid = UUID.randomUUID().toString();
-    }
 
     public MongoPlayer(String uuid, String name) {
         this.uuid = uuid;
@@ -50,12 +46,12 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
         npcActiveQuestMap.put(npcUuid, questUuid);
     }
 
-    public void attachActiveQuestState(ActiveQuestState progress) {
-        activeQuestProgressionMap.put(progress.getQuestUuid(), progress);
+    public void removeActiveQuestForNpc(String npcUuid) {
+        npcActiveQuestMap.remove(npcUuid);
     }
 
-    protected Map<String, String> getNpcActiveQuestUuidMap() {
-        return npcActiveQuestMap;
+    public void attachActiveQuestState(ActiveQuestState progress) {
+        activeQuestProgressionMap.put(progress.getQuestUuid(), progress);
     }
 
     protected void setNpcActiveQuestMap(Map<String, String> npcActiveQuestMap) {
@@ -103,7 +99,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     }
 
     @SuppressWarnings("unchecked")
-    public MongoPlayer fromDocument(Document document) {
+    public static MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
         player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
@@ -120,23 +116,23 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
     public static class ActiveQuestState {
         private final String questUuid;
         private final String questTitle;
-        private final MongoQuest.Category category;
+        private final MongoQuest.CategoryEnum categoryEnum;
         private final boolean isSubmissionExpected;
         private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
         private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
 
-        public ActiveQuestState(String questUuid, String questTitle, MongoQuest.Category category, boolean isSubmissionExpected) {
+        public ActiveQuestState(String questUuid, String questTitle, MongoQuest.CategoryEnum categoryEnum, boolean isSubmissionExpected) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
-            this.category = category;
+            this.categoryEnum = categoryEnum;
             this.isSubmissionExpected = isSubmissionExpected;
         }
 
         public ActiveQuestState(MongoQuest quest) {
             this.questUuid = quest.getUuid();
             this.questTitle = quest.getTitle();
-            this.category = quest.getCategory();
+            this.categoryEnum = quest.getCategory();
             this.isSubmissionExpected = quest.getReward() != null || quest.getTrigger() != null;
             this.objectiveProgressions.addAll(quest.getObjectives().stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
         }
@@ -173,8 +169,8 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             this.areAllObjectivesComplete = areAllObjectivesComplete;
         }
 
-        public MongoQuest.Category getCategory() {
-            return category;
+        public MongoQuest.CategoryEnum getCategory() {
+            return categoryEnum;
         }
 
         public boolean isSubmissionExpected() {
@@ -202,7 +198,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
 
             return new Document("questUuid", questUuid)
                     .append("questTitle", questTitle)
-                    .append("category", category.name())
+                    .append("category", categoryEnum.name())
                     .append("isSubmissionExpected", isSubmissionExpected)
                     .append("objectiveProgressions", objectiveProgressDocs)
                     .append("receivedQuestBook", receivedQuestBook)
@@ -213,7 +209,7 @@ public class MongoPlayer implements MongoDao<MongoPlayer> {
             ActiveQuestState q = new ActiveQuestState(
                     document.getString("questUuid"),
                     document.getString("questTitle"),
-                    MongoQuest.Category.valueOf(document.getString("category")),
+                    MongoQuest.CategoryEnum.valueOf(document.getString("category")),
                     document.getBoolean("isSubmissionExpected")
             );
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
