@@ -3,7 +3,6 @@
   "package": "bor.samsara.questing.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "BookSignedMixin",
     "PlayerInventoryMixin",
     "VillagerEntityMixin",
     "PlayerTravelMixin"

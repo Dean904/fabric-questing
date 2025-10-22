@@ -25,7 +25,7 @@ public class PlayerMongoClient {
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            return new MongoPlayer().fromDocument(doc);
+            return MongoPlayer.fromDocument(doc);
         }
         throw new IllegalStateException("The player '%s' was not found".formatted(uuid));
     }
@@ -43,7 +43,7 @@ public class PlayerMongoClient {
         Document doc = collection.find(query).first();
 
         if (doc != null) {
-            return new MongoPlayer().fromDocument(doc);
+            return MongoPlayer.fromDocument(doc);
         }
         throw new IllegalStateException("The player '%s' was not found".formatted(targetPlayerName));
     }

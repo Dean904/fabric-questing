@@ -33,7 +33,7 @@ public class AppConfiguration {
                 configFile.createNewFile();
                 log.info("Created configuration file at: {}", configFile.getAbsolutePath());
                 appProperties.put(MONGO_URI, "mongodb://localhost:27017");
-                appProperties.put(REQUIRED_WELCOME_QUEST_TITLE, WelcomingTraveler.TRAVELER_CALL_TO_ACTION_QUEST_TITLE);
+                appProperties.put(REQUIRED_WELCOME_QUEST_TITLE, WelcomingTraveler.DEFAULT_CALL_TO_ACTION_QUEST_TITLE);
                 try (FileWriter fileWriter = new FileWriter(configFile)) {
                     appProperties.store(fileWriter, "Samsara Fabric Questing Configuration");
                     appProperties.load(configFile.toURI().toURL().openStream());
