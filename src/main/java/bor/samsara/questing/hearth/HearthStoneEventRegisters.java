@@ -54,8 +54,7 @@ public class HearthStoneEventRegisters {
 
     public static final String WARP_LOCATION = "warpLocation";
 
-    private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(
-            runnable -> new Thread(runnable, "HearthStoneEvent-Thread"));
+    private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(runnable -> new Thread(runnable, "HearthStoneEvent-Thread"));
     public static final Identifier HEARTHSTONE = Identifier.of("hearthstone");
 
     public record TeleportTask(Future<?> task, Vec3d startPos) {}

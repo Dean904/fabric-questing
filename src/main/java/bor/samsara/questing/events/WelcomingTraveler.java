@@ -1,7 +1,6 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
-import bor.samsara.questing.hearth.HearthStoneEventRegisters;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -13,10 +12,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.WanderingTraderEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
@@ -74,7 +71,7 @@ public class WelcomingTraveler {
             for (String questId : mongoNpc.getQuestIds()) {
                 if (!playerState.isQuestComplete(questId)) { // todo change completion to TURN IN AT BONDRED :O
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
-                    playerState.setActiveQuestForNpc(mongoNpc.getUuid(), questId);
+                    playerState.setCurrentQuestForNpc(mongoNpc.getUuid(), questId);
                     playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
                     PlayerMongoClient.updatePlayer(playerState);
                     SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
@@ -140,7 +137,6 @@ public class WelcomingTraveler {
             MongoQuest qStart = new MongoQuest(UUID.randomUUID().toString());
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
-            qStart.setSequence(0);
             qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
             qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
             qStart.setProvidesQuestBook(false);
@@ -153,7 +149,6 @@ public class WelcomingTraveler {
             MongoQuest qEnd = new MongoQuest(UUID.randomUUID().toString());
             qEnd.setTitle(DEFAULT_CALL_TO_ACTION_QUEST_TITLE);
             qEnd.setCategory(MongoQuest.CategoryEnum.WELCOME);
-            qEnd.setSequence(1);
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
             qStart.setProvidesQuestBook(true);
@@ -165,7 +160,6 @@ public class WelcomingTraveler {
             MongoQuest qFinish = new MongoQuest(UUID.randomUUID().toString());
             qFinish.setTitle(travelerFarewellQuestTitle);
             qFinish.setCategory(MongoQuest.CategoryEnum.END);
-            qFinish.setSequence(2);
             qFinish.setProvidesQuestBook(false);
             qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));
             qFinish.setReward(null);

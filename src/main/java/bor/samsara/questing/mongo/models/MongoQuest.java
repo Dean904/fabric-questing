@@ -9,7 +9,6 @@ public class MongoQuest {
 
     private final String uuid;
     private String title;
-    private Integer sequence;
     private String summary;
     private String description;
     private boolean providesQuestBook = true;
@@ -33,14 +32,6 @@ public class MongoQuest {
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    public Integer getSequence() {
-        return sequence;
-    }
-
-    public void setSequence(Integer sequence) {
-        this.sequence = sequence;
     }
 
     public String getSummary() {
@@ -249,7 +240,7 @@ public class MongoQuest {
 
     public static class Trigger {
         Event event; // e.g., "onStart", "onComplete"
-        String command; // e.g., "/give @p minecraft:diamond 1"
+        List<String> commands; // e.g., "/give @p minecraft:diamond 1"
 
         public enum Event {
             ON_START,
@@ -264,24 +255,24 @@ public class MongoQuest {
             this.event = event;
         }
 
-        public String getCommand() {
-            return command;
+        public List<String> getCommands() {
+            return commands;
         }
 
-        public void setCommand(String command) {
-            this.command = command;
+        public void setCommands(List<String> commands) {
+            this.commands = commands;
         }
 
         public Document toDocument() {
             return new Document()
                     .append("event", event.name())
-                    .append("command", command);
+                    .append("commands", commands);
         }
 
         public static MongoQuest.Trigger fromDocument(Document document) {
             MongoQuest.Trigger t = new MongoQuest.Trigger();
             t.setEvent(Event.valueOf(document.getString("event")));
-            t.setCommand(document.getString("command"));
+            t.setCommands(document.getList("commands", String.class));
             return t;
         }
     }
@@ -300,7 +291,6 @@ public class MongoQuest {
                 .append("description", description)
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
-                .append("order", sequence)
                 .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
                 .append("trigger", trigger == null ? null : trigger.toDocument())
@@ -312,7 +302,6 @@ public class MongoQuest {
         MongoQuest q = new MongoQuest(document.getString("uuid"));
         q.setTitle(document.getString("title"));
         q.setDialogue(document.getList("dialogue", String.class));
-        q.setSequence(document.getInteger("order"));
         q.setSummary(document.getString("summary"));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
@@ -335,7 +324,6 @@ public class MongoQuest {
         return "MongoQuest{" +
                 "uuid='" + uuid + '\'' +
                 ", title='" + title + '\'' +
-                ", sequence=" + sequence +
                 ", summary='" + summary + '\'' +
                 ", description='" + description + '\'' +
                 ", providesQuestBook=" + providesQuestBook +

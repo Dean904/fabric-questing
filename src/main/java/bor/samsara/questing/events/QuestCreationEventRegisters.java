@@ -1,7 +1,6 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
-import bor.samsara.questing.book.QuestConfigBook;
 import bor.samsara.questing.book.QuestLogBook;
 import bor.samsara.questing.book.QuestProgressBook;
 import bor.samsara.questing.mongo.PlayerMongoClient;
@@ -33,7 +32,6 @@ import java.util.List;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
-import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -167,24 +165,6 @@ public class QuestCreationEventRegisters {
         );
     }
 
-    public static @NotNull CommandRegistrationCallback openCommandBookForNpc() {
-        return (dispatcher, registryAccess, environment) -> dispatcher.register(
-                literal("quest")
-                        .requires(Permissions.require("samsara.quest.admin", 2))
-                        .then(literal("config")
-                                .then(literal("npc")
-                                        .then(argument("name", greedyString())
-                                                .executes(context -> {
-                                                            String villagerName = getString(context, "name");
-                                                            return QuestConfigBook.open(context.getSource(), villagerName);
-                                                        }
-                                                )
-                                        )
-                                )
-                        )
-        );
-    }
-
     public static @NotNull CommandRegistrationCallback setQuestTrigger() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
@@ -203,7 +183,7 @@ public class QuestCreationEventRegisters {
                                                                 .executes(context -> {
                                                                     MongoQuest.Trigger trigger = new MongoQuest.Trigger();
                                                                     trigger.setEvent(MongoQuest.Trigger.Event.valueOf(getString(context, "eventTrigger").toUpperCase()));
-                                                                    trigger.setCommand(getString(context, "command"));
+                                                                    trigger.setCommands(List.of(getString(context, "command")));
                                                                     MongoQuest quest = QuestMongoClient.getQuestByUuid(getString(context, "questUuid"));
                                                                     quest.setTrigger(trigger);
                                                                     QuestMongoClient.updateQuest(quest);
