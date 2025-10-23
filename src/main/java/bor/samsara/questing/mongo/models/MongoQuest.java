@@ -240,7 +240,7 @@ public class MongoQuest {
 
     public static class Trigger {
         Event event; // e.g., "onStart", "onComplete"
-        String command; // e.g., "/give @p minecraft:diamond 1"
+        List<String> commands; // e.g., "/give @p minecraft:diamond 1"
 
         public enum Event {
             ON_START,
@@ -255,24 +255,24 @@ public class MongoQuest {
             this.event = event;
         }
 
-        public String getCommand() {
-            return command;
+        public List<String> getCommands() {
+            return commands;
         }
 
-        public void setCommand(String command) {
-            this.command = command;
+        public void setCommands(List<String> commands) {
+            this.commands = commands;
         }
 
         public Document toDocument() {
             return new Document()
                     .append("event", event.name())
-                    .append("command", command);
+                    .append("commands", commands);
         }
 
         public static MongoQuest.Trigger fromDocument(Document document) {
             MongoQuest.Trigger t = new MongoQuest.Trigger();
             t.setEvent(Event.valueOf(document.getString("event")));
-            t.setCommand(document.getString("command"));
+            t.setCommands(document.getList("commands", String.class));
             return t;
         }
     }

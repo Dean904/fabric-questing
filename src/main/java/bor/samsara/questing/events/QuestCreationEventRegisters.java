@@ -32,7 +32,6 @@ import java.util.List;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
-import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -184,7 +183,7 @@ public class QuestCreationEventRegisters {
                                                                 .executes(context -> {
                                                                     MongoQuest.Trigger trigger = new MongoQuest.Trigger();
                                                                     trigger.setEvent(MongoQuest.Trigger.Event.valueOf(getString(context, "eventTrigger").toUpperCase()));
-                                                                    trigger.setCommand(getString(context, "command"));
+                                                                    trigger.setCommands(List.of(getString(context, "command")));
                                                                     MongoQuest quest = QuestMongoClient.getQuestByUuid(getString(context, "questUuid"));
                                                                     quest.setTrigger(trigger);
                                                                     QuestMongoClient.updateQuest(quest);

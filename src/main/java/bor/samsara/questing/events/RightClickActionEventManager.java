@@ -170,10 +170,12 @@ public class RightClickActionEventManager {
     }
 
     private static void executeTriggerCommand(PlayerEntity player, MongoPlayer playerState, MongoQuest quest) {
-        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommand());
+        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommands());
         CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
         ServerCommandSource commandSource = player.getServer().getCommandSource();
-        commandManager.executeWithPrefix(commandSource, quest.getTrigger().getCommand());
+        for (String command : quest.getTrigger().getCommands()) {
+            commandManager.executeWithPrefix(commandSource, command);
+        }
     }
 
     private static void handleCollectionSubmissionForCompletion(PlayerEntity player, Hand hand, MongoQuest quest, MongoPlayer.ActiveQuestState activeQuestState, MongoPlayer playerState) {
