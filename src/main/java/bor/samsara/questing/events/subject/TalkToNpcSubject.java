@@ -20,12 +20,6 @@ import java.util.Optional;
 
 public class TalkToNpcSubject extends QuestEventSubject {
 
-    @Override
-    public Object hook() {
-        // TODO whats the 'talk' workflow? Quest to Talk to NPC = COmpletion, opens dialogue on target ?
-        return null;
-    }
-
     public void talkedToQuestNpc(PlayerEntity player, World world, Hand hand, EntityHitResult hitResult, MongoPlayer playerState, String npcUuid) {
         String playerUuid = player.getUuidAsString();
         if (!playerSubsriptionMap.containsKey(playerUuid))

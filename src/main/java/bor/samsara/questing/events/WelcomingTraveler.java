@@ -19,10 +19,7 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 import static bor.samsara.questing.events.ModEntities.QUEST_NPC;
@@ -69,7 +66,7 @@ public class WelcomingTraveler {
             MongoNpc mongoNpc = makeTemporaryWelcomeTravelerForPlayer(player);
             NpcMongoClient.createNpc(mongoNpc);
             for (String questId : mongoNpc.getQuestIds()) {
-                if (!playerState.isQuestComplete(questId)) { // todo change completion to TURN IN AT BONDRED :O
+                if (!playerState.isQuestComplete(questId)) {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
                     playerState.setCurrentQuestForNpc(mongoNpc.getUuid(), questId);
                     playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
@@ -161,7 +158,6 @@ public class WelcomingTraveler {
             qFinish.setTitle(travelerFarewellQuestTitle);
             qFinish.setCategory(MongoQuest.CategoryEnum.END);
             qFinish.setProvidesQuestBook(false);
-            qFinish.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.FIN, "", -1)));
             qFinish.setReward(null);
             qFinish.setDialogue(List.of("These are troubling times indeed.",
                     "I wonder, are you here because of the cataclysm, or are you the harbinger?",

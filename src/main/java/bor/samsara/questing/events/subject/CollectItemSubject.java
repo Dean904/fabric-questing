@@ -18,11 +18,6 @@ public class CollectItemSubject extends QuestEventSubject {
     Set<String> pertinentItemNames = new HashSet<>();
 
     @Override
-    public Object hook() {
-        return null;
-    }
-
-    @Override
     public void attach(ActionSubscription listener) {
         playerSubsriptionMap.putIfAbsent(listener.getPlayerUuid(), new ArrayList<>());
         playerSubsriptionMap.get(listener.getPlayerUuid()).add(listener);
@@ -50,22 +45,14 @@ public class CollectItemSubject extends QuestEventSubject {
                 int totalStackSize = player.getInventory().getStack(slot).getCount();
                 boolean doesStackSizeProgressObjective = totalStackSize > progress.getCurrentCount();
 
-                //boolean isAllComplete = false;
                 if (totalStackSize >= progress.getRequiredCount()) {
-                    //progress.setComplete(true);
-                    // needs to submit to quest giver for ccompletion
+                    // Do not mark complete, need to submit to quest giver for completion
                     log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
-                    //isAllComplete = questProgress.getObjectiveProgressions().stream().allMatch(MongoPlayer.QuestProgress.ObjectiveProgress::isComplete);
                     player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
                     player.sendMessage(Text.literal("Return to the quest giver with " + progress.getRequiredCount() + " [" + itemName + "]!"), false);
                     this.detach(subscription, ite);
                 }
 
-                //    if (isAllComplete) {
-                //        player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.6f, 1.0f);
-                //    } else if (progress.isComplete()) {
-                //        player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
-                //    } else
                 if (doesStackSizeProgressObjective) {
                     log.debug("Incrementing quest objective count to {} for player {}", totalStackSize, playerState.getName());
                     player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);

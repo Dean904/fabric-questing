@@ -148,7 +148,7 @@ public class MongoQuest {
             KILL,
             TALK,
             COLLECT,
-            FIN // TODO remove fin - repalced with END quest category
+            DO_QUEST
         }
 
         public Document toDocument() {

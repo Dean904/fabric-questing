@@ -15,9 +15,6 @@ public abstract class QuestEventSubject {
 
     protected Map<String, List<ActionSubscription>> playerSubsriptionMap = new HashMap<>();
 
-    @Deprecated
-    public abstract Object hook();
-
     public void attach(ActionSubscription listener) {
         log.debug("{} Attached for {} ", this.getClass().getSimpleName(), listener);
         playerSubsriptionMap.putIfAbsent(listener.getPlayerUuid(), new ArrayList<>());
