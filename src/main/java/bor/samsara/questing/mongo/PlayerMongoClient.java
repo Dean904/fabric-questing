@@ -3,20 +3,26 @@ package bor.samsara.questing.mongo;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import org.bson.Document;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class PlayerMongoClient {
 
     private static final String PLAYER_COLLECTION = "playerCharacters";
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
 
+    static {
+        MongoCollection<Document> playerCollection = database.getCollection(PLAYER_COLLECTION);
+        playerCollection.createIndex(Indexes.ascending("name"), new IndexOptions().unique(true).background(true));
+        playerCollection.createIndex(Indexes.ascending("uuid"), new IndexOptions().unique(true));
+    }
+
+    private PlayerMongoClient() {}
+
     public static void createPlayer(MongoPlayer player) {
         MongoCollection<Document> collection = database.getCollection(PLAYER_COLLECTION);
-        Document doc = player.toDocument();
-        collection.insertOne(doc);
+        collection.insertOne(player.toDocument());
     }
 
     public static MongoPlayer getPlayerByUuid(String uuid) throws IllegalStateException {
