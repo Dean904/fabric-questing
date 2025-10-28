@@ -5,6 +5,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -27,7 +28,13 @@ public class QuestMongoClient {
 
     static {
         log.info("Creating ID index for MongoDB collection '{}'", QUEST_COLLECTION);
-        collection.createIndex(Indexes.ascending("uuid"));
+        try {
+            collection.createIndex(Indexes.ascending("title"), new IndexOptions().unique(true).background(true));
+            collection.createIndex(Indexes.ascending("uuid"), new IndexOptions().unique(true));
+        } catch (Exception e) {
+           log.error(e.getMessage(), e);
+        }
+        // TODO ensure query indexes created on all .gets
     }
 
     public static void createQuest(MongoQuest quest) {

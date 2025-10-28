@@ -9,6 +9,7 @@ public class MongoNpc {
     private final String uuid;
     private final String name;
     private String dialogueType;
+    private String mobType; // added mobType to represent the entity mob type (optional)
     private List<String> questIds = new ArrayList<>();
     private boolean isStartNode = false;
 
@@ -33,6 +34,14 @@ public class MongoNpc {
         this.dialogueType = dialogueType;
     }
 
+    public String getMobType() {
+        return mobType;
+    }
+
+    public void setMobType(String mobType) {
+        this.mobType = mobType;
+    }
+
     public List<String> getQuestIds() {
         return questIds;
     }
@@ -53,6 +62,7 @@ public class MongoNpc {
         return new Document("uuid", uuid)
                 .append("name", name)
                 .append("dialogueType", dialogueType)
+                .append("mobType", mobType)
                 .append("questIds", questIds)
                 .append("isStartNode", isStartNode);
     }
@@ -61,6 +71,7 @@ public class MongoNpc {
     public static MongoNpc fromDocument(Document document) {
         MongoNpc p = new MongoNpc(document.getString("uuid"), document.getString("name"));
         p.setDialogueType(document.getString("dialogueType"));
+        p.setMobType(document.getString("mobType"));
         p.setQuestIds(document.getList("questIds", String.class));
         p.isStartNode = document.getBoolean("isStartNode", false);
         return p;
@@ -72,8 +83,10 @@ public class MongoNpc {
                 "uuid='" + uuid + '\'' +
                 ", name='" + name + '\'' +
                 ", dialogueType='" + dialogueType + '\'' +
+                ", mobType='" + mobType + '\'' +
                 ", isStartNode=" + isStartNode +
                 ", questIds=" + questIds +
                 '}';
     }
+
 }
