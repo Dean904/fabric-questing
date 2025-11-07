@@ -2,6 +2,7 @@ package bor.samsara.questing;
 
 import bor.samsara.questing.events.*;
 import bor.samsara.questing.events.subject.CollectItemSubject;
+import bor.samsara.questing.events.subject.DoQuestSubject;
 import bor.samsara.questing.events.subject.KillSubject;
 import bor.samsara.questing.events.subject.TalkToNpcSubject;
 import bor.samsara.questing.hearth.HearthStoneEventRegisters;
@@ -18,11 +19,9 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +38,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final KillSubject killSubject = new KillSubject();
     public static final CollectItemSubject collectItemSubject = new CollectItemSubject();
     public static final TalkToNpcSubject talkToNpcSubject = new TalkToNpcSubject();
+    public static final DoQuestSubject doQuestSubject = new DoQuestSubject();
 
     public static final Queue<Runnable> questRunnables = new LinkedList<>();
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -71,7 +71,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
         UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
         UseBlockCallback.EVENT.register(RightClickActionEventManager.evaporateBucketInNether());
         UseEntityCallback.EVENT.register(RightClickActionEventManager.rightClickQuestNpc());
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.hook());
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.processEntityKill());
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
@@ -120,7 +120,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
                 case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);
                 case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
                 case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
-                case FIN -> {}
+                case DO_QUEST -> SamsaraFabricQuesting.doQuestSubject.attach(actionSubscription, playerState);
                 default -> log.warn("Unknown Objective Type '{}' when registering Quest {} for Player {}", objectiveType, quest.getTitle(), playerState.getName());
             }
         }

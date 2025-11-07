@@ -1,7 +1,5 @@
 package bor.samsara.questing.events;
 
-import bor.samsara.questing.mongo.models.MongoQuest;
-
 public class ActionSubscription {
 
     private final String playerUuid;

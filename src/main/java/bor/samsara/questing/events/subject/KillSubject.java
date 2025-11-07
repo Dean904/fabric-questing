@@ -15,8 +15,7 @@ import java.util.List;
 
 public class KillSubject extends QuestEventSubject {
 
-    @Override
-    public ServerEntityCombatEvents.AfterKilledOtherEntity hook() {
+    public ServerEntityCombatEvents.AfterKilledOtherEntity processEntityKill() {
         return (world, killer, killedEntity) -> {
             String playerUuid = killer.getUuidAsString();
             if (!playerSubsriptionMap.containsKey(playerUuid))

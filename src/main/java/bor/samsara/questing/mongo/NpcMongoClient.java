@@ -3,6 +3,8 @@ package bor.samsara.questing.mongo;
 import bor.samsara.questing.mongo.models.MongoNpc;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
 
@@ -11,6 +13,12 @@ public class NpcMongoClient {
     private static final String NPC_COLLECTION = "nonPlayerCharacters";
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
     public static final MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
+
+    static {
+        MongoCollection<Document> questCollection = database.getCollection("quests"); // adjust name if different
+        questCollection.createIndex(Indexes.ascending("title"), new IndexOptions().unique(true).background(true));
+        questCollection.createIndex(Indexes.ascending("uuid"), new IndexOptions().unique(true));
+    }
 
     private NpcMongoClient() {}
 
