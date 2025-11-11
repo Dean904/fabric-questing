@@ -13,3 +13,12 @@ https://minecraft.fandom.com/wiki/Tutorials/Creating_a_resource_pack
 https://minecraft.wiki/w/Data_component_format#use_cooldown
 
 https://text.datapackhub.net/
+
+
+Resource Pack Ideas:
+
+https://www.reddit.com/r/Minecraft/comments/1osp13c/some_hotbar_concepts_for_my_pack_cant_decided/
+
+
+Custom Dimensions
+https://minecraft.wiki/w/Dimension_definition

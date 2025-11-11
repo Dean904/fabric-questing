@@ -135,7 +135,7 @@ public class WelcomingTraveler {
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
             qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
-            qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
+            qStart.setReward(new MongoQuest.Reward("minecraft:blue_bundle{minecraft:golden_sword[enchants=unbreaking:3;smite:2;looting:1],1}", 1, 15));
             qStart.setProvidesQuestBook(false);
             qStart.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",
@@ -149,7 +149,8 @@ public class WelcomingTraveler {
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
             qStart.setProvidesQuestBook(true);
-            qEnd.setDialogue(List.of("What are you doing here?!?",
+            qEnd.setDialogue(List.of("Is this some sort of game to you?",
+                    "What are you doing here?!?",
                     "This must mean the cycle has started again.",
                     "Quick, go talk to the old man in the village, Bondred."));
             QuestMongoClient.createQuest(qEnd);

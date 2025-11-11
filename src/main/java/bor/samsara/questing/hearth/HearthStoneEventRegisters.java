@@ -19,6 +19,7 @@ import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -31,6 +32,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.World;
@@ -45,14 +47,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import static com.mojang.brigadier.arguments.StringArgumentType.getString;
-import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
+import static com.mojang.brigadier.arguments.StringArgumentType.*;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class HearthStoneEventRegisters {
 
     public static final String WARP_LOCATION = "warpLocation";
+    public static final String WARP_DIMENSION = "warpDimension";
 
     private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(runnable -> new Thread(runnable, "HearthStoneEvent-Thread"));
     public static final Identifier HEARTHSTONE = Identifier.of("hearthstone");
@@ -90,21 +92,26 @@ public class HearthStoneEventRegisters {
                         .requires(Permissions.require("samsara.quest.admin", 2))
                         .then(literal("create")
                                 .then(argument("pos", BlockPosArgumentType.blockPos())
-                                        .then(argument("name", greedyString())
-                                                .executes(context -> {
-                                                            String name = getString(context, "name");
-                                                            ItemStack hearthstone = createHearthstoneItem(name, BlockPosArgumentType.getBlockPos(context, "pos"));
-                                                            ServerCommandSource source = context.getSource();
-                                                            ServerPlayerEntity player = source.getPlayerOrThrow();
-                                                            if (player.getInventory().insertStack(hearthstone)) {
-                                                                source.sendFeedback(() -> Text.literal("Given hearthstone to " + player.getName().getString()), false);
-                                                            } else {
-                                                                // If inventory is full, drop it on the ground
-                                                                player.dropItem(hearthstone, true);
-                                                            }
+                                        .then(argument("dimension", string())
+                                                .then(argument("name", greedyString())
+                                                        .executes(context -> {
+                                                                    String name = getString(context, "name");
+                                                                    BlockPos pos = BlockPosArgumentType.getBlockPos(context, "pos");
+                                                                    String dimensionStr = getString(context, "dimension");
+                                                                    RegistryKey<World> dimension = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(dimensionStr));
+                                                                    ItemStack hearthstone = createHearthstoneItem(name, GlobalPos.create(dimension, pos));
+                                                                    ServerCommandSource source = context.getSource();
+                                                                    ServerPlayerEntity player = source.getPlayerOrThrow();
+                                                                    if (player.getInventory().insertStack(hearthstone)) {
+                                                                        source.sendFeedback(() -> Text.literal("Given hearthstone to " + player.getName().getString()), false);
+                                                                    } else {
+                                                                        // If inventory is full, drop it on the ground
+                                                                        player.dropItem(hearthstone, true);
+                                                                    }
 
-                                                            return 1;
-                                                        }
+                                                                    return 1;
+                                                                }
+                                                        )
                                                 )
                                         )
                                 )
@@ -112,7 +119,7 @@ public class HearthStoneEventRegisters {
         );
     }
 
-    public static @NotNull ItemStack createHearthstoneItem(String name, BlockPos pos) {
+    public static @NotNull ItemStack createHearthstoneItem(String name, GlobalPos globalPos) {
         ItemStack hearthstone = new ItemStack(Items.CARROT_ON_A_STICK);
         hearthstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Hearthstone"));
         hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to teleport to " + name))));
@@ -123,8 +130,10 @@ public class HearthStoneEventRegisters {
         // addEnchantment(hearthstone);
 
         NbtCompound nbtCompound = new NbtCompound();
-        nbtCompound.putLong(WARP_LOCATION, pos.asLong());
+        nbtCompound.putLong(WARP_LOCATION, globalPos.pos().asLong());
+        nbtCompound.putString(WARP_DIMENSION, globalPos.dimension().getValue().toString());
         hearthstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
+
         return hearthstone;
     }
 
@@ -191,7 +200,9 @@ public class HearthStoneEventRegisters {
                     }
                 }
 
-                ServerWorld serverWorld = world.getServer().getWorld(World.OVERWORLD);
+                String dimensionStr = stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getString(WARP_DIMENSION).get();
+                RegistryKey<World> dimension = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(dimensionStr));
+                ServerWorld serverWorld = world.getServer().getWorld(dimension);
                 BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getLong(WARP_LOCATION).get());
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
@@ -219,20 +230,4 @@ public class HearthStoneEventRegisters {
         return d + ((Math.random() - 0.5) * 0.5); // Small jitter to simulate randomness
     }
 
-    private static void addEnchantment(ItemStack item) {
-        Object2IntOpenHashMap<RegistryKey<Enchantment>> map = new Object2IntOpenHashMap<>();
-        map.addTo(Enchantments.UNBREAKING, 1);
-
-        ItemEnchantmentsComponent.Builder enchantBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-        //enchantBuilder.add(RegistryEntry.of(Enchantment.builder(),),  1);
-
-//        item.set(DataComponentTypes.ENCHANTMENTS,
-//                new EnchantmentComponent(List.of(
-//                        new EnchantmentComponent.Entry(Enchantments.UNBREAKING, 1)
-//                ))
-//        );
-
-        item.set(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
-
-    }
 }
