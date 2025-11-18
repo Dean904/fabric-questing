@@ -22,3 +22,11 @@ https://www.reddit.com/r/Minecraft/comments/1osp13c/some_hotbar_concepts_for_my_
 
 Custom Dimensions
 https://minecraft.wiki/w/Dimension_definition
+https://misode.github.io/dimension/
+https://minecraft.wiki/w/Data_pack
+
+https://www.reddit.com/r/Minecraft/comments/1ov1p69/wave_animation_with_arrows/
+
+boss fight insp
+https://orian34.github.io/travelogues/posts/finalparadox/
+https://www.youtube.com/watch?v=fT-E5h6caSI
