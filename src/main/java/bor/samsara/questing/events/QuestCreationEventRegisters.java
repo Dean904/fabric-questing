@@ -59,7 +59,7 @@ public class QuestCreationEventRegisters {
             NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
             if (itemStack.getItem() == Items.WRITTEN_BOOK && hasPlayerUuidTag(customData)) {
                 if (hasSpecifcQuestUuidTag(customData)) { // progress book refresh
-                    NbtCompound nbt = customData.getNbt();
+                    NbtCompound nbt = customData.copyNbt();
                     String playerUuid = nbt.get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
                     String questUuid = nbt.get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
                     int playerProgress = nbt.getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
@@ -81,8 +81,8 @@ public class QuestCreationEventRegisters {
                     }
                     return ActionResult.PASS;
                 } else if (hasPlayerStateTag(customData)) { // quest log refresh
-                    String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
-                    Integer playerStateHash = customData.getNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
+                    String playerUuid = customData.copyNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
+                    Integer playerStateHash = customData.copyNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                     if (playerState.getActiveQuestProgressionMap().hashCode() != playerStateHash) {
@@ -117,24 +117,24 @@ public class QuestCreationEventRegisters {
 
     private static boolean hasPlayerUuidTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && (nbt.contains(QuestProgressBook.PLAYER_UUID));
+            NbtCompound nbt = customData.copyNbt();
+            return (nbt.contains(QuestProgressBook.PLAYER_UUID));
         }
         return false;
     }
 
     private static boolean hasSpecifcQuestUuidTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestProgressBook.QUEST_UUID);
+            NbtCompound nbt = customData.copyNbt();
+            return nbt.contains(QuestProgressBook.QUEST_UUID);
         }
         return false;
     }
 
     private static boolean hasPlayerStateTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestLogBook.PLAYER_STATE);
+            NbtCompound nbt = customData.copyNbt();
+            return nbt.contains(QuestLogBook.PLAYER_STATE);
         }
         return false;
     }
