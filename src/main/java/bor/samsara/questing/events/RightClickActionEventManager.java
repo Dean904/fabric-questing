@@ -170,10 +170,10 @@ public class RightClickActionEventManager {
 
     private static void executeTriggerCommand(PlayerEntity player, MongoPlayer playerState, MongoQuest quest) {
         log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommands());
-        CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
-        ServerCommandSource commandSource = player.getServer().getCommandSource();
+        CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
+        ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource();
         for (String command : quest.getTrigger().getCommands()) {
-            commandManager.executeWithPrefix(commandSource, command);
+            commandManager.parseAndExecute(commandSource, command);
         }
     }
 
@@ -206,7 +206,7 @@ public class RightClickActionEventManager {
         if (reward != null) {
             player.addExperience(reward.getXpValue());
             if (!StringUtils.equalsAnyIgnoreCase(reward.getItemName(), "none", "na")) {
-                ItemStack stack = ItemStackFactory.getRewardItemStack(reward, player.getWorld());
+                ItemStack stack = ItemStackFactory.getRewardItemStack(reward, player.getEntityWorld());
                 boolean added = player.giveItemStack(stack);
                 if (!added) {
                     player.dropItem(stack, false);

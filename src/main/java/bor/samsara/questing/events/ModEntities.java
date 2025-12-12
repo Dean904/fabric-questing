@@ -34,7 +34,7 @@ public class ModEntities {
 
     public static int createQuestNPC(ServerCommandSource source, String name, String mobType, boolean isStartNode) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         try {
             UUID villagerUuid = UUID.randomUUID();
@@ -55,7 +55,7 @@ public class ModEntities {
 
     public static int spawnEntityFromUUID(ServerCommandSource source, String uuid) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         try {
             MongoNpc mongoNpc = NpcMongoClient.getNpc(uuid);
@@ -79,7 +79,7 @@ public class ModEntities {
         EntityType<? extends MobEntity> npcEntity = (EntityType<? extends MobEntity>) Registries.ENTITY_TYPE.get(Identifier.of(mobType));
         MobEntity npc = npcEntity.create(world, SpawnReason.TRIGGERED);
         npc.setUuid(uuid);
-        npc.refreshPositionAndAngles(player.getPos().x, player.getPos().y, player.getPos().z, player.getYaw(), player.getPitch());
+        npc.refreshPositionAndAngles(player.getEntityPos().x, player.getEntityPos().y, player.getEntityPos().z, player.getYaw(), player.getPitch());
         npc.setCustomName(Text.literal(name));
         npc.setCustomNameVisible(true);
         npc.setAiDisabled(true);
