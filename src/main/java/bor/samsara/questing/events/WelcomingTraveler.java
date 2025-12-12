@@ -45,10 +45,10 @@ public class WelcomingTraveler {
                 playerState.removeActiveQuestForNpc(welcomerUuid);
                 PlayerMongoClient.updatePlayer(playerState);
 
-                World world = player.getWorld();
+                World world = player.getEntityWorld();
                 Entity trader = world.getEntity(UUID.fromString(welcomerUuid));
                 if (null != trader)
-                    player.getServer().execute(trader::discard);
+                    player.getEntityWorld().getServer().execute(trader::discard);
 
             }
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class WelcomingTraveler {
                 }
             }
 
-            World world = player.getWorld();
+            World world = player.getEntityWorld();
             WanderingTraderEntity trader = makeWanderingTraderEntity(world, player, mongoNpc.getUuid());
             playerWelcomerMap.put(player.getUuidAsString(), trader.getUuidAsString());
             world.spawnEntity(trader);
@@ -135,7 +135,7 @@ public class WelcomingTraveler {
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
             qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
-            qStart.setReward(new MongoQuest.Reward("minecraft:totem_of_undying", 1, 15));
+            qStart.setReward(new MongoQuest.Reward("minecraft:blue_bundle{minecraft:golden_sword[enchants=unbreaking:3;smite:2;looting:1],1}", 1, 15));
             qStart.setProvidesQuestBook(false);
             qStart.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",
@@ -149,7 +149,8 @@ public class WelcomingTraveler {
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
             qStart.setProvidesQuestBook(true);
-            qEnd.setDialogue(List.of("What are you doing here?!?",
+            qEnd.setDialogue(List.of("Is this some sort of game to you?",
+                    "What are you doing here?!?",
                     "This must mean the cycle has started again.",
                     "Quick, go talk to the old man in the village, Bondred."));
             QuestMongoClient.createQuest(qEnd);
@@ -174,7 +175,7 @@ public class WelcomingTraveler {
         trader.setUuid(UUID.fromString(uuid));
 
         Vec3d forward = player.getRotationVec(1.0f).normalize();
-        trader.refreshPositionAndAngles(player.getPos().x + forward.x * 2, player.getPos().y, player.getPos().z + forward.z * 2, player.getYaw(), player.getPitch());
+        trader.refreshPositionAndAngles(player.getEntityPos().x + forward.x * 2, player.getEntityPos().y, player.getEntityPos().z + forward.z * 2, player.getYaw(), player.getPitch());
         trader.setCustomName(Text.literal("§ Hey, " + player.getName().getString() + "!"));
         trader.setCustomNameVisible(true);
         trader.addCommandTag(QUEST_NPC);

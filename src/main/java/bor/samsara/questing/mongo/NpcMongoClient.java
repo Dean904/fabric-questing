@@ -7,17 +7,26 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
 public class NpcMongoClient {
+
+    public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
     private static final String NPC_COLLECTION = "nonPlayerCharacters";
     private static final MongoDatabase database = MongoDatabaseSingleton.getDatabase();
     public static final MongoCollection<Document> collection = database.getCollection(NPC_COLLECTION);
 
     static {
-        MongoCollection<Document> questCollection = database.getCollection("quests"); // adjust name if different
-        questCollection.createIndex(Indexes.ascending("title"), new IndexOptions().unique(true).background(true));
-        questCollection.createIndex(Indexes.ascending("uuid"), new IndexOptions().unique(true));
+        try {
+            collection.createIndex(Indexes.ascending("name"), new IndexOptions().unique(true).background(true));
+            collection.createIndex(Indexes.ascending("uuid"), new IndexOptions().unique(true));
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
     }
 
     private NpcMongoClient() {}

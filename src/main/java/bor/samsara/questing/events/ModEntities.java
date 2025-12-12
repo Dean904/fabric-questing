@@ -1,25 +1,19 @@
 package bor.samsara.questing.events;
 
-import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.mongo.NpcMongoClient;
-import bor.samsara.questing.mongo.PlayerMongoClient;
-import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoNpc;
-import bor.samsara.questing.mongo.models.MongoPlayer;
-import bor.samsara.questing.mongo.models.MongoQuest;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.entity.passive.WanderingTraderEntity;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -38,13 +32,13 @@ public class ModEntities {
 
     private ModEntities() {}
 
-    public static int createQuestNPC(ServerCommandSource source, String name, boolean isStartNode) throws CommandSyntaxException {
+    public static int createQuestNPC(ServerCommandSource source, String name, String mobType, boolean isStartNode) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         try {
             UUID villagerUuid = UUID.randomUUID();
-            VillagerEntity villager = makeVillagerEntity(world, villagerUuid, player, name);
+            MobEntity villager = makeNpcEntity(world, villagerUuid, player, name, mobType);
             villager.addCommandTag(QUEST_NPC);
             if (isStartNode)
                 villager.addCommandTag(QUEST_START_NODE);
@@ -61,18 +55,18 @@ public class ModEntities {
 
     public static int spawnEntityFromUUID(ServerCommandSource source, String uuid) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
-        World world = player.getWorld();
+        World world = player.getEntityWorld();
 
         try {
             MongoNpc mongoNpc = NpcMongoClient.getNpc(uuid);
-            VillagerEntity villager = makeVillagerEntity(world, UUID.fromString(mongoNpc.getUuid()), player, mongoNpc.getName());
-            villager.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, Integer.MAX_VALUE, 5, false, false));
-            villager.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, Integer.MAX_VALUE, 99, false, false));
-            villager.addCommandTag(QUEST_NPC);
+            MobEntity npcEntity = makeNpcEntity(world, UUID.fromString(mongoNpc.getUuid()), player, mongoNpc.getName(), mongoNpc.getMobType());
+            npcEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, Integer.MAX_VALUE, 5, false, false));
+            npcEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, Integer.MAX_VALUE, 99, false, false));
+            npcEntity.addCommandTag(QUEST_NPC);
             if (mongoNpc.isStartNode()) {
-                villager.addCommandTag(QUEST_START_NODE);
+                npcEntity.addCommandTag(QUEST_START_NODE);
             }
-            world.spawnEntity(villager);
+            world.spawnEntity(npcEntity);
         } catch (Exception e) {
             source.sendError(Text.literal("Failed: " + e));
         }
@@ -81,16 +75,20 @@ public class ModEntities {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static @NotNull VillagerEntity makeVillagerEntity(World world, UUID uuid, ServerPlayerEntity player, String name) {
-        VillagerEntity villager = EntityType.VILLAGER.create(world, SpawnReason.TRIGGERED);
-        villager.setUuid(uuid);
-        villager.refreshPositionAndAngles(player.getPos().x, player.getPos().y, player.getPos().z, player.getYaw(), player.getPitch());
-        villager.setCustomName(Text.literal(name));
-        villager.setAiDisabled(true);
-        villager.setSilent(true);
-        villager.setInvulnerable(true);
-        villager.setNoGravity(true);
-        return villager;
+    private static @NotNull MobEntity makeNpcEntity(World world, UUID uuid, ServerPlayerEntity player, String name, String mobType) {
+        EntityType<? extends MobEntity> npcEntity = (EntityType<? extends MobEntity>) Registries.ENTITY_TYPE.get(Identifier.of(mobType));
+        MobEntity npc = npcEntity.create(world, SpawnReason.TRIGGERED);
+        npc.setUuid(uuid);
+        npc.refreshPositionAndAngles(player.getEntityPos().x, player.getEntityPos().y, player.getEntityPos().z, player.getYaw(), player.getPitch());
+        npc.setCustomName(Text.literal(name));
+        npc.setCustomNameVisible(true);
+        npc.setAiDisabled(true);
+        npc.setSilent(true);
+        npc.setInvulnerable(true);
+        npc.setNoGravity(true);
+        npc.setPersistent();
+        npc.setCanPickUpLoot(false);
+        return npc;
     }
 
 

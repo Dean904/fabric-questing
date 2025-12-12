@@ -92,9 +92,9 @@ public class SamsaraFabricQuesting implements ModInitializer {
             log.debug(e.getMessage());
             String playerName = serverPlayer.getName().getLiteralString();
             log.info("{} joining for first time.", playerName);
-            CommandManager commandManager = serverPlayer.getServer().getCommandManager();
-            ServerCommandSource commandSource = serverPlayer.getServer().getCommandSource();
-            commandManager.executeWithPrefix(commandSource, "/time set 23300");
+            CommandManager commandManager = serverPlayer.getEntityWorld().getServer().getCommandManager();
+            ServerCommandSource commandSource = serverPlayer.getEntityWorld().getServer().getCommandSource();
+            commandManager.parseAndExecute(commandSource, "/time set 23300");
             MongoPlayer p = new MongoPlayer(serverPlayer.getUuidAsString(), playerName);
             PlayerMongoClient.createPlayer(p);
             return p;

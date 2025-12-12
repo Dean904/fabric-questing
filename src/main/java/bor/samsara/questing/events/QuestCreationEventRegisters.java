@@ -39,6 +39,18 @@ public class QuestCreationEventRegisters {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
+    public static final String[] MOB_NAME_SUGGESTIONS = new String[]{
+            "bat", "bee", "blaze", "cat", "cave_spider", "chicken", "cod", "cow", "creeper",
+            "dolphin", "donkey", "drowned", "elder_guardian", "enderman", "endermite", "evoker",
+            "fox", "ghast", "giant", "guardian", "hoglin", "horse", "husk", "illusioner",
+            "iron_golem", "llama", "magma_cube", "mooshroom", "mule", "ocelot", "panda", "parrot",
+            "phantom", "pig", "pillager", "polar_bear", "pufferfish", "rabbit", "ravager", "salmon",
+            "sheep", "shulker", "silverfish", "skeleton", "skeleton_horse", "slime", "snow_golem",
+            "spider", "squid", "stray", "trader_llama", "tropical_fish", "turtle", "vex", "villager",
+            "vindicator", "wandering_trader", "witch", "wither", "wither_skeleton", "wolf", "zoglin",
+            "zombie", "zombie_horse", "zombie_villager", "zombified_piglin"
+    };
+
     // TODO quest delete, rename or disable = true?
 
     public static @NotNull UseItemCallback updateQuestLogWhenOpened() {
@@ -47,7 +59,7 @@ public class QuestCreationEventRegisters {
             NbtComponent customData = itemStack.get(DataComponentTypes.CUSTOM_DATA);
             if (itemStack.getItem() == Items.WRITTEN_BOOK && hasPlayerUuidTag(customData)) {
                 if (hasSpecifcQuestUuidTag(customData)) { // progress book refresh
-                    NbtCompound nbt = customData.getNbt();
+                    NbtCompound nbt = customData.copyNbt();
                     String playerUuid = nbt.get(QuestProgressBook.PLAYER_UUID).asString().orElseThrow();
                     String questUuid = nbt.get(QuestProgressBook.QUEST_UUID).asString().orElseThrow();
                     int playerProgress = nbt.getInt(QuestProgressBook.PLAYER_PROGRESS).orElseThrow();
@@ -69,8 +81,8 @@ public class QuestCreationEventRegisters {
                     }
                     return ActionResult.PASS;
                 } else if (hasPlayerStateTag(customData)) { // quest log refresh
-                    String playerUuid = customData.getNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
-                    Integer playerStateHash = customData.getNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
+                    String playerUuid = customData.copyNbt().get(QuestLogBook.PLAYER_UUID).asString().orElseThrow();
+                    Integer playerStateHash = customData.copyNbt().get(QuestLogBook.PLAYER_STATE).asInt().orElseThrow();
 
                     MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(playerUuid);
                     if (playerState.getActiveQuestProgressionMap().hashCode() != playerStateHash) {
@@ -105,29 +117,30 @@ public class QuestCreationEventRegisters {
 
     private static boolean hasPlayerUuidTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && (nbt.contains(QuestProgressBook.PLAYER_UUID));
+            NbtCompound nbt = customData.copyNbt();
+            return (nbt.contains(QuestProgressBook.PLAYER_UUID));
         }
         return false;
     }
 
     private static boolean hasSpecifcQuestUuidTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestProgressBook.QUEST_UUID);
+            NbtCompound nbt = customData.copyNbt();
+            return nbt.contains(QuestProgressBook.QUEST_UUID);
         }
         return false;
     }
 
     private static boolean hasPlayerStateTag(NbtComponent customData) {
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(QuestLogBook.PLAYER_STATE);
+            NbtCompound nbt = customData.copyNbt();
+            return nbt.contains(QuestLogBook.PLAYER_STATE);
         }
         return false;
     }
 
     public static @NotNull CommandRegistrationCallback createNpc() {
+
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("quest")
                         .requires(Permissions.require("samsara.quest.admin", 2))
@@ -139,7 +152,7 @@ public class QuestCreationEventRegisters {
                                                         .executes(ctx -> {
                                                             boolean isStart = BoolArgumentType.getBool(ctx, "isStartNode");
                                                             String name = StringArgumentType.getString(ctx, "name");
-                                                            return ModEntities.createQuestNPC(ctx.getSource(), name, isStart);
+                                                            return ModEntities.createQuestNPC(ctx.getSource(), name, "villager", isStart);
                                                         })
                                                 )
                                         )
@@ -148,7 +161,7 @@ public class QuestCreationEventRegisters {
                                                 .executes(ctx -> {
                                                     // no bool provided → default false
                                                     String name = StringArgumentType.getString(ctx, "name");
-                                                    return ModEntities.createQuestNPC(ctx.getSource(), name, /*isStart=*/false);
+                                                    return ModEntities.createQuestNPC(ctx.getSource(), name, "villager", /*isStart=*/false);
                                                 })
                                         )
                                 )

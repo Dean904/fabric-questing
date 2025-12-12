@@ -10,14 +10,10 @@ import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LodestoneTrackerComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.sound.SoundCategory;
@@ -25,10 +21,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +32,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -178,10 +170,10 @@ public class RightClickActionEventManager {
 
     private static void executeTriggerCommand(PlayerEntity player, MongoPlayer playerState, MongoQuest quest) {
         log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommands());
-        CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
-        ServerCommandSource commandSource = player.getServer().getCommandSource();
+        CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
+        ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource();
         for (String command : quest.getTrigger().getCommands()) {
-            commandManager.executeWithPrefix(commandSource, command);
+            commandManager.parseAndExecute(commandSource, command);
         }
     }
 
@@ -214,37 +206,13 @@ public class RightClickActionEventManager {
         if (reward != null) {
             player.addExperience(reward.getXpValue());
             if (!StringUtils.equalsAnyIgnoreCase(reward.getItemName(), "none", "na")) {
-                ItemStack stack = getRewardItemStack(reward, world);
+                ItemStack stack = ItemStackFactory.getRewardItemStack(reward, player.getEntityWorld());
                 boolean added = player.giveItemStack(stack);
                 if (!added) {
                     player.dropItem(stack, false);
                 }
             }
         }
-    }
-
-    private static @NotNull ItemStack getRewardItemStack(MongoQuest.Reward reward, World world) {
-        String itemDefinition = reward.getItemName();
-        Identifier id = Identifier.of(extractItemName(itemDefinition));
-        Item item = Registries.ITEM.get(id);
-        ItemStack itemStack = new ItemStack(item, reward.getCount());
-        if (itemDefinition.contains("{")) {
-            // TODO generic NBT handling
-            String nbtCoords = itemDefinition.substring(itemDefinition.indexOf('{') + 1, itemDefinition.indexOf('}'));
-            String[] pos = nbtCoords.split(",");
-            GlobalPos globalPos = GlobalPos.create(world.getRegistryKey(), new BlockPos(Integer.parseInt(pos[0]), Integer.parseInt(pos[1]), Integer.parseInt(pos[2])));
-            LodestoneTrackerComponent tracker = new LodestoneTrackerComponent(Optional.of(globalPos), false);
-            itemStack.set(DataComponentTypes.LODESTONE_TRACKER, tracker);
-        }
-
-        return itemStack;
-    }
-
-    private static String extractItemName(String itemDefinition) {
-        if (itemDefinition.contains("{")) {
-            return itemDefinition.substring(0, itemDefinition.indexOf('{'));
-        }
-        return itemDefinition;
     }
 
     public static UseBlockCallback evaporateBucketInNether() {

@@ -1,6 +1,6 @@
 plugins {
     id 'idea'
-    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'fabric-loom' version '1.13-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -32,10 +32,10 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
-    inputs.property "minecraft_version", project.minecraft_version
-    inputs.property "loader_version", project.loader_version
-    filteringCharset "UTF-8"
+    inputs.property("version", project.version)
+    inputs.property("minecraft_version", project.minecraft_version)
+    inputs.property("loader_version", project.loader_version)
+    filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
@@ -57,8 +57,12 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
-    archivesBaseName = project.archives_base_name
     withSourcesJar()
+}
+
+// Configure Jar tasks' archive base name using the property from gradle.properties
+tasks.withType(Jar).configureEach {
+    archiveBaseName.set(project.archives_base_name)
 }
 
 jar {
@@ -71,7 +75,8 @@ jar {
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+        // use the property defined in gradle.properties
+        rename { "${it}_${project.archives_base_name}" }
     }
 
     // Prevent the jar from getting too large
