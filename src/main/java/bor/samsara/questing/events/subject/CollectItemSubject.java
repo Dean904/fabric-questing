@@ -85,12 +85,7 @@ public class CollectItemSubject extends QuestEventSubject {
                 MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
                         .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), itemName)).findFirst().orElseThrow();
 
-                // compute player's total count for that item across inventory
-                int totalCount = 0;
-                for (int i = 0; i < player.getInventory().size(); i++) {
-                    totalCount += player.getInventory().getStack(i).getCount();
-                }
-
+                int totalCount = stack.getCount() + player.getInventory().count(stack.getItem());
                 boolean doesStackSizeProgressObjective = totalCount > progress.getCurrentCount();
 
                 if (totalCount >= progress.getRequiredCount()) {

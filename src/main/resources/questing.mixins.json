@@ -6,6 +6,7 @@
     "PlayerInventoryMixin",
     "VillagerEntityMixin",
     "SlotMixin",
+    "TradeOutputMixin",
     "PlayerTravelMixin"
   ],
   "injectors": {

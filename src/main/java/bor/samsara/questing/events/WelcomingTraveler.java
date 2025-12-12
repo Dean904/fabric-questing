@@ -8,6 +8,7 @@ import bor.samsara.questing.mongo.models.MongoNpc;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import bor.samsara.questing.settings.AppConfiguration;
+import com.mongodb.MongoWriteException;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
@@ -64,7 +65,14 @@ public class WelcomingTraveler {
             }
 
             MongoNpc mongoNpc = makeTemporaryWelcomeTravelerForPlayer(player);
-            NpcMongoClient.createNpc(mongoNpc);
+            try {
+                NpcMongoClient.createNpc(mongoNpc);
+            } catch (MongoWriteException e) {
+                log.warn("Welcoming Traveler {} already exists. Deleting and trying again: {}", mongoNpc.getName(), e.getMessage());
+                MongoNpc dupe = NpcMongoClient.getFirstNpcByName(mongoNpc.getName());
+                NpcMongoClient.deleteNpc(dupe.getUuid());
+                NpcMongoClient.createNpc(mongoNpc);
+            }
             for (String questId : mongoNpc.getQuestIds()) {
                 if (!playerState.isQuestComplete(questId)) {
                     MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
