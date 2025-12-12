@@ -5,6 +5,8 @@
   "mixins": [
     "PlayerInventoryMixin",
     "VillagerEntityMixin",
+    "SlotMixin",
+    "TradeOutputMixin",
     "PlayerTravelMixin"
   ],
   "injectors": {
