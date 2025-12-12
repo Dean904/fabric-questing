@@ -45,10 +45,10 @@ public class WelcomingTraveler {
                 playerState.removeActiveQuestForNpc(welcomerUuid);
                 PlayerMongoClient.updatePlayer(playerState);
 
-                World world = player.getWorld();
+                World world = player.getEntityWorld();
                 Entity trader = world.getEntity(UUID.fromString(welcomerUuid));
                 if (null != trader)
-                    player.getServer().execute(trader::discard);
+                    player.getEntityWorld().getServer().execute(trader::discard);
 
             }
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class WelcomingTraveler {
                 }
             }
 
-            World world = player.getWorld();
+            World world = player.getEntityWorld();
             WanderingTraderEntity trader = makeWanderingTraderEntity(world, player, mongoNpc.getUuid());
             playerWelcomerMap.put(player.getUuidAsString(), trader.getUuidAsString());
             world.spawnEntity(trader);
@@ -175,7 +175,7 @@ public class WelcomingTraveler {
         trader.setUuid(UUID.fromString(uuid));
 
         Vec3d forward = player.getRotationVec(1.0f).normalize();
-        trader.refreshPositionAndAngles(player.getPos().x + forward.x * 2, player.getPos().y, player.getPos().z + forward.z * 2, player.getYaw(), player.getPitch());
+        trader.refreshPositionAndAngles(player.getEntityPos().x + forward.x * 2, player.getEntityPos().y, player.getEntityPos().z + forward.z * 2, player.getYaw(), player.getPitch());
         trader.setCustomName(Text.literal("§ Hey, " + player.getName().getString() + "!"));
         trader.setCustomNameVisible(true);
         trader.addCommandTag(QUEST_NPC);

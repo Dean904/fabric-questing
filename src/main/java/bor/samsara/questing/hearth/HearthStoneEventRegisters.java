@@ -70,7 +70,7 @@ public class HearthStoneEventRegisters {
     public static boolean hasPlayerMovedFromStartPos(PlayerEntity player) {
         TeleportTask teleTask = playerTeleportTasks.get(player.getUuidAsString());
         if (teleTask != null) {
-            return !teleTask.startPos().equals(player.getPos());
+            return !teleTask.startPos().equals(player.getEntityPos());
         }
         return false;
     }
@@ -147,7 +147,7 @@ public class HearthStoneEventRegisters {
                         player.sendMessage(Text.of("💫 Whoosh!"), true);
                         itemCooldownManager.set(HEARTHSTONE, 30 * 20); // 30 * 20 ticks per second = 30 seconds cooldown
                         Future<?> task = executor.submit(createCastTask(player, world, stack));
-                        playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getPos()));
+                        playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getEntityPos()));
                     }
                 } else {
                     player.sendMessage(Text.literal("You cant do that while moving!").styled(style -> style.withColor(Formatting.RED)), true);
@@ -161,8 +161,8 @@ public class HearthStoneEventRegisters {
     private static boolean hasHearthstoneNbt(ItemStack stack) {
         NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
         if (customData != null) {
-            NbtCompound nbt = customData.getNbt();
-            return nbt != null && nbt.contains(WARP_LOCATION);
+            NbtCompound nbt = customData.copyNbt();
+            return nbt.contains(WARP_LOCATION);
         }
         return false;
     }
@@ -174,8 +174,8 @@ public class HearthStoneEventRegisters {
                 Thread.sleep(150);
                 //player.playSoundToPlayer(SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.7f, 1.0f);
 
-                CommandManager commandManager = Objects.requireNonNull(player.getServer()).getCommandManager();
-                ServerCommandSource commandSource = player.getServer().getCommandSource().withSilent();
+                CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
+                ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource().withSilent();
 
                 int numSteps = 180;
                 for (int i = 0; i < numSteps; i++) {
@@ -200,10 +200,10 @@ public class HearthStoneEventRegisters {
                     }
                 }
 
-                String dimensionStr = stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getString(WARP_DIMENSION).get();
+                String dimensionStr = stack.get(DataComponentTypes.CUSTOM_DATA).copyNbt().getString(WARP_DIMENSION).get();
                 RegistryKey<World> dimension = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(dimensionStr));
                 ServerWorld serverWorld = world.getServer().getWorld(dimension);
-                BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).getNbt().getLong(WARP_LOCATION).get());
+                BlockPos tpTarget = BlockPos.fromLong(stack.get(DataComponentTypes.CUSTOM_DATA).copyNbt().getLong(WARP_LOCATION).get());
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
@@ -221,9 +221,9 @@ public class HearthStoneEventRegisters {
         double x = player.getX() + radius * Math.cos(angle);
         double z = player.getZ() + radius * Math.sin(angle);
         double y = player.getY() + swirlHeight * ((double) i / numSteps);
-        commandManager.executeWithPrefix(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
-        commandManager.executeWithPrefix(commandSource, "/particle minecraft:soul_fire_flame %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
-        commandManager.executeWithPrefix(commandSource, "/particle minecraft:trial_spawner_detection_ominous %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+        commandManager.parseAndExecute(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+        commandManager.parseAndExecute(commandSource, "/particle minecraft:soul_fire_flame %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
+        commandManager.parseAndExecute(commandSource, "/particle minecraft:trial_spawner_detection_ominous %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
     }
 
     private static double jitter(double d) {

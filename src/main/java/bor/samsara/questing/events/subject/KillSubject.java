@@ -16,7 +16,7 @@ import java.util.List;
 public class KillSubject extends QuestEventSubject {
 
     public ServerEntityCombatEvents.AfterKilledOtherEntity processEntityKill() {
-        return (world, killer, killedEntity) -> {
+        return (world, killer, killedEntity, damageSource) -> {
             String playerUuid = killer.getUuidAsString();
             if (!playerSubsriptionMap.containsKey(playerUuid))
                 return;
@@ -47,7 +47,7 @@ public class KillSubject extends QuestEventSubject {
 
                     // TODO refactor sound playing into its own method for reuse
                     PlayerMongoClient.updatePlayer(playerState);
-                    Vec3d pos = killer.getPos();
+                    Vec3d pos = killer.getEntityPos();
                     if (isAllComplete) {
                         world.playSound(
                                 null, // `null` means only the player hears it; use `player` to make it audible to others too

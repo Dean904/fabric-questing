@@ -1,6 +1,5 @@
 package bor.samsara.questing.mixin;
 
-import bor.samsara.questing.SamsaraFabricQuesting;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
@@ -25,7 +24,6 @@ public class ItemEntityMixin {
 
     @Inject(method = "onPlayerCollision", at = @At("TAIL"))
     private void onPickup(PlayerEntity player, CallbackInfo ci) {
-        if (player.getWorld().isClient) return;
         ItemEntity self = (ItemEntity) (Object) this;
         if (self.getStack().isOf(Items.ROTTEN_FLESH)) {
             log.info("ZombieFlesh picked up by {}", player.getName());
