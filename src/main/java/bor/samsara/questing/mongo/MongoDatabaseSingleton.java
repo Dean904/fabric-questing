@@ -13,7 +13,7 @@ public class MongoDatabaseSingleton implements Closeable {
     private static MongoDatabaseSingleton singleton;
 
     private final MongoClient mongoClient = MongoClients.create(AppConfiguration.getConfiguration(AppConfiguration.MONGO_URI));
-    private final MongoDatabase database = mongoClient.getDatabase("samsara");
+    private final MongoDatabase database = mongoClient.getDatabase(AppConfiguration.getConfiguration(AppConfiguration.DATABASE_NAME));
 
     private MongoDatabaseSingleton() {}
 

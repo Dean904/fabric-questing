@@ -6,6 +6,7 @@ import bor.samsara.questing.events.subject.DoQuestSubject;
 import bor.samsara.questing.events.subject.KillSubject;
 import bor.samsara.questing.events.subject.TalkToNpcSubject;
 import bor.samsara.questing.hearth.HearthStoneEventRegisters;
+import bor.samsara.questing.hearth.SoulStoneEventRegisters;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -14,6 +15,8 @@ import bor.samsara.questing.settings.AppConfiguration;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -22,6 +25,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +66,11 @@ public class SamsaraFabricQuesting implements ModInitializer {
             }
         });
 
+        ServerPlayerEvents.
+
+        ServerLivingEntityEvents.AFTER_DEATH.register(SoulStoneEventRegisters.saveDeathLocation());
+        CommandRegistrationCallback.EVENT.register(SoulStoneEventRegisters.createSoulstone());
+        UseItemCallback.EVENT.register(SoulStoneEventRegisters.useSoulstone());
         UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
         CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
 
@@ -75,7 +85,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
-            WelcomingTraveler.spawn(handler.getPlayer(), player);
+            if (AppConfiguration.getBoolConfig(AppConfiguration.IS_WELCOMER_ENABLED))
+                WelcomingTraveler.spawn(handler.getPlayer(), player);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             savePlayerStatsOnExit(handler.getPlayer());
@@ -92,9 +103,13 @@ public class SamsaraFabricQuesting implements ModInitializer {
             log.debug(e.getMessage());
             String playerName = serverPlayer.getName().getLiteralString();
             log.info("{} joining for first time.", playerName);
-            CommandManager commandManager = serverPlayer.getEntityWorld().getServer().getCommandManager();
-            ServerCommandSource commandSource = serverPlayer.getEntityWorld().getServer().getCommandSource();
-            commandManager.parseAndExecute(commandSource, "/time set 23300");
+            String firstJoinCommandBlock = AppConfiguration.getConfiguration(AppConfiguration.FIRST_JOIN_COMMAND);
+            if (StringUtils.isNotBlank(firstJoinCommandBlock)) {
+                CommandManager commandManager = serverPlayer.getEntityWorld().getServer().getCommandManager();
+                ServerCommandSource commandSource = serverPlayer.getEntityWorld().getServer().getCommandSource();
+                for (String command : firstJoinCommandBlock.split(";"))
+                    commandManager.parseAndExecute(commandSource, command);
+            }
             MongoPlayer p = new MongoPlayer(serverPlayer.getUuidAsString(), playerName);
             PlayerMongoClient.createPlayer(p);
             return p;

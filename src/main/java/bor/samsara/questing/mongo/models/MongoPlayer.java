@@ -1,5 +1,6 @@
 package bor.samsara.questing.mongo.models;
 
+import net.minecraft.util.math.BlockPos;
 import org.bson.Document;
 
 import java.util.*;
@@ -8,6 +9,8 @@ public class MongoPlayer {
 
     private final String uuid;
     private String name;
+    private BlockPos deathPosition;
+    private String deathDimension;
 
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
     private Map<String, ActiveQuestState> activeQuestProgressionMap = new HashMap<>();
@@ -28,6 +31,22 @@ public class MongoPlayer {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public BlockPos getDeathPosition() {
+        return deathPosition;
+    }
+
+    public void setDeathPosition(BlockPos deathPosition) {
+        this.deathPosition = deathPosition;
+    }
+
+    public String getDeathDimension() {
+        return deathDimension;
+    }
+
+    public void setDeathDimension(String deathDimension) {
+        this.deathDimension = deathDimension;
     }
 
     public boolean hasPlayerProgressedNpc(String npcUuid) {
@@ -91,16 +110,24 @@ public class MongoPlayer {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
-        return new Document("uuid", uuid)
+        Document doc = new Document("uuid", uuid)
                 .append("name", name)
+                .append("deathDimension", deathDimension)
                 .append("activeQuestStates", activeQuestDocs)
                 .append("completedQuestIds", completedQuestIds)
                 .append("npcActiveQuest", npcActiveQuestMap);
+
+        if (deathPosition != null) {
+            doc.append("deathPosition", deathPosition.asLong());
+        }
+        return doc;
     }
 
     @SuppressWarnings("unchecked")
     public static MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
+        player.setDeathPosition(document.containsKey("deathPosition") ? BlockPos.fromLong(document.getLong("deathPosition")) : null);
+        player.setDeathDimension(document.getString("deathDimension"));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
         player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
 

@@ -1,17 +1,13 @@
 package bor.samsara.questing.hearth;
 
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.UseCooldownComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.player.ItemCooldownManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -39,52 +35,20 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.*;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
-public class HearthStoneEventRegisters {
+public class HearthStoneEventRegisters extends WarpStone {
 
     public static final String WARP_LOCATION = "warpLocation";
     public static final String WARP_DIMENSION = "warpDimension";
 
-    private static final ExecutorService executor = Executors.newThreadPerTaskExecutor(runnable -> new Thread(runnable, "HearthStoneEvent-Thread"));
     public static final Identifier HEARTHSTONE = Identifier.of("hearthstone");
-
-    public record TeleportTask(Future<?> task, Vec3d startPos) {}
-
-    private static final Map<String, TeleportTask> playerTeleportTasks = new ConcurrentHashMap<>();
-
-    public static boolean isTeleporting(String uuidAsString) {
-        return playerTeleportTasks.containsKey(uuidAsString);
-    }
-
-    public static boolean hasPlayerMovedFromStartPos(PlayerEntity player) {
-        TeleportTask teleTask = playerTeleportTasks.get(player.getUuidAsString());
-        if (teleTask != null) {
-            return !teleTask.startPos().equals(player.getEntityPos());
-        }
-        return false;
-    }
-
-    public static void cancelTeleport(PlayerEntity player) {
-        TeleportTask teleTask = playerTeleportTasks.remove(player.getUuidAsString());
-        if (teleTask != null) {
-            teleTask.task().cancel(true);
-            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 1.0f);
-            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 0.6f);
-            player.playSoundToPlayer(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.PLAYERS, 1.0f, 0.1f);
-            player.sendMessage(Text.of("Teleport cancelled!"), true);
-        }
-    }
 
     public static CommandRegistrationCallback createHearthstone() {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
@@ -224,10 +188,6 @@ public class HearthStoneEventRegisters {
         commandManager.parseAndExecute(commandSource, "/particle minecraft:sculk_soul %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
         commandManager.parseAndExecute(commandSource, "/particle minecraft:soul_fire_flame %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
         commandManager.parseAndExecute(commandSource, "/particle minecraft:trial_spawner_detection_ominous %f %f %f".formatted(jitter(x), jitter(y), jitter(z)));
-    }
-
-    private static double jitter(double d) {
-        return d + ((Math.random() - 0.5) * 0.5); // Small jitter to simulate randomness
     }
 
 }

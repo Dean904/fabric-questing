@@ -63,7 +63,8 @@ public class RightClickActionEventManager {
 
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
-            if (null != hitResult && entity.getCommandTags().contains(ModEntities.QUEST_NPC)) {
+
+            if (null != hitResult && hand == Hand.MAIN_HAND && entity.getCommandTags().contains(ModEntities.QUEST_NPC)) {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuid().toString());
                 String npcUuid = entity.getUuid().toString();
                 SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, hitResult, playerState, npcUuid);
