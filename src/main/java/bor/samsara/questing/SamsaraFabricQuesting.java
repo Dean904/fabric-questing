@@ -1,10 +1,7 @@
 package bor.samsara.questing;
 
 import bor.samsara.questing.events.*;
-import bor.samsara.questing.events.subject.CollectItemSubject;
-import bor.samsara.questing.events.subject.DoQuestSubject;
-import bor.samsara.questing.events.subject.KillSubject;
-import bor.samsara.questing.events.subject.TalkToNpcSubject;
+import bor.samsara.questing.events.subject.*;
 import bor.samsara.questing.hearth.HearthStoneEventRegisters;
 import bor.samsara.questing.hearth.SoulStoneEventRegisters;
 import bor.samsara.questing.mongo.PlayerMongoClient;
@@ -18,6 +15,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -44,6 +42,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
     public static final CollectItemSubject collectItemSubject = new CollectItemSubject();
     public static final TalkToNpcSubject talkToNpcSubject = new TalkToNpcSubject();
     public static final DoQuestSubject doQuestSubject = new DoQuestSubject();
+    public static final SetSpawnSubject setSpawnSubject = new SetSpawnSubject();
+    public static final BreakBlockSubject breakBlockSubject = new BreakBlockSubject();
 
     public static final Queue<Runnable> questRunnables = new LinkedList<>();
     public static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
@@ -66,23 +66,6 @@ public class SamsaraFabricQuesting implements ModInitializer {
             }
         });
 
-        ServerPlayerEvents.
-
-        ServerLivingEntityEvents.AFTER_DEATH.register(SoulStoneEventRegisters.saveDeathLocation());
-        CommandRegistrationCallback.EVENT.register(SoulStoneEventRegisters.createSoulstone());
-        UseItemCallback.EVENT.register(SoulStoneEventRegisters.useSoulstone());
-        UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
-        CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
-
-        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
-        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
-        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openQuestLogForPlayer());
-
-        UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
-        UseBlockCallback.EVENT.register(RightClickActionEventManager.evaporateBucketInNether());
-        UseEntityCallback.EVENT.register(RightClickActionEventManager.rightClickQuestNpc());
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.processEntityKill());
-
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             MongoPlayer player = getOrMakePlayerOnJoin(handler.getPlayer());
             if (AppConfiguration.getBoolConfig(AppConfiguration.IS_WELCOMER_ENABLED))
@@ -92,7 +75,25 @@ public class SamsaraFabricQuesting implements ModInitializer {
             savePlayerStatsOnExit(handler.getPlayer());
             WelcomingTraveler.despawn(handler.getPlayer());
         });
+
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.createNpc());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.setQuestTrigger());
+        CommandRegistrationCallback.EVENT.register(QuestCreationEventRegisters.openQuestLogForPlayer());
+
+        UseEntityCallback.EVENT.register(RightClickActionEventManager.rightClickQuestNpc());
+        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(killSubject.processEntityKill());
+        PlayerBlockBreakEvents.AFTER.register(breakBlockSubject.processAfterBlockBreak());
+
+        UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
+        UseBlockCallback.EVENT.register(RightClickActionEventManager.evaporateBucketInNether());
+
+        ServerLivingEntityEvents.AFTER_DEATH.register(SoulStoneEventRegisters.saveDeathLocation());
+        CommandRegistrationCallback.EVENT.register(SoulStoneEventRegisters.createSoulstone());
+        UseItemCallback.EVENT.register(SoulStoneEventRegisters.useSoulstone());
+        UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
+        CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
     }
+
 
     private static MongoPlayer getOrMakePlayerOnJoin(ServerPlayerEntity serverPlayer) {
         try {
@@ -136,6 +137,8 @@ public class SamsaraFabricQuesting implements ModInitializer {
                 case COLLECT -> SamsaraFabricQuesting.collectItemSubject.attach(actionSubscription);
                 case TALK -> SamsaraFabricQuesting.talkToNpcSubject.attach(actionSubscription);
                 case DO_QUEST -> SamsaraFabricQuesting.doQuestSubject.attach(actionSubscription, playerState);
+                case SET_SPAWN -> SamsaraFabricQuesting.setSpawnSubject.attach(actionSubscription);
+                case BREAK_BLOCK -> SamsaraFabricQuesting.breakBlockSubject.attach(actionSubscription);
                 default -> log.warn("Unknown Objective Type '{}' when registering Quest {} for Player {}", objectiveType, quest.getTitle(), playerState.getName());
             }
         }
@@ -146,6 +149,9 @@ public class SamsaraFabricQuesting implements ModInitializer {
         SamsaraFabricQuesting.killSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.collectItemSubject.detachPlayer(playerUuid);
         SamsaraFabricQuesting.talkToNpcSubject.detachPlayer(playerUuid);
+        SamsaraFabricQuesting.doQuestSubject.detachPlayer(playerUuid);
+        SamsaraFabricQuesting.setSpawnSubject.detachPlayer(playerUuid);
+        SamsaraFabricQuesting.breakBlockSubject.detachPlayer(playerUuid);
     }
 
 }

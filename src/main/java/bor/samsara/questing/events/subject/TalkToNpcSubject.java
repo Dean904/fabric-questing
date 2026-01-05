@@ -34,12 +34,12 @@ public class TalkToNpcSubject extends QuestEventSubject {
                 MongoPlayer.ActiveQuestState.ObjectiveProgress progress = getObjectiveProgressForNpc(mongoNpc, activeQuestState);
                 int objectiveCount = progress.getCurrentCount() + 1;
                 progress.setCurrentCount(objectiveCount);
-                log.debug("Incrementing quest '{}' objective TALK {} for player {}: {}/{}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName(), objectiveCount, progress.getRequiredCount());
+                log.debug("Incrementing quest '{}' objective TALK {} for player {}: {}/{}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName(), objectiveCount, progress.getObjective().getRequiredCount());
 
                 boolean isAllComplete = false;
-                if (progress.getRequiredCount() <= objectiveCount) {
+                if (progress.getObjective().getRequiredCount() <= objectiveCount) {
                     progress.setComplete(true);
-                    log.debug("Marking quest '{}', objective TALK {}, complete for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                    log.debug("Marking quest '{}', objective TALK {}, complete for player {}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName());
                     isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
                     activeQuestState.setAreAllObjectivesComplete(isAllComplete);
                     detach(subscription, ite);
@@ -61,12 +61,12 @@ public class TalkToNpcSubject extends QuestEventSubject {
 
     private static MongoPlayer.ActiveQuestState.@NotNull ObjectiveProgress getObjectiveProgressForNpc(MongoNpc mongoNpc, MongoPlayer.ActiveQuestState activeQuestState) {
         Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> first = activeQuestState.getObjectiveProgressions().stream()
-                .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getName()))
+                .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), mongoNpc.getName()))
                 .findFirst();
 
         if (first.isEmpty()) {
             return activeQuestState.getObjectiveProgressions().stream()
-                    .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), mongoNpc.getDialogueType()))
+                    .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), mongoNpc.getDialogueType()))
                     .findFirst().orElseThrow();
         }
 

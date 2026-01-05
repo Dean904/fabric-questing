@@ -188,7 +188,7 @@ public class RightClickActionEventManager {
                 } else {
                     stack.decrement(objective.getRequiredCount());
                     player.setStackInHand(hand, stack);
-                    activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), objective.getTarget())).findFirst().ifPresent(op -> {
+                    activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), objective.getTarget())).findFirst().ifPresent(op -> {
                         op.setComplete(true);
                         wasUpdated.set(true);
                         boolean isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);

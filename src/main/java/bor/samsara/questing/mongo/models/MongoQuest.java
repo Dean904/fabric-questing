@@ -4,6 +4,7 @@ import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MongoQuest {
 
@@ -148,7 +149,9 @@ public class MongoQuest {
             KILL,
             TALK,
             COLLECT,
-            DO_QUEST
+            DO_QUEST,
+            SET_SPAWN,
+            BREAK_BLOCK
         }
 
         public Document toDocument() {
@@ -164,6 +167,18 @@ public class MongoQuest {
             o.setTarget(document.getString("target"));
             o.setRequiredCount(document.getInteger("requiredCount"));
             return o;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            Objective objective = (Objective) o;
+            return requiredCount == objective.requiredCount && type == objective.type && Objects.equals(target, objective.target);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(type, target, requiredCount);
         }
 
         @Override
@@ -226,6 +241,18 @@ public class MongoQuest {
             r.setCount(document.getInteger("count"));
             r.setXpValue(document.getInteger("xpValue"));
             return r;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            Reward reward = (Reward) o;
+            return count == reward.count && xpValue == reward.xpValue && Objects.equals(itemName, reward.itemName);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemName, count, xpValue);
         }
 
         @Override
@@ -317,6 +344,18 @@ public class MongoQuest {
         q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
         q.setCategory(null == document.getString("category") ? CategoryEnum.MAIN : CategoryEnum.valueOf(document.getString("category")));
         return q;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        MongoQuest that = (MongoQuest) o;
+        return providesQuestBook == that.providesQuestBook && Objects.equals(uuid, that.uuid) && Objects.equals(title, that.title) && Objects.equals(summary, that.summary) && Objects.equals(description, that.description) && Objects.equals(dialogue, that.dialogue) && Objects.equals(objectives, that.objectives) && Objects.equals(reward, that.reward) && Objects.equals(trigger, that.trigger) && category == that.category;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid, title, summary, description, providesQuestBook, dialogue, objectives, reward, trigger, category);
     }
 
     @Override
