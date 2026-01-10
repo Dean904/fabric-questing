@@ -9,9 +9,14 @@ import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import bor.samsara.questing.settings.AppConfiguration;
 import com.mongodb.MongoWriteException;
+import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -124,9 +129,6 @@ public class WelcomingTraveler {
         }
     }
 
-    // TODO update reward to HearthStone via /give trigger?
-    //    BlockPos spawnHengeAltarPos = new BlockPos(-717, 126, 543);
-    //    ItemStack hearthstone = HearthStoneEventRegisters.createHearthstoneItem("SpawnHenge", spawnHengeAltarPos);
     private static List<String> getOrMakeWelcomingQuestUuids() {
         String travelerStartQuestTitle = "Traveler Greeting";
         String travelerFarewellQuestTitle = "Traveler Farewell";
@@ -142,13 +144,13 @@ public class WelcomingTraveler {
             MongoQuest qStart = new MongoQuest(UUID.randomUUID().toString());
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
-            qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 4)));
-            qStart.setReward(new MongoQuest.Reward("minecraft:blue_bundle{minecraft:golden_sword[enchants=unbreaking:3;smite:2;looting:1],1}", 1, 15));
+            qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 5)));
+            qStart.setReward(new MongoQuest.Reward("minecraft:bundle{minecraft:copper_sword[enchants=unbreaking:3;smite:2;looting:1],1}", 1, 15));
             qStart.setProvidesQuestBook(false);
             qStart.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",
-                    "Quick, go talk to the old man in the village, Bondred.",
-                    "It's dangerous to go alone! Take this.", "Go!"));
+                    "You must go talk to the §3old man in the village§r. But before you go..",
+                    "..it's §cdangerous§r to go alone! Take this.."));
             QuestMongoClient.createQuest(qStart);
 
             MongoQuest qEnd = new MongoQuest(UUID.randomUUID().toString());
@@ -156,11 +158,13 @@ public class WelcomingTraveler {
             qEnd.setCategory(MongoQuest.CategoryEnum.WELCOME);
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
-            qStart.setProvidesQuestBook(true);
-            qEnd.setDialogue(List.of("Is this some sort of game to you?",
-                    "What are you doing here?!?",
-                    "This must mean the cycle has started again.",
-                    "Quick, go talk to the old man in the village, Bondred."));
+            qEnd.setProvidesQuestBook(true);
+            qEnd.setTrigger(new MongoQuest.Trigger(MongoQuest.Trigger.Event.ON_START, List.of("/summon minecraft:lightning_bolt",
+                    "/particle minecraft:gust @npcLoc",
+                    "/tp @npc ~ ~500 ~",
+                    "/kill @npc",
+                    "/playsound minecraft:item.chorus_fruit.teleport player @p")));
+            qEnd.setDialogue(List.of("Old §aBondred§r is at the §anearby village Inn§r just bellow SpawnHenge.", "Now go!"));
             QuestMongoClient.createQuest(qEnd);
 
             MongoQuest qFinish = new MongoQuest(UUID.randomUUID().toString());
@@ -181,21 +185,23 @@ public class WelcomingTraveler {
     private static WanderingTraderEntity makeWanderingTraderEntity(World world, ServerPlayerEntity player, String uuid) {
         WanderingTraderEntity trader = EntityType.WANDERING_TRADER.create(world, SpawnReason.TRIGGERED);
         trader.setUuid(UUID.fromString(uuid));
+        trader.addCommandTag(QUEST_NPC);
 
         Vec3d forward = player.getRotationVec(1.0f).normalize();
-        trader.refreshPositionAndAngles(player.getEntityPos().x + forward.x * 2, player.getEntityPos().y, player.getEntityPos().z + forward.z * 2, player.getYaw(), player.getPitch());
+        trader.refreshPositionAndAngles(player.getEntityPos().x + forward.x * 3, player.getEntityPos().y, player.getEntityPos().z + forward.z * 3, player.getYaw(), player.getPitch());
         trader.setCustomName(Text.literal("§ Hey, " + player.getName().getString() + "!"));
         trader.setCustomNameVisible(true);
-        trader.addCommandTag(QUEST_NPC);
-        trader.setAiDisabled(false);
-        trader.setSilent(false);
-        trader.setNoGravity(false);
         trader.setGlowing(true);
         trader.getOffers().clear();
+        trader.setDespawnDelay(200 * 20); // despawn after ~3 minutes, 20 ticks per second
 
-        trader.setDespawnDelay(300 * 20); // despawn after 5 minutes, 20 ticks per second
-        trader.attachLeash(player, true); // tether trader to player
-        trader.setTarget(player);
+        trader.setCustomer(player);
+        trader.clearGoals(HoldInHandsGoal.class::isInstance);
+        trader.clearGoals(StopFollowingCustomerGoal.class::isInstance);
+        trader.clearGoals(WanderAroundFarGoal.class::isInstance);
+
+        trader.attachLeash(player, false);
+        trader.lookAtEntity(player, 360, 360);
 
         return trader;
     }
