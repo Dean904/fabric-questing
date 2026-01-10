@@ -269,6 +269,13 @@ public class MongoQuest {
         Event event; // e.g., "onStart", "onComplete"
         List<String> commands; // e.g., "/give @p minecraft:diamond 1"
 
+        public Trigger() {}
+
+        public Trigger(Event event, List<String> commands) {
+            this.event = event;
+            this.commands = commands;
+        }
+
         public enum Event {
             ON_START,
             ON_COMPLETE;
