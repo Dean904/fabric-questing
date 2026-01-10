@@ -7,7 +7,8 @@
     "VillagerEntityMixin",
     "SlotMixin",
     "TradeOutputMixin",
-    "PlayerTravelMixin"
+    "PlayerTravelMixin",
+    "PlayerSpawnMixin"
   ],
   "injectors": {
     "defaultRequire": 1

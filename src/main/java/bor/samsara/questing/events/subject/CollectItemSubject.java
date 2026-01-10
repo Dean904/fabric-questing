@@ -18,6 +18,7 @@ public class CollectItemSubject extends QuestEventSubject {
 
     @Override
     public void attach(ActionSubscription listener) {
+        log.debug("{} Attached for {} ", this.getClass().getSimpleName(), listener);
         playerSubsriptionMap.putIfAbsent(listener.getPlayerUuid(), new ArrayList<>());
         playerSubsriptionMap.get(listener.getPlayerUuid()).add(listener);
         pertinentItemNames.add(listener.getObjectiveTarget());
@@ -39,16 +40,16 @@ public class CollectItemSubject extends QuestEventSubject {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
                 MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
                 MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
-                        .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), itemName)).findFirst().orElseThrow();
+                        .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), itemName)).findFirst().orElseThrow();
 
                 int totalStackSize = player.getInventory().getStack(slot).getCount();
                 boolean doesStackSizeProgressObjective = totalStackSize > progress.getCurrentCount();
 
-                if (totalStackSize >= progress.getRequiredCount()) {
+                if (totalStackSize >= progress.getObjective().getRequiredCount()) {
                     // Do not mark complete, need to submit to quest giver for completion
-                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName());
                     player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
-                    player.sendMessage(Text.literal("Return to the quest giver with " + progress.getRequiredCount() + " [" + itemName + "]!"), false);
+                    player.sendMessage(Text.literal("Return to the quest giver with " + progress.getObjective().getRequiredCount() + " [" + itemName + "]!"), false);
                     this.detach(subscription, ite);
                 }
 
@@ -83,15 +84,15 @@ public class CollectItemSubject extends QuestEventSubject {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(subscription.getPlayerUuid());
                 MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
                 MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
-                        .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getTarget(), itemName)).findFirst().orElseThrow();
+                        .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), itemName)).findFirst().orElseThrow();
 
                 int totalCount = stack.getCount() + player.getInventory().count(stack.getItem());
                 boolean doesStackSizeProgressObjective = totalCount > progress.getCurrentCount();
 
-                if (totalCount >= progress.getRequiredCount()) {
-                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getTarget(), playerState.getName());
+                if (totalCount >= progress.getObjective().getRequiredCount()) {
+                    log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName());
                     player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
-                    player.sendMessage(Text.literal("Return to the quest giver with " + progress.getRequiredCount() + " [" + itemName + "]!"), false);
+                    player.sendMessage(Text.literal("Return to the quest giver with " + progress.getObjective().getRequiredCount() + " [" + itemName + "]!"), false);
                     this.detach(subscription, ite);
                 }
 

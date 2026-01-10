@@ -1,5 +1,6 @@
 package bor.samsara.questing.mongo.models;
 
+import net.minecraft.util.math.BlockPos;
 import org.bson.Document;
 
 import java.util.*;
@@ -8,6 +9,8 @@ public class MongoPlayer {
 
     private final String uuid;
     private String name;
+    private BlockPos deathPosition;
+    private String deathDimension;
 
     private Map<String, String> npcActiveQuestMap = new HashMap<>();
     private Map<String, ActiveQuestState> activeQuestProgressionMap = new HashMap<>();
@@ -28,6 +31,22 @@ public class MongoPlayer {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public BlockPos getDeathPosition() {
+        return deathPosition;
+    }
+
+    public void setDeathPosition(BlockPos deathPosition) {
+        this.deathPosition = deathPosition;
+    }
+
+    public String getDeathDimension() {
+        return deathDimension;
+    }
+
+    public void setDeathDimension(String deathDimension) {
+        this.deathDimension = deathDimension;
     }
 
     public boolean hasPlayerProgressedNpc(String npcUuid) {
@@ -91,16 +110,24 @@ public class MongoPlayer {
             activeQuestDocs.put(entry.getKey(), entry.getValue().toDocument());
         }
 
-        return new Document("uuid", uuid)
+        Document doc = new Document("uuid", uuid)
                 .append("name", name)
+                .append("deathDimension", deathDimension)
                 .append("activeQuestStates", activeQuestDocs)
                 .append("completedQuestIds", completedQuestIds)
                 .append("npcActiveQuest", npcActiveQuestMap);
+
+        if (deathPosition != null) {
+            doc.append("deathPosition", deathPosition.asLong());
+        }
+        return doc;
     }
 
     @SuppressWarnings("unchecked")
     public static MongoPlayer fromDocument(Document document) {
         MongoPlayer player = new MongoPlayer(document.getString("uuid"), document.getString("name"));
+        player.setDeathPosition(document.containsKey("deathPosition") ? BlockPos.fromLong(document.getLong("deathPosition")) : null);
+        player.setDeathDimension(document.getString("deathDimension"));
         player.setNpcActiveQuestMap(document.get("npcActiveQuest", Map.class));
         player.setCompletedQuestIds(document.getList("completedQuestIds", String.class));
 
@@ -134,7 +161,7 @@ public class MongoPlayer {
             this.questTitle = quest.getTitle();
             this.categoryEnum = quest.getCategory();
             this.isSubmissionExpected = quest.getReward() != null || quest.getTrigger() != null;
-            this.objectiveProgressions.addAll(quest.getObjectives().stream().map(o -> new ObjectiveProgress(o.getRequiredCount(), o.getTarget())).toList());
+            this.objectiveProgressions.addAll(quest.getObjectives().stream().map(ObjectiveProgress::new).toList());
         }
 
         public String getQuestUuid() {
@@ -225,12 +252,10 @@ public class MongoPlayer {
         public static class ObjectiveProgress {
             private int currentCount = 0;
             private boolean isComplete = false;
-            private final int requiredCount;
-            private final String target;
+            private MongoQuest.Objective objective;
 
-            public ObjectiveProgress(int requiredCount, String target) {
-                this.requiredCount = requiredCount;
-                this.target = target;
+            public ObjectiveProgress(MongoQuest.Objective objective) {
+                this.objective = objective;
             }
 
             public int getCurrentCount() {
@@ -249,24 +274,24 @@ public class MongoPlayer {
                 isComplete = complete;
             }
 
-            public int getRequiredCount() {
-                return requiredCount;
+            public MongoQuest.Objective getObjective() {
+                return objective;
             }
 
-            public String getTarget() {
-                return target;
+            public void setObjective(MongoQuest.Objective objective) {
+                this.objective = objective;
             }
 
             @Override
             public boolean equals(Object o) {
                 if (o == null || getClass() != o.getClass()) return false;
                 ObjectiveProgress that = (ObjectiveProgress) o;
-                return currentCount == that.currentCount && isComplete == that.isComplete && requiredCount == that.requiredCount && Objects.equals(target, that.target);
+                return currentCount == that.currentCount && isComplete == that.isComplete && Objects.equals(objective, that.objective);
             }
 
             @Override
             public int hashCode() {
-                return Objects.hash(currentCount, isComplete, requiredCount, target);
+                return Objects.hash(currentCount, isComplete, objective);
             }
 
             @Override
@@ -274,23 +299,19 @@ public class MongoPlayer {
                 return "ObjectiveProgress{" +
                         "currentCount=" + currentCount +
                         ", isComplete=" + isComplete +
-                        ", requiredCount=" + requiredCount +
-                        ", target='" + target + '\'' +
+                        ", objective=" + objective +
                         '}';
             }
 
             public Document toDocument() {
                 return new Document("currentCount", currentCount)
-                        .append("requiredCount", requiredCount)
-                        .append("target", target)
-                        .append("isComplete", isComplete);
+                        .append("isComplete", isComplete)
+                        .append("objective", objective.toDocument());
             }
 
             public static ObjectiveProgress fromDocument(Document document) {
-                ObjectiveProgress op = new ObjectiveProgress(
-                        document.getInteger("requiredCount", 0),
-                        document.getString("target")
-                );
+                Document objectiveDoc = document.get("objective", Document.class);
+                ObjectiveProgress op = new ObjectiveProgress(MongoQuest.Objective.fromDocument(objectiveDoc));
                 op.setCurrentCount(document.getInteger("currentCount", 0));
                 op.setComplete(document.getBoolean("isComplete", false));
                 return op;
