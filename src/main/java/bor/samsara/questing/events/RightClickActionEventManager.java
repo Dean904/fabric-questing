@@ -1,6 +1,7 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.SamsaraFabricQuesting;
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.book.QuestProgressBook;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
@@ -17,6 +18,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -93,7 +95,7 @@ public class RightClickActionEventManager {
                             playerState.markQuestComplete(quest.getUuid());
                             PlayerMongoClient.updatePlayer(playerState);
                             SamsaraFabricQuesting.doQuestSubject.processQuestCompletion(player, playerState, quest);
-                            playOrchestra(player); //playChaosEmerald(player);
+                            playOrchestra((ServerPlayerEntity) player); //playChaosEmerald(player);
                             if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
                                 executeTriggerCommand(player, playerState, quest, entity);
                             }
@@ -124,7 +126,7 @@ public class RightClickActionEventManager {
                     if (StringUtils.isNotBlank(dialogue)) {
                         player.sendMessage(Text.literal("[" + entity.getName().getString() + "] ").styled(style -> style.withColor(Formatting.YELLOW))
                                 .append(Text.literal(dialogue).styled(style -> style.withColor(Formatting.WHITE))), false);
-                        player.playSoundToPlayer(SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                        Sounds.toOnlyPlayer((ServerPlayerEntity) player, SoundEvents.ITEM_BOOK_PAGE_TURN);
                     }
 
                 }

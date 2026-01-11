@@ -1,5 +1,6 @@
 package bor.samsara.questing.hearth;
 
+import bor.samsara.questing.Sounds;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -134,7 +135,7 @@ public class HearthStoneEventRegisters extends WarpStone {
     private static @NotNull Runnable createCastTask(PlayerEntity player, World world, ItemStack stack) {
         return () -> {
             try {
-                player.playSoundToPlayer(SoundEvents.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_EVOKER_CAST_SPELL);
                 Thread.sleep(150);
                 //player.playSoundToPlayer(SoundEvents.ITEM_ELYTRA_FLYING, SoundCategory.PLAYERS, 0.7f, 1.0f);
 
@@ -155,12 +156,12 @@ public class HearthStoneEventRegisters extends WarpStone {
 
                     if (i % (numSteps / 10) == 0) {
                         int secondsLeft = 10 - (i / (numSteps / 10));
-                        player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_AMBIENT, SoundCategory.PLAYERS, 1.0f, 1.0f + (secondsLeft / 10f));
-                        player.playSoundToPlayer(SoundEvents.AMBIENT_CAVE.value(), SoundCategory.PLAYERS, 0.3f, 1.0f + (secondsLeft / 10f));
+                        Sounds.aroundPlayer(player, SoundEvents.BLOCK_BEACON_AMBIENT, 1.0f, 1.0f + (secondsLeft / 10f));
+                        Sounds.aroundPlayer(player, SoundEvents.AMBIENT_CAVE.value(), 0.3f, 1.0f + (secondsLeft / 10f));
                         player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
                     }
                     if (i == 160) {
-                        player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                        Sounds.aroundPlayer(player, SoundEvents.BLOCK_BEACON_POWER_SELECT);
                     }
                 }
 
@@ -171,8 +172,8 @@ public class HearthStoneEventRegisters extends WarpStone {
                 player.teleportTo(new TeleportTarget(serverWorld, tpTarget.toCenterPos(), Vec3d.ZERO, 0, 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
-                player.playSoundToPlayer(SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.BLOCK_BEACON_POWER_SELECT);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_TELEPORT);
                 playerTeleportTasks.remove(player.getUuidAsString());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

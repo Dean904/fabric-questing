@@ -1,5 +1,6 @@
 package bor.samsara.questing.events.subject;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -51,14 +52,16 @@ public class BreakBlockSubject extends QuestEventSubject {
                         activeQuestState.setAreAllObjectivesComplete(isAllComplete);
                         this.detach(subscription, ite);
                         if (isAllComplete) {
-                            player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.4f, 1.0f);
+                            Sounds.aroundPlayer(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
+
                         } else {
-                            player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                            Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_LEVELUP);
+
                         }
                     } else {
                         log.debug("Incrementing quest objective count to {} for player {}", progress.getCurrentCount(), playerState.getName());
-                        player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                        player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.9f);
+                        Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
+                        Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
                     }
 
                     PlayerMongoClient.updatePlayer(playerState);

@@ -1,5 +1,6 @@
 package bor.samsara.questing.hearth;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
 import me.lucko.fabric.api.permissions.v0.Permissions;
@@ -168,7 +169,7 @@ public class SoulStoneEventRegisters extends WarpStone {
     private static @NotNull Runnable createCastTask(PlayerEntity player, World world, ItemStack stack, BlockPos blockPos, String deathDimension) {
         return () -> {
             try {
-                player.playSoundToPlayer(SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_ENDER_EYE_DEATH);
                 Thread.sleep(15);
 
                 CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
@@ -193,7 +194,7 @@ public class SoulStoneEventRegisters extends WarpStone {
 
                     if (i % (numSteps / seconds) == 0) {
                         long secondsLeft = seconds - (i / (numSteps / seconds));
-                        player.playSoundToPlayer(SoundEvents.AMBIENT_CAVE.value(), SoundCategory.PLAYERS, 0.3f, 1.0f + (secondsLeft / 10f));
+                        Sounds.aroundPlayer(player, SoundEvents.AMBIENT_CAVE.value(), 1.0f, 1.0f + (secondsLeft / 10f));
                         player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
                     }
 
@@ -206,10 +207,9 @@ public class SoulStoneEventRegisters extends WarpStone {
                 player.teleportTo(new TeleportTarget(serverWorld, blockPos.toCenterPos(), Vec3d.ZERO, (float) (Math.random() * 180), 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
-                player.playSoundToPlayer(SoundEvents.ITEM_TOTEM_USE, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value(), SoundCategory.PLAYERS, 0.3f, 1.0f);
-
+                Sounds.aroundPlayer(player, SoundEvents.ITEM_TOTEM_USE);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_TELEPORT);
+                Sounds.aroundPlayer(player, SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value());
                 playerTeleportTasks.remove(player.getUuidAsString());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
