@@ -26,6 +26,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.apache.commons.lang3.StringUtils;
@@ -99,7 +100,7 @@ public class RightClickActionEventManager {
                             if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
                                 executeTriggerCommand(player, playerState, quest, entity);
                             }
-                            return ActionResult.SUCCESS;
+                            return ActionResult.CONSUME;
                         }
 
                         if (!activeQuestState.hasReceivedQuestBook() && quest.doesProvideQuestBook() && playerDialogueOffsetMap.get(playerNpcKey).dialogueOffset + 1 == quest.getDialogue().size()) {
@@ -130,7 +131,7 @@ public class RightClickActionEventManager {
                     }
 
                 }
-                return ActionResult.SUCCESS; // prevents other actions from performing.
+                return ActionResult.CONSUME;
             }
 
             return ActionResult.PASS;
@@ -178,10 +179,12 @@ public class RightClickActionEventManager {
         CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
         ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource();
         for (String rawCommand : quest.getTrigger().getCommands()) {
-            Vec3d pos = npc.getEntityPos();
-            String command = rawCommand.replaceAll("@npcLoc", pos.x + " " + pos.y + " " + pos.z);
-            command = command.replaceAll("@npc", npc.getUuidAsString());
-            command = command.replaceAll("@p", player.getUuidAsString());
+            Vec3d npcPos = npc.getEntityPos();
+            String command = rawCommand.replaceAll(" @npcLoc ", npcPos.x + " " + npcPos.y + 1 + " " + npcPos.z);
+            BlockPos playerPos = player.getBlockPos();
+            command = command.replaceAll(" @pLoc ", playerPos.getX() + " " + playerPos.getY() + 1 + " " + playerPos.getZ());
+            command = command.replaceAll(" @npc ", npc.getUuidAsString());
+            command = command.replaceAll(" @p ", player.getStringifiedName());
             commandManager.parseAndExecute(commandSource, command);
         }
     }
