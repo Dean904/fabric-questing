@@ -1,5 +1,6 @@
 package bor.samsara.questing.events.subject;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -34,9 +35,9 @@ public class SetSpawnSubject extends QuestEventSubject {
             detach(subscription, ite);
 
             if (isAllComplete) {
-                player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.4f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
             } else {
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_LEVELUP);
             }
         }
 

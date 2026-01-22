@@ -39,7 +39,7 @@ public class AppConfiguration {
                 appProperties.put(DATABASE_NAME, "samsara");
                 appProperties.put(IS_WELCOMER_ENABLED, "true");
                 appProperties.put(FIRST_JOIN_COMMAND, "/time set 23300");
-                appProperties.put(REQUIRED_WELCOME_QUEST_TITLE, WelcomingTraveler.DEFAULT_CALL_TO_ACTION_QUEST_TITLE);
+                appProperties.put(REQUIRED_WELCOME_QUEST_TITLE, "Traveler Call To Action");
                 try (FileWriter fileWriter = new FileWriter(configFile)) {
                     appProperties.store(fileWriter, "Samsara Fabric Questing Configuration");
                     appProperties.load(configFile.toURI().toURL().openStream());

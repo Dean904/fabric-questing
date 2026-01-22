@@ -1,5 +1,6 @@
 package bor.samsara.questing.events.subject;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
@@ -48,15 +49,15 @@ public class CollectItemSubject extends QuestEventSubject {
                 if (totalStackSize >= progress.getObjective().getRequiredCount()) {
                     // Do not mark complete, need to submit to quest giver for completion
                     log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName());
-                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                    Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_LEVELUP);
                     player.sendMessage(Text.literal("Return to the quest giver with " + progress.getObjective().getRequiredCount() + " [" + itemName + "]!"), false);
                     this.detach(subscription, ite);
                 }
 
                 if (doesStackSizeProgressObjective) {
                     log.debug("Incrementing quest objective count to {} for player {}", totalStackSize, playerState.getName());
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.9f);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
                 }
 
 
@@ -91,15 +92,15 @@ public class CollectItemSubject extends QuestEventSubject {
 
                 if (totalCount >= progress.getObjective().getRequiredCount()) {
                     log.debug("Signalling quest '{}', objective COLLECT {}, fulfilled for player {}", activeQuestState.getQuestTitle(), progress.getObjective().getTarget(), playerState.getName());
-                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                    Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_LEVELUP);
                     player.sendMessage(Text.literal("Return to the quest giver with " + progress.getObjective().getRequiredCount() + " [" + itemName + "]!"), false);
                     this.detach(subscription, ite);
                 }
 
                 if (doesStackSizeProgressObjective) {
                     log.debug("Incrementing quest objective count to {} for player {}", totalCount, playerState.getName());
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.9f);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
                 }
 
                 if (progress.isComplete() || doesStackSizeProgressObjective) {

@@ -1,7 +1,11 @@
 package bor.samsara.questing.hearth;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.models.MongoPlayer;
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -44,6 +48,7 @@ import java.util.Random;
 import java.util.concurrent.Future;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
+import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class SoulStoneEventRegisters extends WarpStone {
@@ -58,36 +63,37 @@ public class SoulStoneEventRegisters extends WarpStone {
         return (dispatcher, registryAccess, environment) -> dispatcher.register(
                 literal("soulstone")
                         .requires(Permissions.require("samsara.quest.admin", 2))
-                        .executes(context -> {
-                                    ItemStack hearthstone = createSoulstoneItem();
-                                    ServerCommandSource source = context.getSource();
-                                    ServerPlayerEntity player = source.getPlayerOrThrow();
-                                    if (player.getInventory().insertStack(hearthstone)) {
-                                        source.sendFeedback(() -> Text.literal("Given soulstone to " + player.getName().getString()), false);
-                                    } else {
-                                        // If inventory is full, drop it on the ground
-                                        player.dropItem(hearthstone, true);
-                                    }
-                                    return 1;
-                                }
-                        )
+                        .then(argument("count", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                            ItemStack hearthstone = createSoulstoneItem(context.getArgument("count", Integer.class));
+                                            ServerCommandSource source = context.getSource();
+                                            ServerPlayerEntity player = source.getPlayerOrThrow();
+                                            if (player.getInventory().insertStack(hearthstone)) {
+                                                source.sendFeedback(() -> Text.literal("Given soulstone to " + player.getName().getString()), false);
+                                            } else {
+                                                // If inventory is full, drop it on the ground
+                                                player.dropItem(hearthstone, true);
+                                            }
+                                            return 1;
+                                        }
+                                ))
         );
     }
 
-    public static @NotNull ItemStack createSoulstoneItem() {
-        ItemStack hearthstone = new ItemStack(Items.ENDER_EYE);
-        hearthstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("SoulStone"));
-        hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to warp to your last death location."))));
-        hearthstone.set(DataComponentTypes.RARITY, Rarity.RARE);
-        hearthstone.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
-        hearthstone.set(DataComponentTypes.MAX_STACK_SIZE, 16);
-        hearthstone.set(DataComponentTypes.USE_COOLDOWN, new UseCooldownComponent(7, Optional.of(SOULSTONE)));
-        // addEnchantment(hearthstone);
+    public static @NotNull ItemStack createSoulstoneItem(int size) {
+        ItemStack soulstone = new ItemStack(Items.ENDER_EYE);
+        soulstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("SoulStone"));
+        soulstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to warp to your last death location."))));
+        soulstone.set(DataComponentTypes.RARITY, Rarity.RARE);
+        soulstone.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
+        soulstone.set(DataComponentTypes.MAX_STACK_SIZE, 16);
+        soulstone.set(DataComponentTypes.USE_COOLDOWN, new UseCooldownComponent(7, Optional.of(SOULSTONE)));
+        soulstone.setCount(size);
 
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putString(SOUL_SIGN, "SIGNED");
-        hearthstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
-        return hearthstone;
+        soulstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
+        return soulstone;
     }
 
     public static ServerLivingEntityEvents.@NotNull AfterDeath saveDeathLocation() {
@@ -168,7 +174,7 @@ public class SoulStoneEventRegisters extends WarpStone {
     private static @NotNull Runnable createCastTask(PlayerEntity player, World world, ItemStack stack, BlockPos blockPos, String deathDimension) {
         return () -> {
             try {
-                player.playSoundToPlayer(SoundEvents.ENTITY_ENDER_EYE_DEATH, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_ENDER_EYE_DEATH);
                 Thread.sleep(15);
 
                 CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
@@ -193,7 +199,7 @@ public class SoulStoneEventRegisters extends WarpStone {
 
                     if (i % (numSteps / seconds) == 0) {
                         long secondsLeft = seconds - (i / (numSteps / seconds));
-                        player.playSoundToPlayer(SoundEvents.AMBIENT_CAVE.value(), SoundCategory.PLAYERS, 0.3f, 1.0f + (secondsLeft / 10f));
+                        Sounds.aroundPlayer(player, SoundEvents.AMBIENT_CAVE.value(), 1.0f, 1.0f + (secondsLeft / 10f));
                         player.sendMessage(Text.of("💫 Teleporting in " + secondsLeft + " seconds. Dont move!"), true);
                     }
 
@@ -206,10 +212,9 @@ public class SoulStoneEventRegisters extends WarpStone {
                 player.teleportTo(new TeleportTarget(serverWorld, blockPos.toCenterPos(), Vec3d.ZERO, (float) (Math.random() * 180), 0, PositionFlag.DELTA, TeleportTarget.NO_OP));
 
                 player.addExhaustion(240);
-                player.playSoundToPlayer(SoundEvents.ITEM_TOTEM_USE, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_TELEPORT, SoundCategory.PLAYERS, 1.0f, 1.0f);
-                player.playSoundToPlayer(SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value(), SoundCategory.PLAYERS, 0.3f, 1.0f);
-
+                Sounds.aroundPlayer(player, SoundEvents.ITEM_TOTEM_USE);
+                Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_TELEPORT);
+                Sounds.aroundPlayer(player, SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value());
                 playerTeleportTasks.remove(player.getUuidAsString());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

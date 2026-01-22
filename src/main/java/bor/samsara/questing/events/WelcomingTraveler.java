@@ -9,14 +9,10 @@ import bor.samsara.questing.mongo.models.MongoPlayer;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import bor.samsara.questing.settings.AppConfiguration;
 import com.mongodb.MongoWriteException;
-import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.goal.*;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -35,7 +31,7 @@ public class WelcomingTraveler {
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
 
     public static final String WELCOMER_PROTO_TYPE_NAME = "Welcoming Traveler Prototype";
-    public static final String DEFAULT_CALL_TO_ACTION_QUEST_TITLE = "Traveler Call To Action";
+    public static final String REQUIRED_WELCOMER_QUEST = AppConfiguration.getConfiguration(AppConfiguration.REQUIRED_WELCOME_QUEST_TITLE);
     private static String requiredWelcomeQuestUuid = null;
 
     private static final Map<String, String> playerWelcomerMap = new HashMap<>();
@@ -111,7 +107,7 @@ public class WelcomingTraveler {
     private static String getRequiredWelcomeQuestUuid() {
         if (null == requiredWelcomeQuestUuid) {
             getOrMakePrototypeWelcomeTraveler(); // ensure default quests are created
-            MongoQuest quest = QuestMongoClient.getQuestByTitle(AppConfiguration.getConfiguration(AppConfiguration.REQUIRED_WELCOME_QUEST_TITLE));
+            MongoQuest quest = QuestMongoClient.getQuestByTitle(REQUIRED_WELCOMER_QUEST);
             requiredWelcomeQuestUuid = quest.getUuid();
         }
         return requiredWelcomeQuestUuid;
@@ -123,25 +119,23 @@ public class WelcomingTraveler {
         } catch (IllegalStateException e) {
             MongoNpc mongoNpc = new MongoNpc(UUID.randomUUID().toString(), WELCOMER_PROTO_TYPE_NAME);
             mongoNpc.setDialogueType("WELCOME");
-            mongoNpc.setQuestIds(getOrMakeWelcomingQuestUuids());
+            mongoNpc.setQuestIds(getOrMakeWelcomingQuests());
             NpcMongoClient.createNpc(mongoNpc);
             return mongoNpc;
         }
     }
 
-    private static List<String> getOrMakeWelcomingQuestUuids() {
+    private static List<String> getOrMakeWelcomingQuests() {
         String travelerStartQuestTitle = "Traveler Greeting";
         String travelerFarewellQuestTitle = "Traveler Farewell";
+        MongoQuest qStart, qEnd, qFinish;
 
         try {
-            MongoQuest qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
-            MongoQuest qEnd = QuestMongoClient.getQuestByTitle(DEFAULT_CALL_TO_ACTION_QUEST_TITLE);
-            MongoQuest qFinish = QuestMongoClient.getQuestByTitle(travelerFarewellQuestTitle);
-            return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
+            qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
         } catch (IllegalStateException e) {
-            log.info("Creating Welcoming Traveler quests for the first time.");
+            log.info("Creating Welcoming Traveler quests {}", travelerStartQuestTitle);
 
-            MongoQuest qStart = new MongoQuest(UUID.randomUUID().toString());
+            qStart = new MongoQuest(UUID.randomUUID().toString());
             qStart.setTitle(travelerStartQuestTitle);
             qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
             qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 5)));
@@ -152,9 +146,15 @@ public class WelcomingTraveler {
                     "You must go talk to the §3old man in the village§r. But before you go..",
                     "..it's §cdangerous§r to go alone! Take this.."));
             QuestMongoClient.createQuest(qStart);
+        }
 
-            MongoQuest qEnd = new MongoQuest(UUID.randomUUID().toString());
-            qEnd.setTitle(DEFAULT_CALL_TO_ACTION_QUEST_TITLE);
+        try {
+            qEnd = QuestMongoClient.getQuestByTitle(REQUIRED_WELCOMER_QUEST);
+        } catch (IllegalStateException e) {
+            log.info("Creating Welcoming questr {}", REQUIRED_WELCOMER_QUEST);
+
+            qEnd = new MongoQuest(UUID.randomUUID().toString());
+            qEnd.setTitle(REQUIRED_WELCOMER_QUEST);
             qEnd.setCategory(MongoQuest.CategoryEnum.WELCOME);
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
@@ -166,8 +166,14 @@ public class WelcomingTraveler {
                     "/playsound minecraft:item.chorus_fruit.teleport player @p")));
             qEnd.setDialogue(List.of("Old §aBondred§r is at the §anearby village Inn§r just bellow SpawnHenge.", "Now go!"));
             QuestMongoClient.createQuest(qEnd);
+        }
 
-            MongoQuest qFinish = new MongoQuest(UUID.randomUUID().toString());
+        try {
+            qFinish = QuestMongoClient.getQuestByTitle(travelerFarewellQuestTitle);
+        } catch (IllegalStateException e) {
+            log.info("Creating Welcoming Traveler quest {}", travelerFarewellQuestTitle);
+
+            qFinish = new MongoQuest(UUID.randomUUID().toString());
             qFinish.setTitle(travelerFarewellQuestTitle);
             qFinish.setCategory(MongoQuest.CategoryEnum.END);
             qFinish.setProvidesQuestBook(false);
@@ -177,9 +183,10 @@ public class WelcomingTraveler {
                     "Don't you have something you should be doing?",
                     "Is this some sort of game to you?"));
             QuestMongoClient.createQuest(qFinish);
-
-            return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
         }
+
+        return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
+
     }
 
     private static WanderingTraderEntity makeWanderingTraderEntity(World world, ServerPlayerEntity player, String uuid) {

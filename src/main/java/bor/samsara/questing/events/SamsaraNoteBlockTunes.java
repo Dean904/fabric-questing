@@ -1,6 +1,8 @@
 package bor.samsara.questing.events;
 
+import bor.samsara.questing.Sounds;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
@@ -17,7 +19,7 @@ public class SamsaraNoteBlockTunes {
         executor.submit(() -> {
             try {
                 BiConsumer<SoundEvent, Float> play = (s, p) ->
-                        player.playSoundToPlayer(s, SoundCategory.PLAYERS, 1.0f, p);
+                        Sounds.aroundPlayer(player, s, 1.0f, p);
 
                 play.accept(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), 1.0f); // C5
                 Thread.sleep(150);
@@ -40,7 +42,7 @@ public class SamsaraNoteBlockTunes {
         executor.submit(() -> {
             try {
                 BiConsumer<SoundEvent, Float> play = (s, p) ->
-                        player.playSoundToPlayer(s, SoundCategory.PLAYERS, 1.0f, p);
+                        Sounds.aroundPlayer(player, s, 1.0f, p);
 
                 SoundEvent pling = SoundEvents.BLOCK_NOTE_BLOCK_PLING.value();
 
@@ -69,33 +71,6 @@ public class SamsaraNoteBlockTunes {
         });
     }
 
-    //  nice but long
-    public static void playUnderEchoesOfElwynn(PlayerEntity player) {
-        executor.submit(() -> {
-            try {
-                // Notes for both voices
-                float[] melody = {1.00f, 1.26f, 1.50f, 1.68f, 1.50f, 1.26f, 1.12f, 1.00f}; // C5 to C5
-                float[] harmony = {0.75f, 0.95f, 0.67f, 0.84f}; // G4, B4, E4, F4 (repeat loop)
-                long[] beatDurations = {275, 275, 300, 400, 250, 275, 325, 500};
-
-                for (int i = 0; i < melody.length; i++) {
-                    // Play melody note
-                    player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value(), SoundCategory.PLAYERS, 1.0f, melody[i]);
-                    Thread.sleep(beatDurations[i] / 2); // Half-beat
-
-                    // Play harmony on off-beat (if available)
-                    player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), SoundCategory.PLAYERS, 0.6f, harmony[i % harmony.length]);
-                    Thread.sleep(beatDurations[i] / 2); // Next half-beat
-                }
-
-                // Final flourish
-                player.playSoundToPlayer(SoundEvents.UI_HUD_BUBBLE_POP, SoundCategory.PLAYERS, 1.0f, 1.2f);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
-    }
-
     public static void playZeldaPuzzleSolved(PlayerEntity player) {
         executor.submit(() -> {
             try {
@@ -110,7 +85,7 @@ public class SamsaraNoteBlockTunes {
                 long[] durations = {180, 180, 160, 160, 400};
 
                 for (int i = 0; i < pitches.length; i++) {
-                    player.playSoundToPlayer(instruments[i], SoundCategory.PLAYERS, 1.0f, pitches[i]);
+                    Sounds.aroundPlayer(player, instruments[i], 1.0f, pitches[i]);
                     Thread.sleep(durations[i]);
                 }
             } catch (InterruptedException e) {
@@ -134,19 +109,19 @@ public class SamsaraNoteBlockTunes {
                 long[] durations = {120, 120, 120, 120, 200, 275};
 
                 for (int i = 0; i < pitches.length; i++) {
-                    player.playSoundToPlayer(instruments[i], SoundCategory.PLAYERS, 1.0f, pitches[i]);
+                    Sounds.aroundPlayer(player, instruments[i], 1.0f, pitches[i]);
                     Thread.sleep(durations[i]);
                 }
 
                 // Final reward sound
-                player.playSoundToPlayer(SoundEvents.UI_HUD_BUBBLE_POP, SoundCategory.PLAYERS, 2.0f, 1.0f);
+                Sounds.aroundPlayer(player, SoundEvents.UI_HUD_BUBBLE_POP);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         });
     }
 
-    public static void playOrchestra(PlayerEntity player) {
+    public static void playOrchestra(ServerPlayerEntity player) {
         executor.submit(() -> {
             try {
                 SoundEvent flute = SoundEvents.BLOCK_NOTE_BLOCK_FLUTE.value();
@@ -174,22 +149,22 @@ public class SamsaraNoteBlockTunes {
                 for (int i = 0; i < maxLen; i++) {
                     // Melody
                     if (i < melodyLen) {
-                        player.playSoundToPlayer(flute, SoundCategory.PLAYERS, 1.0f, melody[i]);
+                        Sounds.toOnlyPlayer(player, flute, 1.0f, melody[i]);
                     }
                     // Harmony (offset by 137ms)
                     if (i < harmonyLen) {
                         if (i == 0) Thread.sleep(137);
-                        player.playSoundToPlayer(pling, SoundCategory.PLAYERS, 0.7f, harmony[i]);
+                        Sounds.toOnlyPlayer(player, pling, 0.7f, harmony[i]);
                     }
                     // Chords
                     if (i < chordsLen) {
                         for (float pitch : chords[i]) {
-                            player.playSoundToPlayer(harp, SoundCategory.PLAYERS, 0.6f, pitch);
+                            Sounds.toOnlyPlayer(player, harp, 0.6f, pitch);
                         }
                     }
                     // Bassline
                     if (i < bassLen) {
-                        player.playSoundToPlayer(bass, SoundCategory.PLAYERS, 0.8f, bassline[i]);
+                        Sounds.toOnlyPlayer(player, bass, 0.8f, bassline[i]);
                     }
                     Thread.sleep(275);
                 }
@@ -198,7 +173,7 @@ public class SamsaraNoteBlockTunes {
                 Thread.sleep(205);
 
                 // Finishing chime
-                player.playSoundToPlayer(chime, SoundCategory.PLAYERS, 1.0f, 1.3f);
+                Sounds.toOnlyPlayer(player, chime, 1.0f, 1.3f);
             } catch (Exception e) {
                 e.printStackTrace();
             }

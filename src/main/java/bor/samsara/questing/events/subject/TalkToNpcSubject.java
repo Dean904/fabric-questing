@@ -1,5 +1,6 @@
 package bor.samsara.questing.events.subject;
 
+import bor.samsara.questing.Sounds;
 import bor.samsara.questing.events.ActionSubscription;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
@@ -48,12 +49,12 @@ public class TalkToNpcSubject extends QuestEventSubject {
                 PlayerMongoClient.updatePlayer(playerState);
 
                 if (isAllComplete) {
-                    player.playSoundToPlayer(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                    Sounds.aroundPlayer(player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE);
                 } else if (progress.isComplete()) {
-                    player.playSoundToPlayer(SoundEvents.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.6f, 1.0f);
+                    Sounds.aroundPlayer(player, SoundEvents.ENTITY_PLAYER_LEVELUP);
                 } else {
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    player.playSoundToPlayer(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 1.0f, 1.9f);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
+                    Sounds.aroundPlayer(player, SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME);
                 }
             }
         }

@@ -1,6 +1,7 @@
 package bor.samsara.questing.events;
 
 import bor.samsara.questing.hearth.HearthStoneEventRegisters;
+import bor.samsara.questing.hearth.SoulStoneEventRegisters;
 import bor.samsara.questing.mongo.models.MongoQuest;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
@@ -13,6 +14,9 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
@@ -57,7 +61,7 @@ public class ItemStackFactory {
     }
 
     private static @NotNull ItemStack constructDecoratedItemStack(String itemDefinition, int count, World world) {
-        String itemName = extractItemName(itemDefinition);
+        String itemName = extractItemName(itemDefinition).toLowerCase();
         Identifier itemId = getTranslatedId(itemName);
         String componentString = extractComponentConfigs(itemDefinition);
         ItemStack reward = switch (itemName) {
@@ -65,6 +69,7 @@ public class ItemStackFactory {
             case "minecraft:filled_map" -> createMap(componentString, itemId);
             case "minecraft:bundle" -> createBundle(componentString, itemId, world);
             case "hearthstone" -> createHearthstone(componentString);
+            case "soulstone" -> SoulStoneEventRegisters.createSoulstoneItem(count);
             default -> new ItemStack(Registries.ITEM.get(itemId), count);
         };
 
