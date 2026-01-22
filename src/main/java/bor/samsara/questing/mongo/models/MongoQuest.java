@@ -2,9 +2,7 @@ package bor.samsara.questing.mongo.models;
 
 import org.bson.Document;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class MongoQuest {
 
@@ -12,11 +10,12 @@ public class MongoQuest {
     private String title;
     private String summary;
     private String description;
+    private String submissionTarget;
     private boolean providesQuestBook = true;
     private List<String> dialogue = new ArrayList<>();
     private List<Objective> objectives = new ArrayList<>();
     private MongoQuest.Reward reward;
-    private MongoQuest.Trigger trigger;
+    private EnumMap<EventTrigger, List<String>> triggers = new EnumMap<>(EventTrigger.class);
     private CategoryEnum category;
 
     public MongoQuest(String uuid) {
@@ -51,6 +50,14 @@ public class MongoQuest {
         this.description = description;
     }
 
+    public String getSubmissionTarget() {
+        return submissionTarget;
+    }
+
+    public void setSubmissionTarget(String submissionTarget) {
+        this.submissionTarget = submissionTarget;
+    }
+
     public boolean doesProvideQuestBook() {
         return providesQuestBook;
     }
@@ -83,12 +90,20 @@ public class MongoQuest {
         this.reward = reward;
     }
 
-    public Trigger getTrigger() {
-        return trigger;
+    public List<String> getTriggers(EventTrigger eventTrigger) {
+        return triggers.getOrDefault(eventTrigger, Collections.emptyList());
     }
 
-    public void setTrigger(Trigger trigger) {
-        this.trigger = trigger;
+    public boolean addTriggers(EventTrigger trigger, List<String> commands) {
+        triggers.putIfAbsent(trigger, new ArrayList<>());
+        return triggers.get(trigger).addAll(commands);
+    }
+
+    @Deprecated
+    public int getTriggerCount() {return triggers.size();}
+
+    public void setTriggers(EnumMap<EventTrigger, List<String>> triggers) {
+        this.triggers = triggers;
     }
 
     public CategoryEnum getCategory() {
@@ -265,50 +280,10 @@ public class MongoQuest {
         }
     }
 
-    public static class Trigger {
-        Event event; // e.g., "onStart", "onComplete"
-        List<String> commands; // e.g., "/give @p minecraft:diamond 1"
-
-        public Trigger() {}
-
-        public Trigger(Event event, List<String> commands) {
-            this.event = event;
-            this.commands = commands;
-        }
-
-        public enum Event {
-            ON_START,
-            ON_COMPLETE;
-        }
-
-        public Event getEvent() {
-            return event;
-        }
-
-        public void setEvent(Event event) {
-            this.event = event;
-        }
-
-        public List<String> getCommands() {
-            return commands;
-        }
-
-        public void setCommands(List<String> commands) {
-            this.commands = commands;
-        }
-
-        public Document toDocument() {
-            return new Document()
-                    .append("event", event.name())
-                    .append("commands", commands);
-        }
-
-        public static MongoQuest.Trigger fromDocument(Document document) {
-            MongoQuest.Trigger t = new MongoQuest.Trigger();
-            t.setEvent(Event.valueOf(document.getString("event")));
-            t.setCommands(document.getList("commands", String.class));
-            return t;
-        }
+    public enum EventTrigger {
+        ON_INIT,
+        ON_START, // TODO rename ON_BOOK_GRANT or similar
+        ON_COMPLETE
     }
 
     public Document toDocument() {
@@ -316,6 +291,12 @@ public class MongoQuest {
         if (objectives != null) {
             for (Objective obj : objectives) {
                 objectiveDocs.add(obj.toDocument());
+            }
+        }
+        Document triggersDoc = new Document();
+        if (triggers != null && !triggers.isEmpty()) {
+            for (EventTrigger event : triggers.keySet()) {
+                triggersDoc.append(event.name(), triggers.get(event));
             }
         }
         return new Document()
@@ -327,7 +308,7 @@ public class MongoQuest {
                 .append("dialogue", dialogue)
                 .append("objectives", objectiveDocs)
                 .append("reward", reward == null ? null : reward.toDocument())
-                .append("trigger", trigger == null ? null : trigger.toDocument())
+                .append("triggers", triggersDoc.isEmpty() ? null : triggersDoc)
                 .append("category", category == null ? CategoryEnum.MAIN : category.name());
     }
 
@@ -348,7 +329,23 @@ public class MongoQuest {
         }
         q.setObjectives(objectives);
         q.setReward(null == document.get("reward", Document.class) ? null : Reward.fromDocument(document.get("reward", Document.class)));
-        q.setTrigger(null == document.get("trigger", Document.class) ? null : Trigger.fromDocument(document.get("trigger", Document.class)));
+
+        // Parse triggers map
+        EnumMap<EventTrigger, List<String>> triggersMap = new EnumMap<>(EventTrigger.class);
+        Document triggersDoc = document.get("triggers", Document.class);
+        if (null != triggersDoc) {
+            for (String key : triggersDoc.keySet()) {
+                try {
+                    EventTrigger event = EventTrigger.valueOf(key);
+                    List<String> commands = triggersDoc.getList(key, String.class);
+                    triggersMap.put(event, commands);
+                } catch (IllegalArgumentException e) {
+                    // Skip invalid event types
+                }
+            }
+        }
+        q.setTriggers(triggersMap);
+
         q.setCategory(null == document.getString("category") ? CategoryEnum.MAIN : CategoryEnum.valueOf(document.getString("category")));
         return q;
     }
@@ -357,12 +354,12 @@ public class MongoQuest {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         MongoQuest that = (MongoQuest) o;
-        return providesQuestBook == that.providesQuestBook && Objects.equals(uuid, that.uuid) && Objects.equals(title, that.title) && Objects.equals(summary, that.summary) && Objects.equals(description, that.description) && Objects.equals(dialogue, that.dialogue) && Objects.equals(objectives, that.objectives) && Objects.equals(reward, that.reward) && Objects.equals(trigger, that.trigger) && category == that.category;
+        return providesQuestBook == that.providesQuestBook && Objects.equals(uuid, that.uuid) && Objects.equals(title, that.title) && Objects.equals(summary, that.summary) && Objects.equals(description, that.description) && Objects.equals(dialogue, that.dialogue) && Objects.equals(objectives, that.objectives) && Objects.equals(reward, that.reward) && Objects.equals(triggers, that.triggers) && category == that.category;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, title, summary, description, providesQuestBook, dialogue, objectives, reward, trigger, category);
+        return Objects.hash(uuid, title, summary, description, providesQuestBook, dialogue, objectives, reward, triggers, category);
     }
 
     @Override
@@ -376,7 +373,7 @@ public class MongoQuest {
                 ", dialogue=" + dialogue +
                 ", objectives=" + objectives +
                 ", reward=" + reward +
-                ", trigger=" + trigger +
+                ", triggers=" + triggers +
                 ", category=" + category +
                 '}';
     }

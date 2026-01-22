@@ -12,7 +12,9 @@ import com.mongodb.MongoWriteException;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.ai.goal.HoldInHandsGoal;
+import net.minecraft.entity.ai.goal.StopFollowingCustomerGoal;
+import net.minecraft.entity.ai.goal.WanderAroundFarGoal;
 import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -21,7 +23,10 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 import static bor.samsara.questing.events.ModEntities.QUEST_NPC;
@@ -159,11 +164,11 @@ public class WelcomingTraveler {
             qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
             qEnd.setReward(null);
             qEnd.setProvidesQuestBook(true);
-            qEnd.setTrigger(new MongoQuest.Trigger(MongoQuest.Trigger.Event.ON_START, List.of("/summon minecraft:lightning_bolt",
+            qEnd.addTriggers(MongoQuest.EventTrigger.ON_START, List.of("/summon minecraft:lightning_bolt",
                     "/particle minecraft:gust @npcLoc",
                     "/tp @npc ~ ~500 ~",
                     "/kill @npc",
-                    "/playsound minecraft:item.chorus_fruit.teleport player @p")));
+                    "/playsound minecraft:item.chorus_fruit.teleport player @p"));
             qEnd.setDialogue(List.of("Old §aBondred§r is at the §anearby village Inn§r just bellow SpawnHenge.", "Now go!"));
             QuestMongoClient.createQuest(qEnd);
         }

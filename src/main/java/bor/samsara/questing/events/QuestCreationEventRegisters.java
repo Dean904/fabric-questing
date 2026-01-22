@@ -194,11 +194,9 @@ public class QuestCreationEventRegisters {
                                                         })
                                                         .then(argument("command", StringArgumentType.greedyString())
                                                                 .executes(context -> {
-                                                                    MongoQuest.Trigger trigger = new MongoQuest.Trigger();
-                                                                    trigger.setEvent(MongoQuest.Trigger.Event.valueOf(getString(context, "eventTrigger").toUpperCase()));
-                                                                    trigger.setCommands(List.of(getString(context, "command")));
+                                                                    MongoQuest.EventTrigger eventTrigger = MongoQuest.EventTrigger.valueOf(getString(context, "eventTrigger").toUpperCase());
                                                                     MongoQuest quest = QuestMongoClient.getQuestByUuid(getString(context, "questUuid"));
-                                                                    quest.setTrigger(trigger);
+                                                                    quest.addTriggers(eventTrigger, List.of(getString(context, "command")));
                                                                     QuestMongoClient.updateQuest(quest);
                                                                     return 0;
                                                                 })
