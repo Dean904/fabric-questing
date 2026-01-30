@@ -102,7 +102,7 @@ public class MongoQuest {
     @Deprecated
     public int getTriggerCount() {return triggers.size();}
 
-    public void setTriggers(EnumMap<EventTrigger, List<String>> triggers) {
+    private void setTriggers(EnumMap<EventTrigger, List<String>> triggers) {
         this.triggers = triggers;
     }
 
@@ -118,8 +118,6 @@ public class MongoQuest {
         MAIN,
         SIDE,
         TUTORIAL,
-        EVENT,
-        WELCOME,
         END
     }
 
@@ -283,6 +281,7 @@ public class MongoQuest {
     public enum EventTrigger {
         ON_INIT,
         ON_START, // TODO rename ON_BOOK_GRANT or similar
+        ON_DIALOGUE_DONE, // Essentially same as on_book_grant but can happen every time
         ON_COMPLETE
     }
 
@@ -304,6 +303,7 @@ public class MongoQuest {
                 .append("title", title)
                 .append("summary", summary)
                 .append("description", description)
+                .append("submissionTarget", submissionTarget)
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
                 .append("objectives", objectiveDocs)
@@ -318,6 +318,7 @@ public class MongoQuest {
         q.setTitle(document.getString("title"));
         q.setDialogue(document.getList("dialogue", String.class));
         q.setSummary(document.getString("summary"));
+        q.setSubmissionTarget(document.getString("submissionTarget"));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
         List<Objective> objectives = new ArrayList<>();
@@ -335,13 +336,9 @@ public class MongoQuest {
         Document triggersDoc = document.get("triggers", Document.class);
         if (null != triggersDoc) {
             for (String key : triggersDoc.keySet()) {
-                try {
-                    EventTrigger event = EventTrigger.valueOf(key);
-                    List<String> commands = triggersDoc.getList(key, String.class);
-                    triggersMap.put(event, commands);
-                } catch (IllegalArgumentException e) {
-                    // Skip invalid event types
-                }
+                EventTrigger event = EventTrigger.valueOf(key);
+                List<String> commands = triggersDoc.getList(key, String.class);
+                triggersMap.put(event, commands);
             }
         }
         q.setTriggers(triggersMap);
@@ -354,12 +351,12 @@ public class MongoQuest {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         MongoQuest that = (MongoQuest) o;
-        return providesQuestBook == that.providesQuestBook && Objects.equals(uuid, that.uuid) && Objects.equals(title, that.title) && Objects.equals(summary, that.summary) && Objects.equals(description, that.description) && Objects.equals(dialogue, that.dialogue) && Objects.equals(objectives, that.objectives) && Objects.equals(reward, that.reward) && Objects.equals(triggers, that.triggers) && category == that.category;
+        return providesQuestBook == that.providesQuestBook && Objects.equals(uuid, that.uuid) && Objects.equals(title, that.title) && Objects.equals(summary, that.summary) && Objects.equals(description, that.description) && Objects.equals(submissionTarget, that.submissionTarget) && Objects.equals(dialogue, that.dialogue) && Objects.equals(objectives, that.objectives) && Objects.equals(reward, that.reward) && Objects.equals(triggers, that.triggers) && category == that.category;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, title, summary, description, providesQuestBook, dialogue, objectives, reward, triggers, category);
+        return Objects.hash(uuid, title, summary, description, submissionTarget, providesQuestBook, dialogue, objectives, reward, triggers, category);
     }
 
     @Override
@@ -369,6 +366,7 @@ public class MongoQuest {
                 ", title='" + title + '\'' +
                 ", summary='" + summary + '\'' +
                 ", description='" + description + '\'' +
+                ", submissionTarget='" + submissionTarget + '\'' +
                 ", providesQuestBook=" + providesQuestBook +
                 ", dialogue=" + dialogue +
                 ", objectives=" + objectives +

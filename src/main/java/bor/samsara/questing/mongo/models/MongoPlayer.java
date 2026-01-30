@@ -165,6 +165,12 @@ public class MongoPlayer {
             this.objectiveProgressions.addAll(quest.getObjectives().stream().map(ObjectiveProgress::new).toList());
         }
 
+        public boolean isObjectiveComplete(MongoQuest.Objective objective) {
+            // TODO add UUID to objective and put ObjectiveProgress in a map to easily lookup
+            //  ... take Objective out of Progress object? leave as KV pairs?
+            return false;
+        }
+
         public String getQuestUuid() {
             return questUuid;
         }
