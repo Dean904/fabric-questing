@@ -68,7 +68,6 @@ public class QuestLogBook {
         WrittenBookPageBuilder bookBuilder = new WrittenBookPageBuilder(INTRO_PAGES);
         bookBuilder.append(Text.literal(" ፠ Active Quests ፠").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
         bookBuilder.append(Text.literal("〰〰〰〰〰〰〰〰〰〰〰〰").styled(style -> style.withColor(Formatting.GOLD).withBold(true).withUnderline(false))).newLine();
-        //bookBuilder.append(Text.literal("Active Quests").styled(style -> style.withColor(Formatting.DARK_GRAY).withItalic(true))).newLine();
 
         List<MongoPlayer.ActiveQuestState> displayedQuests = player.getActiveQuestProgressionMap().values().stream()
                 .filter(q -> !q.areAllObjectivesComplete() || (q.areAllObjectivesComplete() && q.isSubmissionExpected())).toList();

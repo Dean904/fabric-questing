@@ -1,6 +1,5 @@
 package bor.samsara.questing.events;
 
-import bor.samsara.questing.SamsaraFabricQuesting;
 import bor.samsara.questing.mongo.NpcMongoClient;
 import bor.samsara.questing.mongo.PlayerMongoClient;
 import bor.samsara.questing.mongo.QuestMongoClient;
@@ -12,7 +11,9 @@ import com.mongodb.MongoWriteException;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.ai.goal.HoldInHandsGoal;
+import net.minecraft.entity.ai.goal.StopFollowingCustomerGoal;
+import net.minecraft.entity.ai.goal.WanderAroundFarGoal;
 import net.minecraft.entity.passive.WanderingTraderEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -21,7 +22,10 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 import static bor.samsara.questing.events.ModEntities.QUEST_NPC;
@@ -74,16 +78,7 @@ public class WelcomingTraveler {
                 NpcMongoClient.deleteNpc(dupe.getUuid());
                 NpcMongoClient.createNpc(mongoNpc);
             }
-            for (String questId : mongoNpc.getQuestIds()) {
-                if (!playerState.isQuestComplete(questId)) {
-                    MongoQuest quest = QuestMongoClient.getQuestByUuid(questId);
-                    playerState.setCurrentQuestForNpc(mongoNpc.getUuid(), questId);
-                    playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
-                    PlayerMongoClient.updatePlayer(playerState);
-                    SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
-                    break;
-                }
-            }
+            RightClickActionEventManager.progressPlayerToNextIncompleteQuest(player, playerState, mongoNpc);
 
             World world = player.getEntityWorld();
             WanderingTraderEntity trader = makeWanderingTraderEntity(world, player, mongoNpc.getUuid());
@@ -126,53 +121,42 @@ public class WelcomingTraveler {
     }
 
     private static List<String> getOrMakeWelcomingQuests() {
-        String travelerStartQuestTitle = "Traveler Greeting";
         String travelerFarewellQuestTitle = "Traveler Farewell";
-        MongoQuest qStart, qEnd, qFinish;
+        MongoQuest qBegin, qFinish;
 
         try {
-            qStart = QuestMongoClient.getQuestByTitle(travelerStartQuestTitle);
-        } catch (IllegalStateException e) {
-            log.info("Creating Welcoming Traveler quests {}", travelerStartQuestTitle);
-
-            qStart = new MongoQuest(UUID.randomUUID().toString());
-            qStart.setTitle(travelerStartQuestTitle);
-            qStart.setCategory(MongoQuest.CategoryEnum.WELCOME);
-            qStart.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "WELCOME", 5)));
-            qStart.setReward(new MongoQuest.Reward("minecraft:bundle{minecraft:copper_sword[enchants=unbreaking:3;smite:2;looting:1],1}", 1, 15));
-            qStart.setProvidesQuestBook(false);
-            qStart.setDialogue(List.of("What are you doing here?!?",
-                    "This must mean the cycle has started again.",
-                    "You must go talk to the §3old man in the village§r. But before you go..",
-                    "..it's §cdangerous§r to go alone! Take this.."));
-            QuestMongoClient.createQuest(qStart);
-        }
-
-        try {
-            qEnd = QuestMongoClient.getQuestByTitle(REQUIRED_WELCOMER_QUEST);
+            qBegin = QuestMongoClient.getQuestByTitle(REQUIRED_WELCOMER_QUEST);
         } catch (IllegalStateException e) {
             log.info("Creating Welcoming questr {}", REQUIRED_WELCOMER_QUEST);
 
-            qEnd = new MongoQuest(UUID.randomUUID().toString());
-            qEnd.setTitle(REQUIRED_WELCOMER_QUEST);
-            qEnd.setCategory(MongoQuest.CategoryEnum.WELCOME);
-            qEnd.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
-            qEnd.setReward(null);
-            qEnd.setProvidesQuestBook(true);
-            qEnd.setTrigger(new MongoQuest.Trigger(MongoQuest.Trigger.Event.ON_START, List.of("/summon minecraft:lightning_bolt",
+            qBegin = new MongoQuest(UUID.randomUUID().toString());
+            qBegin.setTitle(REQUIRED_WELCOMER_QUEST);
+            qBegin.setCategory(MongoQuest.CategoryEnum.MAIN);
+            qBegin.setObjectives(List.of(new MongoQuest.Objective(MongoQuest.Objective.Type.TALK, "Bondred", 1)));
+            qBegin.setSubmissionTarget("Bondred");
+            qBegin.setReward(new MongoQuest.Reward("minecraft:emerald", 2, 30));
+            qBegin.setProvidesQuestBook(true);
+            qBegin.addTriggers(MongoQuest.EventTrigger.ON_DIALOGUE_DONE, List.of(
+                    "/summon minecraft:lightning_bolt",
                     "/particle minecraft:gust @npcLoc",
                     "/tp @npc ~ ~500 ~",
                     "/kill @npc",
-                    "/playsound minecraft:item.chorus_fruit.teleport player @p")));
-            qEnd.setDialogue(List.of("Old §aBondred§r is at the §anearby village Inn§r just bellow SpawnHenge.", "Now go!"));
-            QuestMongoClient.createQuest(qEnd);
+                    "/playsound minecraft:item.chorus_fruit.teleport player @p"));
+            qBegin.addTriggers(MongoQuest.EventTrigger.ON_START, List.of(
+                    "/reward minecraft:bundle{minecraft:copper_sword[enchants=unbreaking:3;smite:2;looting:1],1} 1"));
+            qBegin.setDialogue(List.of("What are you doing here?!?",
+                    "This must mean the cycle has started again.",
+                    "You must go talk to the §3old man in the village§r at once.",
+                    "§aBondred§r is at §aThe Lions Pride Inn§r just bellow this ruin. But before you go...",
+                    "..it's §cdangerous§r to go alone! Take this."));
+
+            QuestMongoClient.createQuest(qBegin);
         }
 
         try {
             qFinish = QuestMongoClient.getQuestByTitle(travelerFarewellQuestTitle);
         } catch (IllegalStateException e) {
             log.info("Creating Welcoming Traveler quest {}", travelerFarewellQuestTitle);
-
             qFinish = new MongoQuest(UUID.randomUUID().toString());
             qFinish.setTitle(travelerFarewellQuestTitle);
             qFinish.setCategory(MongoQuest.CategoryEnum.END);
@@ -185,8 +169,7 @@ public class WelcomingTraveler {
             QuestMongoClient.createQuest(qFinish);
         }
 
-        return List.of(qStart.getUuid(), qEnd.getUuid(), qFinish.getUuid());
-
+        return List.of(qBegin.getUuid(), qFinish.getUuid());
     }
 
     private static WanderingTraderEntity makeWanderingTraderEntity(World world, ServerPlayerEntity player, String uuid) {

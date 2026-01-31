@@ -144,6 +144,7 @@ public class MongoPlayer {
         private final String questUuid;
         private final String questTitle;
         private final MongoQuest.CategoryEnum categoryEnum;
+        @Deprecated // rename to a simple rendersInQuestLog flag toggled on UI, default true
         private final boolean isSubmissionExpected;
         private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
         private boolean areAllObjectivesComplete = false;
@@ -160,8 +161,14 @@ public class MongoPlayer {
             this.questUuid = quest.getUuid();
             this.questTitle = quest.getTitle();
             this.categoryEnum = quest.getCategory();
-            this.isSubmissionExpected = quest.getReward() != null || quest.getTrigger() != null;
+            this.isSubmissionExpected = quest.getReward() != null || quest.getTriggerCount() != 0; // TODO refactor isSubmissionExpected, remove getTriggerCount
             this.objectiveProgressions.addAll(quest.getObjectives().stream().map(ObjectiveProgress::new).toList());
+        }
+
+        public boolean isObjectiveComplete(MongoQuest.Objective objective) {
+            // TODO add UUID to objective and put ObjectiveProgress in a map to easily lookup
+            //  ... take Objective out of Progress object? leave as KV pairs?
+            return false;
         }
 
         public String getQuestUuid() {

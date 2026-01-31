@@ -13,6 +13,9 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -29,13 +32,16 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -77,8 +83,9 @@ public class RightClickActionEventManager {
                 SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, hitResult, playerState, npcUuid);
 
                 if (!playerState.hasPlayerProgressedNpc(npcUuid) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
-                    MongoNpc npc = NpcMongoClient.getNpc(npcUuid);
-                    initializeFirstNpcQuestForPlayer(player, npc, playerState);
+                    log.debug("Registering {} to first quest for {}", playerState.getName(), entity.getStringifiedName());
+                    SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
+                    progressPlayerToNextIncompleteQuest(player, playerState, NpcMongoClient.getNpc(npcUuid));
                 }
 
                 String currentTargetQuestId = playerState.getCurrentQuestForNpc(npcUuid);
@@ -89,24 +96,19 @@ public class RightClickActionEventManager {
 
                     if (playerState.getActiveQuestProgressionMap().containsKey(currentTargetQuestId)) { // END quests will not have progress
                         MongoPlayer.ActiveQuestState activeQuestState = playerState.getProgressForQuest(currentTargetQuestId);
-                        handleCollectionSubmissionForCompletion(player, hand, quest, activeQuestState, playerState);
+                        handleCollectionSubmissionForCompletion(player, hand, quest, activeQuestState, playerState, entity.getStringifiedName());
 
-                        if (isQuestReadyToComplete(activeQuestState, quest)) {
-                            rewardPlayer(player, world, quest);
+                        if (activeQuestState.areAllObjectivesComplete() && isQuestCompletable(activeQuestState, quest, entity.getStringifiedName())) {
+                            rewardPlayer(player, quest);
                             playerState.markQuestComplete(quest.getUuid());
                             PlayerMongoClient.updatePlayer(playerState);
                             SamsaraFabricQuesting.doQuestSubject.processQuestCompletion(player, playerState, quest);
                             playOrchestra((ServerPlayerEntity) player); //playChaosEmerald(player);
-                            if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_COMPLETE == quest.getTrigger().getEvent()) {
-                                executeTriggerCommand(player, playerState, quest, entity);
-                            }
-                            return ActionResult.CONSUME;
+                            executeTriggerCommands(player, entity, quest.getTriggers(MongoQuest.EventTrigger.ON_COMPLETE));
                         }
 
                         if (!activeQuestState.hasReceivedQuestBook() && quest.doesProvideQuestBook() && playerDialogueOffsetMap.get(playerNpcKey).dialogueOffset + 1 == quest.getDialogue().size()) {
-                            if (null != quest.getTrigger() && MongoQuest.Trigger.Event.ON_START == quest.getTrigger().getEvent()) {
-                                executeTriggerCommand(player, playerState, quest, entity);
-                            }
+                            executeTriggerCommands(player, entity, quest.getTriggers(MongoQuest.EventTrigger.ON_START));
                             QuestProgressBook.open(player, quest, playerState);
                             activeQuestState.setReceivedQuestBook(true);
                             PlayerMongoClient.updatePlayer(playerState);
@@ -117,89 +119,96 @@ public class RightClickActionEventManager {
                     if (playerState.isQuestComplete(currentTargetQuestId)) { // END quests cannot be completed
                         log.debug("Progressing {} to next quest sequence of {}, '{}'", playerState.getName(), quest.getCategory(), quest.getTitle());
                         playerDialogueOffsetMap.put(playerNpcKey, new TemporalDialogueOffset(0, Instant.now()));
-                        quest = progressPlayerToNextIncompleteQuest(playerState, npcUuid);
+                        quest = progressPlayerToNextIncompleteQuest(player, playerState, NpcMongoClient.getNpc(npcUuid));
                     }
 
                     int dialogueOffset = playerDialogueOffsetMap.get(playerNpcKey).dialogueOffset;
-                    playerDialogueOffsetMap.put(playerNpcKey, new TemporalDialogueOffset((dialogueOffset + 1) % quest.getDialogue().size(), Instant.now()));
-
                     String dialogue = quest.getDialogue().get(dialogueOffset);
                     if (StringUtils.isNotBlank(dialogue)) {
+                        int nextDialogueOffset = (dialogueOffset + 1) % quest.getDialogue().size();
+                        playerDialogueOffsetMap.put(playerNpcKey, new TemporalDialogueOffset(nextDialogueOffset, Instant.now()));
                         player.sendMessage(Text.literal("[" + entity.getName().getString() + "] ").styled(style -> style.withColor(Formatting.YELLOW))
                                 .append(Text.literal(dialogue).styled(style -> style.withColor(Formatting.WHITE))), false);
                         Sounds.toOnlyPlayer((ServerPlayerEntity) player, SoundEvents.ITEM_BOOK_PAGE_TURN);
+                        if (nextDialogueOffset == 0) {
+                            player.removeStatusEffect(StatusEffects.SLOWNESS);
+                            executeTriggerCommands(player, entity, quest.getTriggers(MongoQuest.EventTrigger.ON_DIALOGUE_DONE));
+                        }
                     }
 
+                    return ActionResult.CONSUME;
                 }
-                return ActionResult.CONSUME;
             }
 
             return ActionResult.PASS;
         };
     }
 
-    private static boolean isQuestReadyToComplete(MongoPlayer.ActiveQuestState activeQuestState, MongoQuest quest) {
-        return activeQuestState.areAllObjectivesComplete() && (activeQuestState.hasReceivedQuestBook() || !quest.doesProvideQuestBook());
+    private static boolean isQuestCompletable(MongoPlayer.ActiveQuestState activeQuestState, MongoQuest quest, String npcName) {
+        return (activeQuestState.hasReceivedQuestBook() || !quest.doesProvideQuestBook())
+                && (StringUtils.isEmpty(quest.getSubmissionTarget()) || Strings.CI.equals(quest.getSubmissionTarget(), npcName));
     }
 
-    private static MongoQuest progressPlayerToNextIncompleteQuest(MongoPlayer playerState, String npcUuid) {
-        MongoNpc npc = NpcMongoClient.getNpc(npcUuid);
-        String nextQuestId = npc.getQuestIds().stream().filter(q -> !playerState.isQuestComplete(q)).findFirst().orElse(null);
+    public static MongoQuest progressPlayerToNextIncompleteQuest(PlayerEntity player, MongoPlayer playerState, MongoNpc npc) {
+        String nextQuestId = npc.getQuestIds().stream().filter(q -> !playerState.isQuestComplete(q)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("NPC '%s' is missing END quest.".formatted(npc.getName())));
         MongoQuest quest = QuestMongoClient.getQuestByUuid(nextQuestId);
         playerState.setCurrentQuestForNpc(npc.getUuid(), quest.getUuid());
-        for (MongoQuest.Objective talkObjective : quest.getObjectives().stream().filter(o -> o.getType() == MongoQuest.Objective.Type.TALK).toList()) {
-            MongoNpc targetNpc = NpcMongoClient.getNpcByName(talkObjective.getTarget());
-            playerState.setCurrentQuestForNpc(targetNpc.getUuid(), quest.getUuid());
-        }
         if (quest.getCategory() != MongoQuest.CategoryEnum.END) {
-            playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
+            if (StringUtils.isNotBlank(quest.getSubmissionTarget()) && !Strings.CI.equals(npc.getName(), quest.getSubmissionTarget())) {
+                // This will overwrite the current active quest for the submission target if it exists, natural quest progress resumes after completion 
+                MongoNpc targetNpc = NpcMongoClient.getNpcByName(quest.getSubmissionTarget());
+                playerState.setCurrentQuestForNpc(targetNpc.getUuid(), quest.getUuid());
+            }
+            if (playerState.getProgressForQuest(quest.getUuid()) == null)
+                playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
             SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 24000, 5, false, false));
         }
         PlayerMongoClient.updatePlayer(playerState);
         return quest;
     }
 
-    private static MongoQuest initializeFirstNpcQuestForPlayer(PlayerEntity player, MongoNpc npc, MongoPlayer playerState) {
-        String firstQuestId = npc.getQuestIds().getFirst();
-        MongoQuest firstQuest = QuestMongoClient.getQuestByUuid(firstQuestId);
-        playerState.setCurrentQuestForNpc(npc.getUuid(), firstQuestId);
-        if (firstQuest.getCategory() != MongoQuest.CategoryEnum.END) {
-            playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(firstQuest));
-            SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, firstQuest);
-        }
-        PlayerMongoClient.updatePlayer(playerState);
-
-        log.debug("Registering {} to first quest for {}", playerState.getName(), npc.getName());
-        SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
-        return firstQuest;
-    }
-
-    private static void executeTriggerCommand(PlayerEntity player, MongoPlayer playerState, MongoQuest quest, Entity npc) {
-        log.debug("Executing command for {} triggering quest {} completion: {}", playerState.getName(), quest.getTitle(), quest.getTrigger().getCommands());
-        CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
-        ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource();
-        for (String rawCommand : quest.getTrigger().getCommands()) {
-            Vec3d npcPos = npc.getEntityPos();
-            String command = rawCommand.replaceAll(" @npcLoc ", npcPos.x + " " + npcPos.y + 1 + " " + npcPos.z);
-            BlockPos playerPos = player.getBlockPos();
-            command = command.replaceAll(" @pLoc ", playerPos.getX() + " " + playerPos.getY() + 1 + " " + playerPos.getZ());
-            command = command.replaceAll(" @npc ", npc.getUuidAsString());
-            command = command.replaceAll(" @p ", player.getStringifiedName());
-            commandManager.parseAndExecute(commandSource, command);
+    private static void executeTriggerCommands(PlayerEntity player, Entity npc, List<String> commands) {
+        if (CollectionUtils.isNotEmpty(commands)) {
+            log.debug("Executing command for {} triggering quest: {}", player.getStringifiedName(), commands);
+            CommandManager commandManager = Objects.requireNonNull(player.getEntityWorld().getServer()).getCommandManager();
+            ServerCommandSource commandSource = player.getEntityWorld().getServer().getCommandSource();
+            for (String rawCommand : commands) {
+                if (rawCommand.startsWith("/reward")) {
+                    String[] rewardArgs = rawCommand.split(" ");
+                    ItemStack reward = ItemStackFactory.getRewardItemStack(rewardArgs[1], Integer.parseInt(rewardArgs[2]), player.getEntityWorld());
+                    player.giveOrDropStack(reward);
+                } else {
+                    String command = getScriptedString(player, npc, rawCommand);
+                    commandManager.parseAndExecute(commandSource, command);
+                }
+            }
         }
     }
 
-    private static void handleCollectionSubmissionForCompletion(PlayerEntity player, Hand hand, MongoQuest quest, MongoPlayer.ActiveQuestState activeQuestState, MongoPlayer playerState) {
+    private static @NotNull String getScriptedString(PlayerEntity player, Entity npc, String rawCommand) {
+        Vec3d npcPos = npc.getEntityPos();
+        BlockPos playerPos = player.getBlockPos();
+        String command = rawCommand.replaceAll("@npcLoc", npcPos.x + " " + npcPos.y + 1 + " " + npcPos.z);
+        command = command.replaceAll("@pLoc", playerPos.getX() + " " + playerPos.getY() + 1 + " " + playerPos.getZ());
+        command = command.replaceAll("@npc", npc.getUuidAsString());
+        command = command.replaceAll("@p", player.getStringifiedName());
+        return command;
+    }
+
+    private static void handleCollectionSubmissionForCompletion(PlayerEntity player, Hand hand, MongoQuest quest, MongoPlayer.ActiveQuestState activeQuestState, MongoPlayer playerState, String npcName) {
         AtomicBoolean wasUpdated = new AtomicBoolean(false);
         quest.getObjectives().forEach(objective -> {
-            if (MongoQuest.Objective.Type.COLLECT == objective.getType() && activeQuestState.hasReceivedQuestBook()) {
+            // TODO as isNotComplete check
+            if (MongoQuest.Objective.Type.COLLECT == objective.getType() && isQuestCompletable(activeQuestState, quest, npcName)) {
                 ItemStack stack = player.getStackInHand(hand);
-                if (stack.isEmpty() || !StringUtils.equalsIgnoreCase(stack.getItem().toString(), objective.getTarget()) || stack.getCount() < objective.getRequiredCount()) {
+                if (stack.isEmpty() || !Strings.CI.equals(stack.getItem().toString(), objective.getTarget()) || stack.getCount() < objective.getRequiredCount()) {
                     player.sendMessage(Text.literal("Right click with " + objective.getRequiredCount() + " [" + objective.getTarget() + "]!"), true);
                 } else {
                     stack.decrement(objective.getRequiredCount());
                     player.setStackInHand(hand, stack);
-                    activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), objective.getTarget())).findFirst().ifPresent(op -> {
+                    activeQuestState.getObjectiveProgressions().stream().filter(op -> Strings.CI.equalsAny(op.getObjective().getTarget(), objective.getTarget())).findFirst().ifPresent(op -> {
                         op.setComplete(true);
                         wasUpdated.set(true);
                         boolean isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
@@ -209,15 +218,15 @@ public class RightClickActionEventManager {
             }
         });
         if (wasUpdated.get()) {
-            PlayerMongoClient.updatePlayer(playerState);
+            PlayerMongoClient.updatePlayer(playerState); // TODO playerState param is needed JUST for the .update ... can we refactor to reduce params?
         }
     }
 
-    private static void rewardPlayer(PlayerEntity player, World world, MongoQuest quest) {
+    private static void rewardPlayer(PlayerEntity player, MongoQuest quest) {
         MongoQuest.Reward reward = quest.getReward();
         if (reward != null) {
             player.addExperience(reward.getXpValue());
-            if (!StringUtils.equalsAnyIgnoreCase(reward.getItemName(), "none", "na")) {
+            if (!Strings.CI.equalsAny(reward.getItemName(), "none", "na")) {
                 ItemStack stack = ItemStackFactory.getRewardItemStack(reward, player.getEntityWorld());
                 boolean added = player.giveItemStack(stack);
                 if (!added) {

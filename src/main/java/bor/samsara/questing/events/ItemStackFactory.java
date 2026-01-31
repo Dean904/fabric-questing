@@ -21,7 +21,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.world.World;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +57,10 @@ public class ItemStackFactory {
     public static @NotNull ItemStack getRewardItemStack(MongoQuest.Reward reward, World world) {
         String itemDefinition = reward.getItemName();
         int count = reward.getCount();
-        return constructDecoratedItemStack(itemDefinition, count, world);
+        return getRewardItemStack(itemDefinition, count, world);
     }
 
-    private static @NotNull ItemStack constructDecoratedItemStack(String itemDefinition, int count, World world) {
+    public static @NotNull ItemStack getRewardItemStack(String itemDefinition, int count, World world) {
         String itemName = extractItemName(itemDefinition).toLowerCase();
         Identifier itemId = getTranslatedId(itemName);
         String componentString = extractComponentConfigs(itemDefinition);
@@ -73,7 +73,7 @@ public class ItemStackFactory {
             default -> new ItemStack(Registries.ITEM.get(itemId), count);
         };
 
-        if (itemDefinition.contains("enchants=")) {
+        if (itemDefinition.contains("enchants=") && !Strings.CI.equals(itemName, "minecraft:bundle")) {
             String enchantmentString = itemDefinition.substring(itemDefinition.indexOf("[") + 1, itemDefinition.indexOf("]")).replace("enchants=", "");
             String[] enchantmentDefinitions = enchantmentString.split(";");
             for (String enchant : enchantmentDefinitions) {
@@ -108,7 +108,7 @@ public class ItemStackFactory {
     }
 
     private static @NotNull Identifier getTranslatedId(String itemName) {
-        if (StringUtils.equalsIgnoreCase("Hearthstone", itemName)) {
+        if (Strings.CI.equals("Hearthstone", itemName)) {
             return Identifier.ofVanilla("carrot_on_a_stick");
         }
         return Identifier.of(itemName);
@@ -141,7 +141,7 @@ public class ItemStackFactory {
         String[] contents = componentString.split(",");
         List<ItemStack> bundleItems = new ArrayList<>();
         for (int i = 0; i < contents.length; i += 2) {
-            bundleItems.add(constructDecoratedItemStack(contents[i], Integer.parseInt(contents[i + 1]), world));
+            bundleItems.add(getRewardItemStack(contents[i], Integer.parseInt(contents[i + 1]), world));
         }
         ItemStack bundle = new ItemStack(Registries.ITEM.get(translatedId), 1);
         bundle.set(DataComponentTypes.BUNDLE_CONTENTS, new BundleContentsComponent(bundleItems));

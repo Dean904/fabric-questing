@@ -149,22 +149,22 @@ public class SamsaraNoteBlockTunes {
                 for (int i = 0; i < maxLen; i++) {
                     // Melody
                     if (i < melodyLen) {
-                        Sounds.toOnlyPlayer(player, flute, 1.0f, melody[i]);
+                        Sounds.toOnlyPlayer(player, flute, 0.5f, melody[i]);
                     }
                     // Harmony (offset by 137ms)
                     if (i < harmonyLen) {
                         if (i == 0) Thread.sleep(137);
-                        Sounds.toOnlyPlayer(player, pling, 0.7f, harmony[i]);
+                        Sounds.toOnlyPlayer(player, pling, 0.3f, harmony[i]);
                     }
                     // Chords
                     if (i < chordsLen) {
                         for (float pitch : chords[i]) {
-                            Sounds.toOnlyPlayer(player, harp, 0.6f, pitch);
+                            Sounds.toOnlyPlayer(player, harp, 0.3f, pitch);
                         }
                     }
                     // Bassline
                     if (i < bassLen) {
-                        Sounds.toOnlyPlayer(player, bass, 0.8f, bassline[i]);
+                        Sounds.toOnlyPlayer(player, bass, 0.4f, bassline[i]);
                     }
                     Thread.sleep(275);
                 }
@@ -173,7 +173,7 @@ public class SamsaraNoteBlockTunes {
                 Thread.sleep(205);
 
                 // Finishing chime
-                Sounds.toOnlyPlayer(player, chime, 1.0f, 1.3f);
+                Sounds.toOnlyPlayer(player, chime, 0.7f, 1.3f);
             } catch (Exception e) {
                 e.printStackTrace();
             }
