@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -76,13 +75,13 @@ public class RightClickActionEventManager {
     public static @NotNull UseEntityCallback rightClickQuestNpc() {
         return (PlayerEntity player, World world, Hand hand, Entity entity, EntityHitResult hitResult) -> {
 
-            if (null != hitResult && hand == Hand.MAIN_HAND && entity.getCommandTags().contains(ModEntities.QUEST_NPC)) {
+            if (null != hitResult && hand == Hand.MAIN_HAND && entity.getCommandTags().contains(QuestNpcs.QUEST_NPC)) {
                 MongoPlayer playerState = PlayerMongoClient.getPlayerByUuid(player.getUuid().toString());
                 String npcUuid = entity.getUuid().toString();
                 entity.lookAt(EntityAnchorArgumentType.EntityAnchor.EYES, player.getEntityPos());
                 SamsaraFabricQuesting.talkToNpcSubject.talkedToQuestNpc(player, world, hand, hitResult, playerState, npcUuid);
 
-                if (!playerState.hasPlayerProgressedNpc(npcUuid) && entity.getCommandTags().contains(ModEntities.QUEST_START_NODE)) {
+                if (!playerState.hasPlayerProgressedNpc(npcUuid) && entity.getCommandTags().contains(QuestNpcs.QUEST_START_NODE)) {
                     log.debug("Registering {} to first quest for {}", playerState.getName(), entity.getStringifiedName());
                     SamsaraNoteBlockTunes.playChaosEmerald(player); //playZeldaPuzzleSolved(player);//playOrchestra(player);
                     progressPlayerToNextIncompleteQuest(player, playerState, NpcMongoClient.getNpc(npcUuid));

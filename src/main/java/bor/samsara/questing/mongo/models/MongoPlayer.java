@@ -144,24 +144,24 @@ public class MongoPlayer {
         private final String questUuid;
         private final String questTitle;
         private final MongoQuest.CategoryEnum categoryEnum;
-        @Deprecated // rename to a simple rendersInQuestLog flag toggled on UI, default true
-        private final boolean isSubmissionExpected;
+        private final boolean rendersInQuestLog;
+        //private Map<MongoQuest.Objective, ObjectiveProgress> objectiveProgressions = new HashMap<>();
         private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
         private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
 
-        public ActiveQuestState(String questUuid, String questTitle, MongoQuest.CategoryEnum categoryEnum, boolean isSubmissionExpected) {
+        public ActiveQuestState(String questUuid, String questTitle, MongoQuest.CategoryEnum categoryEnum, boolean rendersInQuestLog) {
             this.questUuid = questUuid;
             this.questTitle = questTitle;
             this.categoryEnum = categoryEnum;
-            this.isSubmissionExpected = isSubmissionExpected;
+            this.rendersInQuestLog = rendersInQuestLog;
         }
 
         public ActiveQuestState(MongoQuest quest) {
             this.questUuid = quest.getUuid();
             this.questTitle = quest.getTitle();
             this.categoryEnum = quest.getCategory();
-            this.isSubmissionExpected = quest.getReward() != null || quest.getTriggerCount() != 0; // TODO refactor isSubmissionExpected, remove getTriggerCount
+            this.rendersInQuestLog = quest.rendersInQuestLog();
             this.objectiveProgressions.addAll(quest.getObjectives().stream().map(ObjectiveProgress::new).toList());
         }
 
@@ -207,8 +207,8 @@ public class MongoPlayer {
             return categoryEnum;
         }
 
-        public boolean isSubmissionExpected() {
-            return isSubmissionExpected;
+        public boolean rendersInQuestLog() {
+            return rendersInQuestLog;
         }
 
         @Override
@@ -233,7 +233,7 @@ public class MongoPlayer {
             return new Document("questUuid", questUuid)
                     .append("questTitle", questTitle)
                     .append("category", categoryEnum.name())
-                    .append("isSubmissionExpected", isSubmissionExpected)
+                    .append("rendersInQuestLog", rendersInQuestLog)
                     .append("objectiveProgressions", objectiveProgressDocs)
                     .append("receivedQuestBook", receivedQuestBook)
                     .append("areAllObjectivesComplete", areAllObjectivesComplete);
@@ -244,7 +244,7 @@ public class MongoPlayer {
                     document.getString("questUuid"),
                     document.getString("questTitle"),
                     MongoQuest.CategoryEnum.valueOf(document.getString("category")),
-                    document.getBoolean("isSubmissionExpected")
+                    document.getBoolean("rendersInQuestLog")
             );
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
             q.setAreAllObjectivesComplete(document.getBoolean("areAllObjectivesComplete", false));
@@ -259,7 +259,7 @@ public class MongoPlayer {
         public static class ObjectiveProgress {
             private int currentCount = 0;
             private boolean isComplete = false;
-            private MongoQuest.Objective objective;
+            private MongoQuest.Objective objective; // TODO delete, move to map key
 
             public ObjectiveProgress(MongoQuest.Objective objective) {
                 this.objective = objective;

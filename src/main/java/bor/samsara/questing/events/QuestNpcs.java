@@ -24,13 +24,13 @@ import java.util.*;
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
 
 
-public class ModEntities {
+public class QuestNpcs {
 
     public static final Logger log = LoggerFactory.getLogger(MOD_ID);
     public static final String QUEST_NPC = "questNPC";
     public static final String QUEST_START_NODE = "questStartNode";
 
-    private ModEntities() {}
+    private QuestNpcs() {}
 
     public static int createQuestNPC(ServerCommandSource source, String name, String mobType, boolean isStartNode) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
@@ -53,7 +53,7 @@ public class ModEntities {
         return Command.SINGLE_SUCCESS;
     }
 
-    public static int spawnEntityFromUUID(ServerCommandSource source, String uuid) throws CommandSyntaxException {
+    public static int spawnMongoNpcFromUUID(ServerCommandSource source, String uuid) throws CommandSyntaxException {
         ServerPlayerEntity player = source.getPlayerOrThrow();
         World world = player.getEntityWorld();
 

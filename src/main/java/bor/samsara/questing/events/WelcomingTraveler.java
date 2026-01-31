@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
-import static bor.samsara.questing.events.ModEntities.QUEST_NPC;
+import static bor.samsara.questing.events.QuestNpcs.QUEST_NPC;
 
 public class WelcomingTraveler {
 

@@ -11,6 +11,7 @@ public class MongoQuest {
     private String summary;
     private String description;
     private String submissionTarget;
+    private boolean rendersInQuestLog = true;
     private boolean providesQuestBook = true;
     private List<String> dialogue = new ArrayList<>();
     private List<Objective> objectives = new ArrayList<>();
@@ -58,6 +59,14 @@ public class MongoQuest {
         this.submissionTarget = submissionTarget;
     }
 
+    public boolean rendersInQuestLog() {
+        return rendersInQuestLog;
+    }
+
+    public void setRendersInQuestLog(boolean rendersInQuestLog) {
+        this.rendersInQuestLog = rendersInQuestLog;
+    }
+
     public boolean doesProvideQuestBook() {
         return providesQuestBook;
     }
@@ -98,9 +107,6 @@ public class MongoQuest {
         triggers.putIfAbsent(trigger, new ArrayList<>());
         return triggers.get(trigger).addAll(commands);
     }
-
-    @Deprecated
-    public int getTriggerCount() {return triggers.size();}
 
     private void setTriggers(EnumMap<EventTrigger, List<String>> triggers) {
         this.triggers = triggers;
@@ -304,6 +310,7 @@ public class MongoQuest {
                 .append("summary", summary)
                 .append("description", description)
                 .append("submissionTarget", submissionTarget)
+                .append("rendersInQuestLog", rendersInQuestLog)
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
                 .append("objectives", objectiveDocs)
@@ -319,6 +326,7 @@ public class MongoQuest {
         q.setDialogue(document.getList("dialogue", String.class));
         q.setSummary(document.getString("summary"));
         q.setSubmissionTarget(document.getString("submissionTarget"));
+        q.setRendersInQuestLog(document.getBoolean("rendersInQuestLog", true));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
         List<Objective> objectives = new ArrayList<>();
