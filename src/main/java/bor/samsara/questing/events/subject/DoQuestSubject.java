@@ -8,6 +8,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -22,12 +23,12 @@ public class DoQuestSubject extends QuestEventSubject {
     }
 
     public void attach(ActionSubscription subscription, MongoPlayer playerState) {
-        if (playerState.isQuestComplete(subscription.getObjectiveTarget())) {
+        if (playerState.isQuestComplete(subscription.objectiveTarget())) {
             MongoPlayer.ActiveQuestState activeQuestState = markActiveQuestStateComplete(playerState, subscription);
             log.debug("Objective DO_QUEST {} already accomplished by player {}", activeQuestState.getQuestTitle(), playerState.getName());
         } else {
-            playerSubsriptionMap.putIfAbsent(subscription.getPlayerUuid(), new ArrayList<>());
-            playerSubsriptionMap.get(subscription.getPlayerUuid()).add(subscription);
+            playerSubsriptionMap.putIfAbsent(subscription.playerUuid(), new ArrayList<>());
+            playerSubsriptionMap.get(subscription.playerUuid()).add(subscription);
             log.debug("{} Attached for {} ", this.getClass().getSimpleName(), subscription);
         }
     }
@@ -40,7 +41,7 @@ public class DoQuestSubject extends QuestEventSubject {
         List<ActionSubscription> actionSubscriptions = playerSubsriptionMap.get(playerUuid);
         for (Iterator<ActionSubscription> ite = actionSubscriptions.iterator(); ite.hasNext(); ) {
             ActionSubscription subscription = ite.next();
-            if (StringUtils.equalsIgnoreCase(subscription.getObjectiveTarget(), completedQuest.getUuid())) {
+            if (Strings.CI.equals(subscription.objectiveTarget(), completedQuest.getUuid())) {
                 MongoPlayer.ActiveQuestState activeQuestState = markActiveQuestStateComplete(playerState, subscription);
                 log.debug("Marking DO_QUEST {} as completed by player {}", activeQuestState.getQuestTitle(), playerState.getName());
                 this.detach(subscription, ite);
@@ -51,12 +52,11 @@ public class DoQuestSubject extends QuestEventSubject {
     }
 
     private static MongoPlayer.@NotNull ActiveQuestState markActiveQuestStateComplete(MongoPlayer playerState, ActionSubscription subscription) {
-        MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.getQuestUuid());
-        MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getObjectiveProgressions().stream()
-                .filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), subscription.getObjectiveTarget())).findFirst().orElseThrow();
+        MongoPlayer.ActiveQuestState activeQuestState = playerState.getActiveQuestProgressionMap().get(subscription.questUuid());
+        MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getProgress(subscription.objectiveUuid());
         progress.setComplete(true);
         progress.setCurrentCount(1);
-        boolean isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
+        boolean isAllComplete = activeQuestState.getObjectiveProgressions().values().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
         activeQuestState.setAreAllObjectivesComplete(isAllComplete);
         PlayerMongoClient.updatePlayer(playerState);
         return activeQuestState;

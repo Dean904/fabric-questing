@@ -4,6 +4,7 @@ import net.minecraft.util.math.BlockPos;
 import org.bson.Document;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MongoPlayer {
 
@@ -145,8 +146,7 @@ public class MongoPlayer {
         private final String questTitle;
         private final MongoQuest.CategoryEnum categoryEnum;
         private final boolean rendersInQuestLog;
-        //private Map<MongoQuest.Objective, ObjectiveProgress> objectiveProgressions = new HashMap<>();
-        private List<ObjectiveProgress> objectiveProgressions = new ArrayList<>();
+        private Map<UUID, ObjectiveProgress> objectiveProgressions = new HashMap<>();
         private boolean areAllObjectivesComplete = false;
         private boolean receivedQuestBook = false;
 
@@ -162,13 +162,19 @@ public class MongoPlayer {
             this.questTitle = quest.getTitle();
             this.categoryEnum = quest.getCategory();
             this.rendersInQuestLog = quest.rendersInQuestLog();
-            this.objectiveProgressions.addAll(quest.getObjectives().stream().map(ObjectiveProgress::new).toList());
+            this.objectiveProgressions.putAll(quest.getObjectives().stream().collect(Collectors.toMap(MongoQuest.Objective::getUuid, ObjectiveProgress::new)));
         }
 
         public boolean isObjectiveComplete(MongoQuest.Objective objective) {
-            // TODO add UUID to objective and put ObjectiveProgress in a map to easily lookup
-            //  ... take Objective out of Progress object? leave as KV pairs?
-            return false;
+            return objectiveProgressions.get(objective.getUuid()).isComplete();
+        }
+
+        public ObjectiveProgress getProgress(MongoQuest.Objective objective) {
+            return objectiveProgressions.get(objective.getUuid());
+        }
+
+        public ObjectiveProgress getProgress(UUID objectiveUuid) {
+            return objectiveProgressions.get(objectiveUuid);
         }
 
         public String getQuestUuid() {
@@ -187,11 +193,11 @@ public class MongoPlayer {
             this.receivedQuestBook = receivedQuestBook;
         }
 
-        public List<ObjectiveProgress> getObjectiveProgressions() {
+        public Map<UUID, ObjectiveProgress> getObjectiveProgressions() {
             return objectiveProgressions;
         }
 
-        public void setObjectiveProgressions(List<ObjectiveProgress> objectiveProgressions) {
+        public void setObjectiveProgressions(Map<UUID, ObjectiveProgress> objectiveProgressions) {
             this.objectiveProgressions = objectiveProgressions;
         }
 
@@ -226,7 +232,7 @@ public class MongoPlayer {
         public Document toDocument() {
 
             List<Document> objectiveProgressDocs = new ArrayList<>();
-            for (ObjectiveProgress entry : objectiveProgressions) {
+            for (ObjectiveProgress entry : objectiveProgressions.values()) {
                 objectiveProgressDocs.add(entry.toDocument());
             }
 
@@ -248,9 +254,11 @@ public class MongoPlayer {
             );
             q.setReceivedQuestBook(document.getBoolean("receivedQuestBook", false));
             q.setAreAllObjectivesComplete(document.getBoolean("areAllObjectivesComplete", false));
-            List<ObjectiveProgress> progressions = new ArrayList<>();
-            for (Document objDoc : document.getList("objectiveProgressions", Document.class)) {
-                progressions.add(ObjectiveProgress.fromDocument(objDoc));
+            List<Document> progressList = document.getList("objectiveProgressions", Document.class);
+            Map<UUID, ObjectiveProgress> progressions = HashMap.newHashMap(progressList.size());
+            for (Document objDoc : progressList) {
+                ObjectiveProgress objectiveProgress = ObjectiveProgress.fromDocument(objDoc);
+                progressions.put(objectiveProgress.getObjective().getUuid(), objectiveProgress);
             }
             q.setObjectiveProgressions(progressions);
             return q;
@@ -259,7 +267,7 @@ public class MongoPlayer {
         public static class ObjectiveProgress {
             private int currentCount = 0;
             private boolean isComplete = false;
-            private MongoQuest.Objective objective; // TODO delete, move to map key
+            private MongoQuest.Objective objective;
 
             public ObjectiveProgress(MongoQuest.Objective objective) {
                 this.objective = objective;

@@ -131,7 +131,7 @@ public class SamsaraFabricQuesting implements ModInitializer {
 
     public static void attachQuestListenerToPertinentSubject(MongoPlayer playerState, MongoQuest quest) {
         for (MongoQuest.Objective objective : quest.getObjectives()) {
-            ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), quest.getUuid(), objective.getTarget());
+            ActionSubscription actionSubscription = new ActionSubscription(playerState.getUuid(), quest.getUuid(), objective.getTarget(), objective.getUuid());
             MongoQuest.Objective.Type objectiveType = objective.getType();
             switch (objectiveType) {
                 case KILL -> SamsaraFabricQuesting.killSubject.attach(actionSubscription);

@@ -36,7 +36,7 @@ public class PlayerInventoryMixin {
     @Inject(method = "addStack(ILnet/minecraft/item/ItemStack;)I", at = @At("TAIL"))
     private void onAddStack(int slot, ItemStack stack, CallbackInfoReturnable<Integer> cir) {
 
-        SamsaraFabricQuesting.collectItemSubject.processAddStack(player, slot, stack);
+        SamsaraFabricQuesting.collectItemSubject.processAddStackFromGround(player, slot, stack);
 
         if (stack.isOf(Items.ROTTEN_FLESH)) {
             log.info("ZombieFlesh added to inventory of {}", player.getName());

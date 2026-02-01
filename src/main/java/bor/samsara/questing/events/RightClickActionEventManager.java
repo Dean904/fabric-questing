@@ -107,7 +107,7 @@ public class RightClickActionEventManager {
                         }
 
                         if (!activeQuestState.hasReceivedQuestBook() && quest.doesProvideQuestBook() && playerDialogueOffsetMap.get(playerNpcKey).dialogueOffset + 1 == quest.getDialogue().size()) {
-                            executeTriggerCommands(player, entity, quest.getTriggers(MongoQuest.EventTrigger.ON_START));
+                            executeTriggerCommands(player, entity, quest.getTriggers(MongoQuest.EventTrigger.ON_BOOK_GRANT));
                             QuestProgressBook.open(player, quest, playerState);
                             activeQuestState.setReceivedQuestBook(true);
                             PlayerMongoClient.updatePlayer(playerState);
@@ -162,7 +162,7 @@ public class RightClickActionEventManager {
             if (playerState.getProgressForQuest(quest.getUuid()) == null)
                 playerState.attachActiveQuestState(new MongoPlayer.ActiveQuestState(quest));
             SamsaraFabricQuesting.attachQuestListenerToPertinentSubject(playerState, quest);
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 24000, 5, false, false));
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 24000, 4, false, false));
         }
         PlayerMongoClient.updatePlayer(playerState);
         return quest;
@@ -199,20 +199,18 @@ public class RightClickActionEventManager {
     private static void handleCollectionSubmissionForCompletion(PlayerEntity player, Hand hand, MongoQuest quest, MongoPlayer.ActiveQuestState activeQuestState, MongoPlayer playerState, String npcName) {
         AtomicBoolean wasUpdated = new AtomicBoolean(false);
         quest.getObjectives().forEach(objective -> {
-            // TODO as isNotComplete check
-            if (MongoQuest.Objective.Type.COLLECT == objective.getType() && isQuestCompletable(activeQuestState, quest, npcName)) {
+            if (MongoQuest.Objective.Type.COLLECT == objective.getType() && !activeQuestState.isObjectiveComplete(objective) && isQuestCompletable(activeQuestState, quest, npcName)) {
                 ItemStack stack = player.getStackInHand(hand);
                 if (stack.isEmpty() || !Strings.CI.equals(stack.getItem().toString(), objective.getTarget()) || stack.getCount() < objective.getRequiredCount()) {
                     player.sendMessage(Text.literal("Right click with " + objective.getRequiredCount() + " [" + objective.getTarget() + "]!"), true);
                 } else {
                     stack.decrement(objective.getRequiredCount());
                     player.setStackInHand(hand, stack);
-                    activeQuestState.getObjectiveProgressions().stream().filter(op -> Strings.CI.equalsAny(op.getObjective().getTarget(), objective.getTarget())).findFirst().ifPresent(op -> {
-                        op.setComplete(true);
-                        wasUpdated.set(true);
-                        boolean isAllComplete = activeQuestState.getObjectiveProgressions().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
-                        activeQuestState.setAreAllObjectivesComplete(isAllComplete);
-                    });
+                    MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getProgress(objective);
+                    progress.setComplete(true);
+                    boolean isAllComplete = activeQuestState.getObjectiveProgressions().values().stream().allMatch(MongoPlayer.ActiveQuestState.ObjectiveProgress::isComplete);
+                    activeQuestState.setAreAllObjectivesComplete(isAllComplete);
+                    wasUpdated.set(true);
                 }
             }
         });

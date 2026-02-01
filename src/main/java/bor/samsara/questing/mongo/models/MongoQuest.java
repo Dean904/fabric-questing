@@ -128,16 +128,24 @@ public class MongoQuest {
     }
 
     public static class Objective {
+        private final UUID uuid;
         private MongoQuest.Objective.Type type; // e.g., "kill"
         private String target; // e.g., "zombie"
         private int requiredCount; // e.g., 5
 
-        public Objective() {}
+        public Objective(UUID uuid) {
+            this.uuid = uuid;
+        }
 
         public Objective(MongoQuest.Objective.Type type, String target, int requiredCount) {
+            this.uuid = UUID.randomUUID();
             this.type = type;
             this.target = target;
             this.requiredCount = requiredCount;
+        }
+
+        public UUID getUuid() {
+            return uuid;
         }
 
         public MongoQuest.Objective.Type getType() {
@@ -175,13 +183,14 @@ public class MongoQuest {
 
         public Document toDocument() {
             return new Document()
+                    .append("uuid", uuid.toString())
                     .append("type", type.name())
                     .append("target", target)
                     .append("requiredCount", requiredCount);
         }
 
         public static MongoQuest.Objective fromDocument(Document document) {
-            MongoQuest.Objective o = new MongoQuest.Objective();
+            MongoQuest.Objective o = new MongoQuest.Objective(UUID.fromString(document.getString("uuid")));
             o.setType(MongoQuest.Objective.Type.valueOf(document.getString("type")));
             o.setTarget(document.getString("target"));
             o.setRequiredCount(document.getInteger("requiredCount"));
@@ -286,7 +295,7 @@ public class MongoQuest {
 
     public enum EventTrigger {
         ON_INIT,
-        ON_START, // TODO rename ON_BOOK_GRANT or similar
+        ON_BOOK_GRANT,
         ON_DIALOGUE_DONE, // Essentially same as on_book_grant but can happen every time
         ON_COMPLETE
     }
