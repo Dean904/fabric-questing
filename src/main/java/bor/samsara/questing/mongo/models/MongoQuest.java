@@ -11,6 +11,7 @@ public class MongoQuest {
     private String summary;
     private String description;
     private String submissionTarget;
+    private boolean rendersInQuestLog = true;
     private boolean providesQuestBook = true;
     private List<String> dialogue = new ArrayList<>();
     private List<Objective> objectives = new ArrayList<>();
@@ -58,6 +59,14 @@ public class MongoQuest {
         this.submissionTarget = submissionTarget;
     }
 
+    public boolean rendersInQuestLog() {
+        return rendersInQuestLog;
+    }
+
+    public void setRendersInQuestLog(boolean rendersInQuestLog) {
+        this.rendersInQuestLog = rendersInQuestLog;
+    }
+
     public boolean doesProvideQuestBook() {
         return providesQuestBook;
     }
@@ -99,9 +108,6 @@ public class MongoQuest {
         return triggers.get(trigger).addAll(commands);
     }
 
-    @Deprecated
-    public int getTriggerCount() {return triggers.size();}
-
     private void setTriggers(EnumMap<EventTrigger, List<String>> triggers) {
         this.triggers = triggers;
     }
@@ -122,16 +128,24 @@ public class MongoQuest {
     }
 
     public static class Objective {
+        private final UUID uuid;
         private MongoQuest.Objective.Type type; // e.g., "kill"
         private String target; // e.g., "zombie"
         private int requiredCount; // e.g., 5
 
-        public Objective() {}
+        public Objective(UUID uuid) {
+            this.uuid = uuid;
+        }
 
         public Objective(MongoQuest.Objective.Type type, String target, int requiredCount) {
+            this.uuid = UUID.randomUUID();
             this.type = type;
             this.target = target;
             this.requiredCount = requiredCount;
+        }
+
+        public UUID getUuid() {
+            return uuid;
         }
 
         public MongoQuest.Objective.Type getType() {
@@ -169,13 +183,14 @@ public class MongoQuest {
 
         public Document toDocument() {
             return new Document()
+                    .append("uuid", uuid.toString())
                     .append("type", type.name())
                     .append("target", target)
                     .append("requiredCount", requiredCount);
         }
 
         public static MongoQuest.Objective fromDocument(Document document) {
-            MongoQuest.Objective o = new MongoQuest.Objective();
+            MongoQuest.Objective o = new MongoQuest.Objective(UUID.fromString(document.getString("uuid")));
             o.setType(MongoQuest.Objective.Type.valueOf(document.getString("type")));
             o.setTarget(document.getString("target"));
             o.setRequiredCount(document.getInteger("requiredCount"));
@@ -280,7 +295,7 @@ public class MongoQuest {
 
     public enum EventTrigger {
         ON_INIT,
-        ON_START, // TODO rename ON_BOOK_GRANT or similar
+        ON_BOOK_GRANT,
         ON_DIALOGUE_DONE, // Essentially same as on_book_grant but can happen every time
         ON_COMPLETE
     }
@@ -304,6 +319,7 @@ public class MongoQuest {
                 .append("summary", summary)
                 .append("description", description)
                 .append("submissionTarget", submissionTarget)
+                .append("rendersInQuestLog", rendersInQuestLog)
                 .append("providesQuestBook", providesQuestBook)
                 .append("dialogue", dialogue)
                 .append("objectives", objectiveDocs)
@@ -319,6 +335,7 @@ public class MongoQuest {
         q.setDialogue(document.getList("dialogue", String.class));
         q.setSummary(document.getString("summary"));
         q.setSubmissionTarget(document.getString("submissionTarget"));
+        q.setRendersInQuestLog(document.getBoolean("rendersInQuestLog", true));
         q.setProvidesQuestBook(document.getBoolean("providesQuestBook", true));
         q.setDescription(document.getString("description"));
         List<Objective> objectives = new ArrayList<>();

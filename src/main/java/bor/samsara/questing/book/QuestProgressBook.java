@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +74,8 @@ public class QuestProgressBook {
         for (MongoQuest.Objective objective : quest.getObjectives()) {
             int current = objective.getRequiredCount();
             if (activeQuestState != null) {
-                Optional<MongoPlayer.ActiveQuestState.ObjectiveProgress> progress = activeQuestState.getObjectiveProgressions().stream().filter(op -> StringUtils.equalsAnyIgnoreCase(op.getObjective().getTarget(), objective.getTarget())).findFirst();
-                current = progress.isPresent() ? progress.get().getCurrentCount() : -1;
+                MongoPlayer.ActiveQuestState.ObjectiveProgress progress = activeQuestState.getProgress(objective);
+                current = progress.getCurrentCount();
             }
             int required = objective.getRequiredCount();
 
@@ -93,13 +94,13 @@ public class QuestProgressBook {
 
         // Rewards
         MongoQuest.Reward reward = quest.getReward();
-        if (reward != null && !StringUtils.equalsAnyIgnoreCase(reward.getItemName(), "none", "na")) {
+        if (reward != null && !Strings.CI.equalsAny(reward.getItemName(), "none", "na")) {
             bookBuilder.append(Text.literal("Reward:").formatted(Formatting.BOLD, Formatting.DARK_GREEN)).newLine()
                     .append(Text.literal(formatMinecraftString(reward.getItemName().toLowerCase()) + " x " + reward.getCount()).formatted(Formatting.GREEN)).newLine()
                     .append(Text.literal(reward.getXpValue() + " XP").formatted(Formatting.GREEN));
         }
 
-        if (activeQuestState != null && activeQuestState.getObjectiveProgressions().stream().noneMatch(op -> op.getCurrentCount() < op.getObjective().getRequiredCount())) {
+        if (activeQuestState != null && activeQuestState.getObjectiveProgressions().values().stream().noneMatch(op -> op.getCurrentCount() < op.getObjective().getRequiredCount())) {
             bookBuilder.newLine().append(Text.literal("[Return to NPC]").formatted(Formatting.LIGHT_PURPLE, Formatting.ITALIC));
         } else if (activeQuestState == null) {
             bookBuilder.newLine().append(Text.literal("[Complete]").formatted(Formatting.DARK_GREEN, Formatting.BOLD));

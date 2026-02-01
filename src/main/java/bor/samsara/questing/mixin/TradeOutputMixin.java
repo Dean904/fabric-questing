@@ -16,7 +16,7 @@ public class TradeOutputMixin {
     private void samsara_onTradeComplete(PlayerEntity player, ItemStack stack, CallbackInfo ci) {
         // Notify collect subject that player obtained an item (trade output)
         if (player != null && stack != null && !stack.isEmpty()) {
-            SamsaraFabricQuesting.collectItemSubject.processPlayerObtainedStack(player, stack);
+            SamsaraFabricQuesting.collectItemSubject.processPlayerClickedUpStack(player, stack);
         }
     }
 

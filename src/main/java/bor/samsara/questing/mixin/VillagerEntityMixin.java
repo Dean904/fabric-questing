@@ -1,6 +1,6 @@
 package bor.samsara.questing.mixin;
 
-import bor.samsara.questing.events.ModEntities;
+import bor.samsara.questing.events.QuestNpcs;
 import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -25,7 +25,7 @@ public class VillagerEntityMixin {
     @Inject(method = "onStruckByLightning", at = @At("HEAD"), cancellable = true)
     private void samsaraPreventQuestNpcWitchTransformation(ServerWorld world, LightningEntity lightning, CallbackInfo ci) {
         VillagerEntity villager = (VillagerEntity) (Object) this;
-        if (villager.getCommandTags().contains(ModEntities.QUEST_NPC)) {
+        if (villager.getCommandTags().contains(QuestNpcs.QUEST_NPC)) {
             log.info("Preventing quest NPC {} from transforming into a witch due to lightning strike.", villager.getName().getString());
             ci.cancel();
         }

@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static bor.samsara.questing.SamsaraFabricQuesting.MOD_ID;
-import static bor.samsara.questing.events.ModEntities.QUEST_NPC;
+import static bor.samsara.questing.events.QuestNpcs.QUEST_NPC;
 
 public class WelcomingTraveler {
 
@@ -142,7 +142,7 @@ public class WelcomingTraveler {
                     "/tp @npc ~ ~500 ~",
                     "/kill @npc",
                     "/playsound minecraft:item.chorus_fruit.teleport player @p"));
-            qBegin.addTriggers(MongoQuest.EventTrigger.ON_START, List.of(
+            qBegin.addTriggers(MongoQuest.EventTrigger.ON_BOOK_GRANT, List.of(
                     "/reward minecraft:bundle{minecraft:copper_sword[enchants=unbreaking:3;smite:2;looting:1],1} 1"));
             qBegin.setDialogue(List.of("What are you doing here?!?",
                     "This must mean the cycle has started again.",

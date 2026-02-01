@@ -152,7 +152,7 @@ public class QuestCreationEventRegisters {
                                                         .executes(ctx -> {
                                                             boolean isStart = BoolArgumentType.getBool(ctx, "isStartNode");
                                                             String name = StringArgumentType.getString(ctx, "name");
-                                                            return ModEntities.createQuestNPC(ctx.getSource(), name, "villager", isStart);
+                                                            return QuestNpcs.createQuestNPC(ctx.getSource(), name, "villager", isStart);
                                                         })
                                                 )
                                         )
@@ -161,7 +161,7 @@ public class QuestCreationEventRegisters {
                                                 .executes(ctx -> {
                                                     // no bool provided → default false
                                                     String name = StringArgumentType.getString(ctx, "name");
-                                                    return ModEntities.createQuestNPC(ctx.getSource(), name, "villager", /*isStart=*/false);
+                                                    return QuestNpcs.createQuestNPC(ctx.getSource(), name, "villager", /*isStart=*/false);
                                                 })
                                         )
                                 )
@@ -171,7 +171,7 @@ public class QuestCreationEventRegisters {
                                         .then(argument("uuid", StringArgumentType.greedyString())
                                                 .executes(ctx -> {
                                                     String uuid = StringArgumentType.getString(ctx, "uuid");
-                                                    return ModEntities.spawnEntityFromUUID(ctx.getSource(), uuid);
+                                                    return QuestNpcs.spawnMongoNpcFromUUID(ctx.getSource(), uuid);
                                                 })
                                         )
                                 ))
