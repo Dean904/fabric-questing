@@ -127,7 +127,7 @@ public class WelcomingTraveler {
         try {
             qBegin = QuestMongoClient.getQuestByTitle(REQUIRED_WELCOMER_QUEST);
         } catch (IllegalStateException e) {
-            log.info("Creating Welcoming questr {}", REQUIRED_WELCOMER_QUEST);
+            log.info("Creating Welcoming quest {}", REQUIRED_WELCOMER_QUEST);
 
             qBegin = new MongoQuest(UUID.randomUUID().toString());
             qBegin.setTitle(REQUIRED_WELCOMER_QUEST);

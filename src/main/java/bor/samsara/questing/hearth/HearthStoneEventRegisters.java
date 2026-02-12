@@ -21,13 +21,9 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Rarity;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
@@ -87,7 +83,10 @@ public class HearthStoneEventRegisters extends WarpStone {
     public static @NotNull ItemStack createHearthstoneItem(String name, GlobalPos globalPos) {
         ItemStack hearthstone = new ItemStack(Items.CARROT_ON_A_STICK);
         hearthstone.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Hearthstone"));
-        hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(Text.literal("Right click to teleport to " + name))));
+        hearthstone.set(DataComponentTypes.LORE, new LoreComponent(List.of(
+                Text.literal("8 charges remaining.").styled(s -> s.withColor(0xd700fd)),
+                Text.literal("Right click to teleport to " + name),
+                Text.literal("Charge with Ender Pearls in offhand.").styled(s -> s.withColor(Colors.GRAY)))));
         hearthstone.set(DataComponentTypes.RARITY, Rarity.RARE);
         hearthstone.set(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         hearthstone.set(DataComponentTypes.MAX_STACK_SIZE, 1);
@@ -97,21 +96,42 @@ public class HearthStoneEventRegisters extends WarpStone {
         NbtCompound nbtCompound = new NbtCompound();
         nbtCompound.putLong(WARP_LOCATION, globalPos.pos().asLong());
         nbtCompound.putString(WARP_DIMENSION, globalPos.dimension().getValue().toString());
+        nbtCompound.putInt(STONE_CHARGES, 8);
         hearthstone.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbtCompound));
 
         return hearthstone;
     }
 
+
     public static @NotNull UseItemCallback useHearthstone() {
         return (player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
-            if (stack.isOf(Items.CARROT_ON_A_STICK) && stack.getName().getString().equals("Hearthstone") && hasHearthstoneNbt(stack)) {
+
+            if (hand == Hand.OFF_HAND && stack.isOf(Items.ENDER_PEARL) && isHearthstone(player.getMainHandStack())) {
+                return ActionResult.CONSUME;
+            }
+
+            if (isHearthstone(stack)) {
+
+                if (player.getOffHandStack().isOf(Items.ENDER_PEARL)) {
+                    Sounds.toOnlyPlayer((ServerPlayerEntity) player, SoundEvents.BLOCK_BEACON_POWER_SELECT);
+                    player.getOffHandStack().decrement(1);
+                    adjustCharges(stack, +1);
+                    return ActionResult.CONSUME;
+                }
+
                 if (player.getMovement().equals(Vec3d.ZERO)) {
                     ItemCooldownManager itemCooldownManager = player.getItemCooldownManager();
+                    if (!isCharged(stack)) {
+                        player.sendMessage(Text.literal("Zero charges remaining. Add more with Ender Pearls.").styled(style -> style.withColor(Formatting.RED)), true);
+                        Sounds.toOnlyPlayer((ServerPlayerEntity) player, SoundEvents.ITEM_WOLF_ARMOR_REPAIR);
+                        return ActionResult.CONSUME;
+                    }
                     if (!isTeleporting(player.getUuidAsString()) && !itemCooldownManager.isCoolingDown(stack)) {
                         player.sendMessage(Text.of("💫 Whoosh!"), true);
                         itemCooldownManager.set(HEARTHSTONE, 30 * 20); // 30 * 20 ticks per second = 30 seconds cooldown
                         Future<?> task = executor.submit(createCastTask(player, world, stack));
+                        adjustCharges(stack, -1);
                         playerTeleportTasks.put(player.getUuidAsString(), new TeleportTask(task, player.getEntityPos()));
                     }
                 } else {
@@ -121,6 +141,10 @@ public class HearthStoneEventRegisters extends WarpStone {
             }
             return ActionResult.PASS;
         };
+    }
+
+    private static boolean isHearthstone(ItemStack stack) {
+        return stack.isOf(Items.CARROT_ON_A_STICK) && stack.getName().getString().equals("Hearthstone") && hasHearthstoneNbt(stack);
     }
 
     private static boolean hasHearthstoneNbt(ItemStack stack) {

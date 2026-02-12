@@ -1,6 +1,9 @@
 This isnt really meant for anyone else to use; but if my resume brought you here - check out how awesome this is.
 SamasaraFabricQuesting is the 'main' class.
 
+* Goal: Inspect Other Quest Plugin For Objectives
+  * https://betonquest.org/RELEASE/Documentation/Scripting/Building-Blocks/Objectives-List/
+
 * Event Hooks on Wiki @see https://wiki.fabricmc.net/tutorial:event_index
 * Modify Block Data
     * https://wiki.fabricmc.net/tutorial:blockentity_modify_data
@@ -12,8 +15,10 @@ https://wiki.fabricmc.net/tutorial:datagen_setup
 https://minecraft.fandom.com/wiki/Tutorials/Creating_a_resource_pack
 https://minecraft.wiki/w/Data_component_format#use_cooldown
 
+https://minecraftitemids.com/color-codes
 https://text.datapackhub.net/
 https://mcstacker.net/murals/
+
 
 Resource Pack Ideas:
 
