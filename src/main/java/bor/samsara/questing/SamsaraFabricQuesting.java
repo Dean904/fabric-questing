@@ -16,16 +16,20 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,11 +92,13 @@ public class SamsaraFabricQuesting implements ModInitializer {
         UseItemCallback.EVENT.register(QuestCreationEventRegisters.updateQuestLogWhenOpened());
         UseBlockCallback.EVENT.register(RightClickActionEventManager.evaporateBucketInNether());
 
-        ServerLivingEntityEvents.AFTER_DEATH.register(SoulStoneEventRegisters.saveDeathLocation());
+        ServerLivingEntityEvents.ALLOW_DEATH.register(SoulStoneEventRegisters.cacheSoulstoneBeforeDeath());
+        ServerPlayerEvents.AFTER_RESPAWN.register(SoulStoneEventRegisters.handleAfterRespawn());
         CommandRegistrationCallback.EVENT.register(SoulStoneEventRegisters.createSoulstone());
         UseItemCallback.EVENT.register(SoulStoneEventRegisters.useSoulstone());
         UseItemCallback.EVENT.register(HearthStoneEventRegisters.useHearthstone());
         CommandRegistrationCallback.EVENT.register(HearthStoneEventRegisters.createHearthstone());
+
     }
 
 
